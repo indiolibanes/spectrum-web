@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget,QApplication,QGraphicsOpacityEffect
 from PyQt5.QtCore import Qt,QTimer,pyqtSignal,QPropertyAnimation,QEasingCurve,QRectF,QPointF,QElapsedTimer
 from PyQt5.QtGui import QPainter,QColor,QPen,QFont,QPainterPath
 from appearance import palette_for
-from brand_assets import logo_pixmap
+from brand_assets import program_logo_pixmap
 from version import __version__
 
 class AnimatedSplashScreen(QWidget):
@@ -19,7 +19,7 @@ class AnimatedSplashScreen(QWidget):
         self.elapsed=QElapsedTimer();self._ready=False;self.loading_phase=0.0;self.display_progress=0.0
         self.timer=QTimer(self);self.timer.timeout.connect(self.advance_animation)
         self.opacity_effect=QGraphicsOpacityEffect(self);self.setGraphicsEffect(self.opacity_effect);self.opacity_effect.setOpacity(1)
-        self.logos=[logo_pixmap(n,100,28) for n in ('senai','arauco')]
+        self.mark=program_logo_pixmap(56)
     def start_animation(self):
         self.elapsed.start();self.show();self.timer.start(25)
     def advance_animation(self):
@@ -49,7 +49,8 @@ class AnimatedSplashScreen(QWidget):
         p.setBrush(QColor(c['soft']));p.drawRect(QRectF(450,0,450,520))
         def text(x,y,value,size,key='text'):
             font=QFont('Segoe UI');font.setPixelSize(size);p.setFont(font);p.setPen(QColor(c[key]));p.drawText(QPointF(x,y),value)
-        text(45,68,'SCADA',27);text(45,89,'SPECTRUMLAB PRO · '+__version__,10,'muted')
+        p.drawPixmap(45,26,self.mark)
+        text(114,60,'SCADA',27);text(114,81,'SPECTRUMLAB PRO · '+__version__,10,'muted')
         text(45,174,'TECNOLOGIA APLICADA À CELULOSE',10,'accent')
         text(45,230,'Da luz',43);text(45,277,'à análise.',43)
         text(45,323,'Controle da bancada, aquisição espectral',13,'muted');text(45,344,'e análise demonstrativa de celulose.',13,'muted')
@@ -61,7 +62,6 @@ class AnimatedSplashScreen(QWidget):
         shine=QColor(c['surface']);shine.setAlpha(80)
         p.fillRect(QRectF(45+self.loading_phase*400-60,391,60,8),shine);p.restore()
         text(45,421,self.status,11,'muted');text(351,421,f'{self.progress_val}%',10,'accent')
-        for i,logo in enumerate(self.logos):p.drawPixmap(45+i*122,461,logo)
         bottom=310;points=[]
         for i,v in enumerate([.32,.48,.59,.67,.75,.81]):
             x=500+i*62;y=bottom-190*v*self.phase

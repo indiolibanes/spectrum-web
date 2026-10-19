@@ -226,3 +226,38 @@ Para fechar a auditoria completa, falta:
 2. Os logos "ARAUCO" e "SENAI" podem ficar no executável do TCC? Precisa de autorização ou devem ser removidos?
 3. Remover `usuarios.db`, `test_usuarios.db`, `crash.log` e arquivos `.spec` antigos do repositório público? Isso exige reescrever o histórico se houver senhas reais.
 4. O texto do TCC deve ser alinhado ao aviso de Kappa demonstrativo do README?
+
+---
+
+## 11. Status de implementação
+
+Branch: `chore/seguranca-readme-logo`. Esta seção registra o que foi tratado e o que segue em aberto. A revisão foi feita sem execução da interface nem ensaio com hardware: a validação foi estática (compilação, revisão do diff) e de dados (banco de usuários e hash de senha em banco temporário).
+
+### Feito
+
+| ID | Situação |
+|---|---|
+| A3 | Usuário `admin/admin` removido. Primeiro acesso cria o administrador. Senhas com PBKDF2-HMAC-SHA256 e sal. Hash SHA-256 antigo é aceito no login e migrado. |
+| A4 | Mínimo de 8 caracteres e confirmação na criação do administrador. Senha não é mais alterada por `strip()`. |
+| A6 | Ramos `QT_QPA_PLATFORM == "offscreen"` e atributos `_auto_*` removidos de `main.py` e `equipment_interlocks.py`. |
+| C1 | `send_emergency()` retorna o resultado do envio. Sem conexão, aviso vermelho persistente. "Em repouso" só aparece após confirmação. |
+| C3 | Fechar o aplicativo durante movimento ou ensaio pede confirmação e envia parada antes de encerrar. |
+| C6 | Diálogo de fim de ensaio sem botão padrão. Enter não aciona movimento. |
+| B8 (parcial) | Logo institucional removido da tela de abertura. Os arquivos SENAI e ARAUCO não estão no repositório. |
+| Arquivos | Bancos de usuários, `crash.log`, `calibracao.json`, scripts e specs antigos, prévias e saídas geradas removidos. `.gitignore` adicionado. Caminhos pessoais em links da documentação técnica substituídos. |
+| Logo | Marca do programa em `assets/logo/`, usada na janela, no cabeçalho e na tela de abertura. |
+
+### Pendente
+
+- **C2** estado físico desconhecido após emergência.
+- **C4** parada segura em exceção durante operação.
+- **C5** feedback visível para recusas e bloqueios.
+- **A1 e A2** aviso de Kappa demonstrativo junto ao valor e classificação única.
+- **A5** sessão manual com tempo limite.
+- **A7 e A8** separação de persistência e separação dos bancos de usuários e histórico.
+- **A9 e A10** rótulos sem jargão de firmware e remoção da substituição de emoji.
+- **M1 a M12** construção duplicada da interface, paleta, contraste e acessibilidade.
+- **B8** decisão sobre o uso dos logos SENAI e ARAUCO no executável.
+- **Histórico do git** ainda contém `usuarios.db`, `crash.log` e os caminhos pessoais. Reescrever o histórico exige decisão do time.
+- **PDF da documentação técnica** ainda contém os caminhos antigos. Deve ser gerado de novo com `build_technical_doc_pdf.py`.
+- **Ensaio na bancada** das mudanças de segurança: parada com e sem conexão, fechamento durante movimento e primeiro acesso.

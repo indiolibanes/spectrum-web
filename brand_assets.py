@@ -1,13 +1,31 @@
 """Marcas institucionais obtidas nos sites oficiais, incluídas no executável."""
 import sys
 from pathlib import Path
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtSvg import QSvgRenderer
-from PyQt5.QtGui import QPixmap,QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QIcon
 from PyQt5.QtWidgets import QWidget,QHBoxLayout,QLabel
 
 def resource_path(name):
     return Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'/'brands'/name
+
+def program_logo_path():
+    """Marca do próprio programa (SPECTRUM-LAB PRO), em assets/logo."""
+    return Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'/'logo'/'spectrumlab-mark.svg'
+
+def program_logo_pixmap(size=48):
+    """Marca do programa em tamanho lógico 'size', nítida em telas de alta densidade."""
+    renderer=QSvgRenderer(str(program_logo_path()))
+    if not renderer.isValid():return QPixmap()
+    dpr=2
+    pix=QPixmap(int(size*dpr),int(size*dpr));pix.fill(Qt.transparent)
+    painter=QPainter(pix);renderer.render(painter,QRectF(0,0,size*dpr,size*dpr));painter.end()
+    pix.setDevicePixelRatio(dpr)
+    return pix
+
+def program_icon():
+    """Ícone da janela e da barra de tarefas."""
+    return QIcon(str(program_logo_path()))
 
 def logo_pixmap(name,width=100,height=28):
     pix=QPixmap(width*2,height*2);pix.fill(Qt.white)

@@ -1,0 +1,16 @@
+# Dados locais da bancada e de usuários: nunca versionar
+*.db
+calibracao.json
+crash.log
+backups/
+
+# Saídas de build e geração
+build/
+dist/
+output/
+__pycache__/
+*.pyc
+
+# Ambientes virtuais
+.venv/
+venv/

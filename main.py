@@ -76,9 +76,9 @@ from manual_control_dialog import ManualControlDialog
 from equipment_interlocks import EquipmentInterlocks
 from database import get_database_path, DatabaseManager
 from runtime_data import prepare_data_files
-from auth_manager import AuthManager
 from auth_dialogs import DialogLogin, DialogGestaoUsuarios
 from version import __version__, __build__, __app_name__, __app_title__, __app_full_title__
+from brand_assets import program_logo_pixmap, program_icon
 
 
 # =====================================================================
@@ -1522,8 +1522,9 @@ class DialogDecisaoConclusao(QDialog):
         self.btn_finish = QPushButton("📥 Finalizar e Fechar Gaveta (Padrão)")
         self.btn_finish.setObjectName("btnFinish")
         self.btn_finish.setCursor(Qt.PointingHandCursor)
-        self.btn_finish.setDefault(True)
-        self.btn_finish.setFocus()
+        # Sem botão padrão: Enter não aciona movimento motorizado. A escolha é explícita por clique.
+        self.btn_finish.setAutoDefault(False)
+        self.btn_finish.setDefault(False)
         self.btn_finish.clicked.connect(self._choose_finish)
 
         # Botão 2: Nova Análise
@@ -1817,6 +1818,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.runtime_files = prepare_data_files()
         self.theme_manager=ensure_theme_manager()
         self.setWindowTitle(__app_full_title__)
+        self.setWindowIcon(program_icon())
 
         # Qt já fornece a área em unidades lógicas, considerando a escala do Windows.
         screen = QApplication.primaryScreen()
@@ -1883,9 +1885,6 @@ class SpectrumLabMainWindow(QMainWindow):
         self._temp_vetor_branco: List[float] = []
         self._temp_vetor_escuro: List[float] = []
         self._pending_routine: Optional[str] = None  # "AUTO", "REPETIBILIDADE", "CALIBRAÇÃO"
-        self._auto_confirm_dialog: bool = False      # Para testes automatizados headless (Popup 1)
-        self._calib_transition_choice: str = "PROSSEGUIR"  # Para testes: "PROSSEGUIR" ou "SAIR" (Popup 2)
-        self._calib_confirm_empty: bool = True       # Para testes: True ou False (Popup 3)
         self._radiation_dialog: Optional[DialogAlertaRadiacao] = None  # Alerta visual assíncrono de radiação óptica NIR
         self._drawer_dialog: Optional[DialogAlertaGaveta] = None        # Alerta visual assíncrono de risco mecânico (gaveta)
 
@@ -1895,8 +1894,6 @@ class SpectrumLabMainWindow(QMainWindow):
         self.authenticated_user: Optional[Dict] = None
         self.equipment = EquipmentInterlocks(self)
         self.is_manual_mode_unlocked: bool = False
-        self._auto_login_success: bool = False  # Para testes automatizados headless
-        self._auto_login_user: Optional[Dict] = None
 
         # Timers assíncronos do ciclo
         self._cycle_timers: List[QTimer] = []
@@ -2154,7 +2151,10 @@ class SpectrumLabMainWindow(QMainWindow):
         layout.setSpacing(10)
 
         # Logo / Título
-        app_title = QLabel(f"🔬 {__app_name__}")
+        app_mark = QLabel()
+        app_mark.setPixmap(program_logo_pixmap(34))
+        app_mark.setFixedSize(34, 34)
+        app_title = QLabel(__app_name__)
         app_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #38BDF8; letter-spacing: 0.8px;")
         sub_title = QLabel(f"v{__version__} (Build {__build__}) | Caracterização NIR Celulose")
         sub_title.setStyleSheet("font-size: 10px; color: #9CA3AF; font-weight: bold;")
@@ -2165,6 +2165,7 @@ class SpectrumLabMainWindow(QMainWindow):
         title_layout.setSpacing(1)
         title_layout.addWidget(app_title)
         title_layout.addWidget(sub_title)
+        layout.addWidget(app_mark)
         layout.addWidget(title_group)
 
         # Seletor de Modo de Conexão: USB, Bluetooth SPP, Wi-Fi TCP
@@ -3152,11 +3153,8 @@ class SpectrumLabMainWindow(QMainWindow):
                     "Posicione a lâmina de suspensão aquosa de celulose no berço e clique em OK para iniciar."
                 )
 
-        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-            confirmed = getattr(self, "_auto_confirm_dialog", False)
-        else:
-            dlg = SamplePlacementInterlockDialog(title=title, message=msg, parent=self)
-            confirmed = (dlg.exec_() == QDialog.Accepted)
+        dlg = SamplePlacementInterlockDialog(title=title, message=msg, parent=self)
+        confirmed = (dlg.exec_() == QDialog.Accepted)
 
         if self._operation_epoch != popup_epoch or self.fsm_state != "AGUARDANDO_POPUP" or self._pending_routine != pending_routine:
             self.log_message("[INTERTRAVAMENTO] Confirmação descartada: rotina interrompida durante o diálogo.")
@@ -3424,12 +3422,9 @@ class SpectrumLabMainWindow(QMainWindow):
         """
         decision_epoch = self._operation_epoch
         decision_state = self.fsm_state
-        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-            action = getattr(self, "_auto_decision_choice", DialogDecisaoConclusao.ACTION_FINISH)
-        else:
-            dlg = DialogDecisaoConclusao(parent=self, is_repeatability=is_repeatability)
-            dlg.exec_()
-            action = dlg.selected_action
+        dlg = DialogDecisaoConclusao(parent=self, is_repeatability=is_repeatability)
+        dlg.exec_()
+        action = dlg.selected_action
 
         if self._operation_epoch != decision_epoch or self.fsm_state != decision_state or not self.is_serial_connected():
             return
@@ -3450,21 +3445,20 @@ class SpectrumLabMainWindow(QMainWindow):
 
             novo_id = f"Amostra_{datetime.datetime.now().strftime('%H%M%S')}"
             default_name = getattr(self, "current_sample_name", novo_id)
-            if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-                texto, ok = QInputDialog.getText(
-                    self,
-                    "Nova Análise — Identificação da Amostra",
-                    "A gaveta está aberta.<br>Insira a nova lâmina no berço e confirme o nome da amostra:",
-                    text=default_name
-                )
-                if self._operation_epoch != decision_epoch or self.fsm_state != decision_state or not self.is_serial_connected():
-                    return
-                if not ok:
-                    # Cancelou o nome: finaliza fechando a gaveta
-                    self.fsm_state = "CONCLUSAO_FECHANDO_GAVETA"
-                    self.send_serial_command("CMD:FECHAR_GAVETA")
-                    return
-                novo_id = texto.strip() or novo_id
+            texto, ok = QInputDialog.getText(
+                self,
+                "Nova Análise — Identificação da Amostra",
+                "A gaveta está aberta.<br>Insira a nova lâmina no berço e confirme o nome da amostra:",
+                text=default_name
+            )
+            if self._operation_epoch != decision_epoch or self.fsm_state != decision_state or not self.is_serial_connected():
+                return
+            if not ok:
+                # Cancelou o nome: finaliza fechando a gaveta
+                self.fsm_state = "CONCLUSAO_FECHANDO_GAVETA"
+                self.send_serial_command("CMD:FECHAR_GAVETA")
+                return
+            novo_id = texto.strip() or novo_id
 
             self.equipment.sample_confirmed = True
             self._current_sample_id=novo_id
@@ -3490,21 +3484,20 @@ class SpectrumLabMainWindow(QMainWindow):
                 self._fail_operation("Recalibre antes de repetir.")
                 return
             self.log_message("[CONCLUSÃO] Decisão: Iniciar Repetibilidade. Gaveta aberta para checagem.")
-            if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-                resp = QMessageBox.question(
-                    self,
-                    "Iniciar Repetibilidade",
-                    "A gaveta está aberta. Verifique se a lâmina está posicionada sobre o berço.<br><br>"
-                    "Deseja iniciar o <b>Ensaio de Repetibilidade</b> com 5 repetições consecutivas?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.Yes
-                )
-                if self._operation_epoch != decision_epoch or self.fsm_state != decision_state or not self.is_serial_connected():
-                    return
-                if resp != QMessageBox.Yes:
-                    self.fsm_state = "CONCLUSAO_FECHANDO_GAVETA"
-                    self.send_serial_command("CMD:FECHAR_GAVETA")
-                    return
+            resp = QMessageBox.question(
+                self,
+                "Iniciar Repetibilidade",
+                "A gaveta está aberta. Verifique se a lâmina está posicionada sobre o berço.<br><br>"
+                "Deseja iniciar o <b>Ensaio de Repetibilidade</b> com 5 repetições consecutivas?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if self._operation_epoch != decision_epoch or self.fsm_state != decision_state or not self.is_serial_connected():
+                return
+            if resp != QMessageBox.Yes:
+                self.fsm_state = "CONCLUSAO_FECHANDO_GAVETA"
+                self.send_serial_command("CMD:FECHAR_GAVETA")
+                return
 
             self.equipment.sample_confirmed = True
             self._pending_routine = "REPETIBILIDADE"
@@ -3832,8 +3825,7 @@ class SpectrumLabMainWindow(QMainWindow):
 
         d_layout.addLayout(btn_row)
 
-        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-            dlg.exec_()
+        dlg.exec_()
         self.log_message(f"Repetibilidade finalizada. CV% Médio Global = {global_cv:.2f}%, Kappa Médio = {kappa_mean:.2f} ± {kappa_std:.2f}")
 
     # -----------------------------------------------------------------
@@ -3900,12 +3892,8 @@ class SpectrumLabMainWindow(QMainWindow):
         self.log_message("[CALIBRAÇÃO TRANSIÇÃO] Gaveta aberta. Exibindo Popup 2 (Pergunta de Sequência)...")
 
         # Popup 2: Deseja prosseguir para escuro?
-        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-            choice = getattr(self, "_calib_transition_choice", "PROSSEGUIR")
-            proceed = (choice == "PROSSEGUIR")
-        else:
-            dlg2 = CalibrationTransitionDialog(parent=self)
-            proceed = (dlg2.exec_() == QDialog.Accepted)
+        dlg2 = CalibrationTransitionDialog(parent=self)
+        proceed = (dlg2.exec_() == QDialog.Accepted)
 
         if self._operation_epoch != transition_epoch or self.fsm_state != transition_state or not self.is_calibrating_white:
             return
@@ -3920,11 +3908,8 @@ class SpectrumLabMainWindow(QMainWindow):
 
         # Usuário escolheu [ Prosseguir ] -> Popup 3 (Aviso de Segurança - Berço Vazio)
         self.log_message("[CALIBRAÇÃO] Operador optou por prosseguir. Exibindo Popup 3 (Aviso de Segurança)...")
-        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-            confirmed_empty = getattr(self, "_calib_confirm_empty", True)
-        else:
-            dlg3 = DarkSafetyInterlockDialog(parent=self)
-            confirmed_empty = (dlg3.exec_() == QDialog.Accepted)
+        dlg3 = DarkSafetyInterlockDialog(parent=self)
+        confirmed_empty = (dlg3.exec_() == QDialog.Accepted)
 
         if self._operation_epoch != transition_epoch or self.fsm_state != transition_state or not self.is_calibrating_white:
             return
@@ -4051,12 +4036,11 @@ class SpectrumLabMainWindow(QMainWindow):
             self.lbl_cycle_status.setText("Status: ✔ Calibração completa (Branco e Escuro) realizada. Gaveta fechada em repouso.")
             self.log_message(f"[CALIBRAÇÃO COMPLETA] Branco e Escuro ({self.chem_engine.active_mode}) gravados em calibracao.json. Gaveta fechada e sistema pronto.")
 
-            if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-                QMessageBox.information(
-                    self,
-                    "Calibração Completa",
-                    f"Calibração completa ({self.chem_engine.active_mode.capitalize()}) realizada com sucesso.\nSistema em repouso pronto para medições."
-                )
+            QMessageBox.information(
+                self,
+                "Calibração Completa",
+                f"Calibração completa ({self.chem_engine.active_mode.capitalize()}) realizada com sucesso.\nSistema em repouso pronto para medições."
+            )
 
     def _update_calibration_badge(self):
         eng=self.chem_engine
@@ -4098,7 +4082,7 @@ class SpectrumLabMainWindow(QMainWindow):
         if is_expired and eng.is_calibrated and self.fsm_state=="IDLE" and not self._manual_pending and not getattr(self, "_last_expired_alert_shown", False):
             self._last_expired_alert_shown = True
             self.log_message(f"[METROLOGIA] Calibração do modo {eng.active_mode.upper()} EXPIRADA. Intertravamento ativo.")
-            if os.environ.get("QT_QPA_PLATFORM") != "offscreen" and getattr(self, "fsm_state", "IDLE") == "IDLE":
+            if getattr(self, "fsm_state", "IDLE") == "IDLE":
                 dlg = CalibrationExpiredDialog(self, active_mode=eng.active_mode)
                 if dlg.exec_() == QDialog.Accepted:
                     self.start_white_calibration_cycle()
@@ -4146,14 +4130,20 @@ class SpectrumLabMainWindow(QMainWindow):
         self._hardware_watchdog.stop()
         self._result_valid=False
         self._emergency_confirmed=False
-        self.serial_worker.send_emergency()
+        sent = bool(self.serial_worker.send_emergency())
+        self._emergency_sent = sent
         self._hardware_watchdog.start(10000)
 
-        # Bloqueia UI e sinaliza o status exato solicitado
+        # Bloqueia UI e sinaliza o estado REAL do envio. "Em repouso" só aparece após STATUS do ESP32.
         self._disable_controls()
         self.cycle_progress.setValue(0)
-        self.lbl_cycle_status.setText("EMERGÊNCIA ACIONADA - BANCADA EM REPOUSO")
-        self.lbl_cycle_status.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: 900;")
+        if sent:
+            self.lbl_cycle_status.setText("EMERGÊNCIA ENVIADA — aguardando confirmação da bancada")
+            self.lbl_cycle_status.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: 900;")
+        else:
+            self.log_message("⚠ PARADA NÃO ENVIADA: sem conexão com a bancada. Use o botão de emergência físico.")
+            self.lbl_cycle_status.setText("PARADA NÃO ENVIADA — sem conexão. Use o botão de emergência físico.")
+            self.lbl_cycle_status.setStyleSheet("color: #FFFFFF; background-color: #B91C1C; font-size: 12px; font-weight: 900; padding: 4px;")
 
         # Trava temporariamente os botões de ciclo por ~1,5s
         self._emergency_lock_active = True
@@ -4169,8 +4159,9 @@ class SpectrumLabMainWindow(QMainWindow):
             self.fsm_state="IDLE"
             self._refresh_controls()
             self.lbl_cycle_status.setText("Repouso confirmado pelo hardware.")
-        else:
+        elif getattr(self, "_emergency_sent", True):
             self.lbl_cycle_status.setText("Aguardando confirmação de emergência do ESP32.")
+        # Se o comando não foi enviado, o aviso vermelho de "PARADA NÃO ENVIADA" permanece.
 
     def _handle_emergency_confirmed(self):
         self.equipment.cancel()
@@ -4442,14 +4433,9 @@ class SpectrumLabMainWindow(QMainWindow):
         if index == 1:
             if not self.is_manual_mode_unlocked:
                 dlg = DialogLogin(self.auth_manager, self)
-                if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-                    accepted = getattr(self, "_auto_login_success", False)
-                    if accepted:
-                        self.authenticated_user = getattr(self, "_auto_login_user", {"username": "admin", "role": "admin"})
-                else:
-                    accepted = (dlg.exec_() == QDialog.Accepted)
-                    if accepted:
-                        self.authenticated_user = dlg.usuario_logado
+                accepted = (dlg.exec_() == QDialog.Accepted)
+                if accepted:
+                    self.authenticated_user = dlg.usuario_logado
 
                 if accepted and self.authenticated_user:
                     self.current_operator_name=self.authenticated_user.get("username", "Operador")
@@ -4485,25 +4471,19 @@ class SpectrumLabMainWindow(QMainWindow):
         """
         if not self.authenticated_user or self.authenticated_user.get("role") != "admin":
             dlg = DialogLogin(self.auth_manager, self)
-            if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-                accepted = getattr(self, "_auto_login_success", False)
-                if accepted:
-                    self.authenticated_user = getattr(self, "_auto_login_user", {"username": "admin", "role": "admin"})
-            else:
-                accepted = (dlg.exec_() == QDialog.Accepted)
-                if accepted:
-                    self.authenticated_user = dlg.usuario_logado
+            accepted = (dlg.exec_() == QDialog.Accepted)
+            if accepted:
+                self.authenticated_user = dlg.usuario_logado
 
             if not accepted or not self.authenticated_user:
                 return
 
             if self.authenticated_user.get("role") != "admin":
-                if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-                    QMessageBox.warning(
-                        self,
-                        "Acesso Negado",
-                        "Apenas usuários com perfil de 'Administrador' podem gerenciar usuários."
-                    )
+                QMessageBox.warning(
+                    self,
+                    "Acesso Negado",
+                    "Apenas usuários com perfil de 'Administrador' podem gerenciar usuários."
+                )
                 self.log_message("Aviso: Tentativa de acesso negada ao Gerenciador de Usuários (Requer Admin).")
                 return
 
@@ -4513,8 +4493,7 @@ class SpectrumLabMainWindow(QMainWindow):
             current_user=self.authenticated_user,
             parent=self
         )
-        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-            dlg_gestao.exec_()
+        dlg_gestao.exec_()
         self.log_message("Gerenciador de Usuários finalizado.")
 
     def logout_action(self):
@@ -4535,11 +4514,10 @@ class SpectrumLabMainWindow(QMainWindow):
             self.control_tabs.blockSignals(False)
 
         self.log_message(f"🔒 Logout realizado com sucesso ({user_name}). Painel manual bloqueado.")
-        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
-            QMessageBox.information(
-                self, "Painel Bloqueado",
-                "Sessão encerrada com sucesso.\nO painel manual foi bloqueado."
-            )
+        QMessageBox.information(
+            self, "Painel Bloqueado",
+            "Sessão encerrada com sucesso.\nO painel manual foi bloqueado."
+        )
 
     # -----------------------------------------------------------------
     # UTILIDADES E DIÁLOGOS
@@ -4559,14 +4537,9 @@ class SpectrumLabMainWindow(QMainWindow):
         """Abre o painel de atuadores com autenticação prévia."""
         if not self.is_manual_mode_unlocked:
             dlg = DialogLogin(self.auth_manager, self)
-            if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-                accepted = getattr(self, "_auto_login_success", False)
-                if accepted:
-                    self.authenticated_user = getattr(self, "_auto_login_user", {"username": "admin", "role": "admin"})
-            else:
-                accepted = (dlg.exec_() == QDialog.Accepted)
-                if accepted:
-                    self.authenticated_user = dlg.usuario_logado
+            accepted = (dlg.exec_() == QDialog.Accepted)
+            if accepted:
+                self.authenticated_user = dlg.usuario_logado
 
             if not accepted or not self.authenticated_user:
                 self.log_message("🔒 Acesso ao Painel de Atuadores cancelado ou não autorizado.")
@@ -4714,6 +4687,22 @@ class SpectrumLabMainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Ao fechar o aplicativo, encerra a conexão de forma segura."""
+        em_operacao = (self.fsm_state != "IDLE" or self.auto_cycle_active or self.modo_repetibilidade
+                       or self.is_calibrating_white or self._batch is not None
+                       or self.equipment.authorized or self.equipment.pending)
+        if em_operacao and self.is_serial_connected():
+            resp = QMessageBox.warning(
+                self, "Operação em andamento",
+                "Há um movimento ou ensaio em andamento na bancada.<br><br>"
+                "Fechar o aplicativo agora envia <b>PARADA DE EMERGÊNCIA</b>. A gaveta ou o carrinho "
+                "podem ficar em posição intermediária.<br><br>Deseja fechar mesmo assim?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if resp != QMessageBox.Yes:
+                event.ignore()
+                return
+            self.serial_worker.send_emergency()
+            time.sleep(0.3)  # dá tempo para a fila prioritária sair antes da desconexão
         if hasattr(self,"_scada_refresh_timer"):
             self._scada_refresh_timer.stop()
         self._calib_validity_timer.stop()
