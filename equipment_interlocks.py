@@ -1,5 +1,4 @@
 """Sequenciamento confirmado da porta e autorização temporária da carcaça."""
-import os
 import time
 
 from PyQt5.QtWidgets import QDialog
@@ -154,11 +153,8 @@ class EquipmentInterlocks:
     def confirm_sample(self):
         w = self.window
         epoch = w._operation_epoch
-        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-            accepted = getattr(w, "_auto_confirm_dialog", False)
-        else:
-            dlg = w._create_placement_confirmation()
-            accepted = dlg.exec_() == QDialog.Accepted
+        dlg = w._create_placement_confirmation()
+        accepted = dlg.exec_() == QDialog.Accepted
         return accepted and epoch == w._operation_epoch and w.is_serial_connected()
 
     def wait_for(self, command, expected, continuation):

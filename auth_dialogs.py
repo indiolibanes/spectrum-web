@@ -11,19 +11,22 @@ from PyQt5.QtWidgets import (
     QComboBox, QFrame, QMessageBox, QAbstractItemView
 )
 from PyQt5.QtCore import Qt
-from auth_manager import AuthManager
+from database import DatabaseManager
+from password_hashing import validate_new_password, MIN_PASSWORD_LENGTH
 
 class DialogLogin(QDialog):
     """
     Diálogo modal de login para controle de acesso às áreas restritas do supervisório.
     """
-    def __init__(self, auth_manager: Optional[AuthManager] = None, parent=None):
+    def __init__(self, auth_manager: Optional[DatabaseManager] = None, parent=None):
         super().__init__(parent)
-        self.auth_manager = auth_manager or AuthManager()
+        self.auth_manager = auth_manager or DatabaseManager()
         self.usuario_logado: Optional[Dict] = None
+        # Sem nenhum usuário cadastrado, o diálogo cria o administrador inicial.
+        self._setup_mode = self.auth_manager.contar_usuarios() == 0
 
         self.setWindowTitle("🔐 Autenticação de Usuário")
-        self.setFixedSize(400, 280)
+        self.setFixedSize(400, 340 if self._setup_mode else 280)
         self.setModal(True)
 
         self.setStyleSheet("""
@@ -76,11 +79,16 @@ class DialogLogin(QDialog):
         layout.setSpacing(12)
 
         # Cabeçalho
-        lbl_header = QLabel("🔐 <b>CONTROLE DE ACESSO</b>")
+        lbl_header = QLabel("🔐 <b>CRIAR ADMINISTRADOR INICIAL</b>" if self._setup_mode else "🔐 <b>CONTROLE DE ACESSO</b>")
         lbl_header.setStyleSheet("color: #38BDF8; font-size: 14px;")
         layout.addWidget(lbl_header)
 
-        lbl_desc = QLabel("Informe suas credenciais para acessar os controles restritos:")
+        if self._setup_mode:
+            desc_text = ("Nenhum usuário cadastrado. Defina o administrador deste supervisório "
+                         f"(senha com pelo menos {MIN_PASSWORD_LENGTH} caracteres).")
+        else:
+            desc_text = "Informe suas credenciais para acessar os controles restritos:"
+        lbl_desc = QLabel(desc_text)
         lbl_desc.setStyleSheet("color: #9CA3AF; font-size: 11px;")
         lbl_desc.setWordWrap(True)
         layout.addWidget(lbl_desc)
@@ -96,6 +104,13 @@ class DialogLogin(QDialog):
         self.txt_password.setEchoMode(QLineEdit.Password)
         self.txt_password.returnPressed.connect(self._exec_login)
         layout.addWidget(self.txt_password)
+
+        self.txt_confirm = QLineEdit()
+        self.txt_confirm.setPlaceholderText("Confirmar senha")
+        self.txt_confirm.setEchoMode(QLineEdit.Password)
+        self.txt_confirm.returnPressed.connect(self._exec_login)
+        self.txt_confirm.setVisible(self._setup_mode)
+        layout.addWidget(self.txt_confirm)
 
         # Mensagem de erro
         self.lbl_error = QLabel("")
@@ -126,8 +141,13 @@ class DialogLogin(QDialog):
         self.txt_username.setFocus()
 
     def _exec_login(self):
+        if self._setup_mode:
+            self._create_first_admin()
+            return
+
         username = self.txt_username.text().strip()
-        password = self.txt_password.text().strip()
+        # A senha é usada exatamente como digitada (sem remover espaços).
+        password = self.txt_password.text()
 
         if not username or not password:
             self.lbl_error.setText("Preencha o usuário e a senha.")
@@ -144,14 +164,43 @@ class DialogLogin(QDialog):
             self.txt_password.selectAll()
             self.txt_password.setFocus()
 
+    def _create_first_admin(self):
+        """Cadastra o administrador inicial e já concede a sessão a ele."""
+        username = self.txt_username.text().strip()
+        password = self.txt_password.text()
+        confirm = self.txt_confirm.text()
+
+        erro = None
+        if not username:
+            erro = "Informe o nome do administrador."
+        elif validate_new_password(password):
+            erro = validate_new_password(password)
+        elif password != confirm:
+            erro = "As senhas não coincidem."
+
+        if erro:
+            self.lbl_error.setText(erro)
+            self.lbl_error.show()
+            return
+
+        ok, msg = self.auth_manager.criar_usuario(username, password, "admin")
+        if not ok:
+            self.lbl_error.setText(msg)
+            self.lbl_error.show()
+            return
+
+        self.usuario_logado = self.auth_manager.obter_usuario(username)
+        self.lbl_error.hide()
+        self.accept()
+
 
 class DialogGestaoUsuarios(QDialog):
     """
     Diálogo administrativo para gerenciamento de usuários, cadastro e remoção de permissões.
     """
-    def __init__(self, auth_manager: Optional[AuthManager] = None, current_user: Optional[Dict] = None, parent=None):
+    def __init__(self, auth_manager: Optional[DatabaseManager] = None, current_user: Optional[Dict] = None, parent=None):
         super().__init__(parent)
-        self.auth_manager = auth_manager or AuthManager()
+        self.auth_manager = auth_manager or DatabaseManager()
         self.current_user = current_user or {}
 
         self.setWindowTitle("👥 Gerenciamento de Usuários | SPECTRUM-LAB PRO")
@@ -316,7 +365,7 @@ class DialogGestaoUsuarios(QDialog):
 
     def _create_user(self):
         username = self.txt_new_username.text().strip()
-        password = self.txt_new_password.text().strip()
+        password = self.txt_new_password.text()
         role = self.cmb_role.currentData()
 
         if not username or not password:

@@ -4,7 +4,7 @@ Ao abrir `SpectrumLabPro_4_16_1.exe`, o programa cria os arquivos de dados ausen
 
 | Arquivo | Quando não existe |
 |---|---|
-| usuarios.db | Cria usuários, tabelas de histórico e acesso inicial admin/admin; histórico começa vazio |
+| usuarios.db | Cria as tabelas de usuários e histórico, sem usuário padrão. No primeiro acesso, o programa pede a criação do administrador (senha com pelo menos 8 caracteres); histórico começa vazio |
 | calibracao.json | Cria perfis pendentes, sem branco/escuro medidos nem calibração válida |
 | interface.json | Cria preferência inicial de tema claro |
 | banco_materiais.json | Cria uma cópia editável da base que acompanha o executável |
