@@ -2155,9 +2155,9 @@ class SpectrumLabMainWindow(QMainWindow):
         app_mark.setPixmap(program_logo_pixmap(34))
         app_mark.setFixedSize(34, 34)
         app_title = QLabel(__app_name__)
-        app_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #38BDF8; letter-spacing: 0.8px;")
+        app_title.setStyleSheet("font-family: 'Bahnschrift', 'Segoe UI'; font-size: 18px; font-weight: 700; color: #38BDF8; letter-spacing: 0.8px;")
         sub_title = QLabel(f"v{__version__} (Build {__build__}) | Caracterização NIR Celulose")
-        sub_title.setStyleSheet("font-size: 10px; color: #9CA3AF; font-weight: bold;")
+        sub_title.setStyleSheet("font-family: 'Segoe UI'; font-size: 11px; color: #9CA3AF; font-weight: 400;")
 
         title_group = QWidget()
         title_layout = QVBoxLayout(title_group)

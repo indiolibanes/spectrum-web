@@ -1,4 +1,4 @@
-"""Marcas institucionais obtidas nos sites oficiais, incluídas no executável."""
+"""Marcas institucionais em SVG (assets/brands), com fundo transparente e proporção preservada."""
 import sys
 from pathlib import Path
 from PyQt5.QtCore import Qt, QRectF
@@ -28,19 +28,21 @@ def program_icon():
     return QIcon(str(program_logo_path()))
 
 def logo_pixmap(name,width=100,height=28):
-    pix=QPixmap(width*2,height*2);pix.fill(Qt.white)
+    """Logo da marca 'name' ajustado dentro de width x height (lógicos), sem fundo."""
     renderer=QSvgRenderer(str(resource_path(name+'.svg')))
     if not renderer.isValid():return QPixmap()
-    size=renderer.defaultSize();size.scale(width*2-12,height*2-12,Qt.KeepAspectRatio)
-    painter=QPainter(pix)
-    from PyQt5.QtCore import QRectF
-    renderer.render(painter,QRectF((pix.width()-size.width())/2,(pix.height()-size.height())/2,size.width(),size.height()))
-    painter.end();pix.setDevicePixelRatio(2)
+    view=renderer.defaultSize()
+    scale=min(width/view.width(),height/view.height())
+    w,h=view.width()*scale,view.height()*scale
+    dpr=2
+    pix=QPixmap(int(round(w*dpr)),int(round(h*dpr)));pix.fill(Qt.transparent)
+    painter=QPainter(pix);renderer.render(painter,QRectF(0,0,w*dpr,h*dpr));painter.end()
+    pix.setDevicePixelRatio(dpr)
     return pix
 
 def institutional_signature(parent=None):
     box=QWidget(parent);layout=QHBoxLayout(box);layout.setContentsMargins(0,0,0,0);layout.setSpacing(18)
-    for name in ('senai','arauco'):
-        label=QLabel();label.setObjectName('institution_'+name);label.setPixmap(logo_pixmap(name));label.setToolTip(name.upper())
+    for name,tip in (('senai','SENAI'),('arauco-sucuriu','ARAUCO · Projeto Sucuriú')):
+        label=QLabel();label.setObjectName('institution_'+name);label.setPixmap(logo_pixmap(name,168,28));label.setToolTip(tip)
         layout.addWidget(label)
     return box

@@ -38,8 +38,32 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `pdf_generator.py` · `database_manager.py` | Laudos e gerenciador de registros |
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
+| `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
 | `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
+| `docs/IDENTIDADE_VISUAL.md` | Logos, tipografia e escala de texto |
 | `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
+
+## Identidade visual
+
+<p align="center">
+  <img src="assets/logo/spectrumlab-mark.svg" height="64" alt="SPECTRUM-LAB PRO">
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/brands/senai.svg" height="40" alt="SENAI">
+  &nbsp;&nbsp;&nbsp;
+  <img src="assets/brands/arauco-sucuriu.svg" height="48" alt="ARAUCO | Projeto Sucuriú">
+</p>
+
+Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+
+**Tipografia.** Todas as famílias vêm com o Windows 10 e 11:
+
+| Família | Uso |
+|---|---|
+| Bahnschrift | Marca e títulos de destaque |
+| Segoe UI | Interface, rótulos e texto corrido |
+| Consolas | Valores de medição e tabelas |
+
+A escala vai de 11 px (mínimo) a 44 px (display), com até quatro tamanhos por painel. A tabela completa está no documento de identidade visual.
 
 ## Requisitos
 
@@ -114,6 +138,7 @@ Pendências de segurança e operação estão listadas na [auditoria](docs/AUDIT
 | 4.14.1 | [Correção de conexão](CORRECAO_CONEXAO_4_14_1.md) |
 | 4.14.0 | [Porta e carcaça](PORTA_SUPERVISORIO_4_14_0.md) |
 | Técnica | [Documentação técnica do supervisório](DOCUMENTACAO_TECNICA_SUPERVISORIO.md) · [PDF](SPECTRUM-LAB_PRO_Documentacao_Tecnica.pdf) |
+| Identidade | [Logos, tipografia e escala de texto](docs/IDENTIDADE_VISUAL.md) |
 | Auditoria | [Auditoria GUI / UX / UI e segurança](docs/AUDITORIA_GUI_UX.md) |
 
 Os documentos de versões anteriores descrevem o comportamento daquela versão. Quando houver conflito, a versão mais recente prevalece.
