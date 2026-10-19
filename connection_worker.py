@@ -259,10 +259,10 @@ class ConnectionWorker(QThread):
 
     send_command = enviar
 
-    def send_emergency(self):
-        """Disparo de Parada de Emergência com prioridade máxima imediata."""
+    def send_emergency(self) -> bool:
+        """Disparo de Parada de Emergência com prioridade máxima. Retorna False se não houver conexão."""
         self._clear_queue()
-        self.enviar("CMD:EMERGENCIA", priority=True)
+        return self.enviar("CMD:EMERGENCIA", priority=True)
 
     def _clear_queue(self):
         for commands in (self._tx_queue,self._priority_queue):

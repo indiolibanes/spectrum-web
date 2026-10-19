@@ -1,98 +1,123 @@
-# SpectrumLabPro 4.11.1 — bancada demonstrativa de TCC
+<p align="center">
+  <img src="assets/logo/spectrumlab-mark.svg" width="112" alt="Logo SPECTRUM-LAB PRO">
+</p>
 
-Esta versão corrige integridade de calibração, aquisição e comunicação. O Kappa continua sendo uma estimativa demonstrativa por equações fixas, sem treinamento ou validação analítica. Uma referência branca melhor não valida o modelo de Kappa.
+<h1 align="center">SPECTRUM-LAB PRO</h1>
 
-## Como colocar em uso
+<p align="center">
+  <strong>Supervisório espectrométrico NIR para caracterização de celulose</strong><br>
+  Versão 4.16.1 · Build 1262 · 17/10/2026
+</p>
 
-1. Abra o sketch atualizado na segunda pasta de trabalho, mantendo a subpasta src/ junto dele, e envie-o à mesma placa ESP32 usada pela bancada. Para ESP32 com 4 MB de flash, selecione a partição No OTA (2MB APP/2MB SPIFFS); a partição padrão de 1,3 MB não comporta as três conexões. Confirme a capacidade da sua placa antes de gravar. Os pinos, ângulos, ganho 64x, integração nominal de 140 ms e corrente de LED de 50 mA foram mantidos. A aquisição dos seis canais em one-shot pode consumir dois períodos de integração.
-2. Execute dist/SpectrumLabPro_4_11_1.exe. O executável anterior foi preservado.
-3. Conecte a bancada. O supervisório exige a identificação PROTOCOLO_2 e um sensor disponível; firmware antigo permite conectar mas não medir.
-4. No modo seco, use o mesmo cartão branco fosco, mesma face, plano e distância da amostra. Evite marcas, transparência do suporte e entrada de luz externa.
-5. Inicie a calibração. São feitas dez aquisições do branco e depois dez aquisições de escuro com LED desligado e gaveta fechada. Retire o cartão quando o assistente solicitar.
-6. Complete ambas as etapas. Cancelar após o branco descarta a tentativa inteira e preserva a referência anterior.
-7. Faça o primeiro ensaio e o teste de repetibilidade. Confirme na bancada o funcionamento dos movimentos e da emergência antes de uma sessão completa.
+---
 
-A pintura preta permanece como parte da câmara. Ela não é usada como substituto da leitura de escuro do detector. O cartão define a referência de trabalho, sem certificação de refletância; os resultados são relativos a ele. Para modo úmido, mantenha o mesmo suporte/solvente na referência, mas a geometria e a interpretação analítica precisam de avaliação experimental.
+O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisição de seis canais espectrais (610 a 860 nm, sensor GY-AS7263), referenciamento de branco e escuro, reflectância relativa, estimativa demonstrativa do número Kappa, ensaios de repetibilidade, histórico em banco SQLite e laudo em PDF.
 
-## O que mudou
+> **Aviso de uso.** O número Kappa é uma **estimativa demonstrativa** por equações fixas, sem treinamento nem validação analítica. Não use os valores como medição certificada. A parada de emergência do programa e do firmware **não é um corte elétrico certificado**: mantenha o botão de emergência físico da bancada como proteção principal.
 
-- Perfis começam não calibrados. Dados antigos são preservados, mas não passam automaticamente como referências medidas pelo procedimento novo.
-- Pacotes ópticos possuem identificadores únicos. Dados antigos, duplicados ou conclusões sem pacote novo são descartados.
-- Leituras comuns usam a média de cinco aquisições no mesmo posicionamento, com intervalo de 300 ms entre solicitações. Isso reduz parte do ruído aleatório; não garante ausência de deriva.
-- Repetibilidade mantém cinco aquisições individuais, sem movimentações intermediárias. Os valores individuais ficam no histórico.
-- Calibração só se torna válida depois de validar referências e confirmar a gravação atômica.
-- R² e RMSE fixos foram retirados. O cartão de calibração mostra CV máximo do branco, ruído máximo do escuro e quantidade de aquisições.
-- Vetores completos, estatísticas, aquisições individuais, configurações, operador e identificador de cada nova calibração ficam no histórico do JSON.
-- Cada nova leitura guarda uma cópia da referência usada e as aquisições brutas. Leituras antigas não ganham metadados que não existiam.
-- Mudança de modo não reprocessa nem registra a amostra antiga como um novo ensaio.
-- A escala de entrada do modelo seco é explicitamente uma fração, eliminando a mudança de unidade ao ultrapassar 1.0.
-- O fundo e a resposta corrigida não são convertidos silenciosamente em zeros para gerar Kappa.
-- Controles permanecem bloqueados enquanto existe rotina, aquisição, comando manual ou emergência não confirmada.
-- Heartbeat monitora comunicação; o firmware recolhe a bancada após perda prolongada dos comandos.
-- O firmware trata emergência durante movimentos e aquisição, não envia confirmação de posição após movimento interrompido e rejeita movimentos incompatíveis com a posição estimada.
-- Driver Adafruit local em src/ do sketch tem limites de espera e verificação de falha I2C. Bibliotecas instaladas globalmente não foram alteradas.
+## Funcionalidades
 
-## Limites operacionais iniciais
+- **Ensaios automáticos:** ciclo guiado com intertravamentos humanos (carregamento da amostra e confirmação do operador antes de fechar a gaveta).
+- **Modo manual:** acionamento individual de gaveta, porta, carrinho e LED, protegido por autenticação.
+- **Calibração:** referência de branco e escuro, com validade metrológica configurável e bloqueio de medições quando expirada.
+- **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
+- **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
+- **Gerenciamento de usuários:** perfis *administrador* e *operador*.
+- **Tema claro e escuro**, com escala proporcional da interface.
 
-Os limites abaixo são parâmetros de engenharia para este protótipo, não critérios metrológicos certificados. Devem ser revistos com ensaios físicos:
+## Estrutura do repositório
 
-- ADC: seis números finitos, não negativos e abaixo de 65500.
-- Branco: CV máximo de 5% por canal.
-- Branco menos escuro: maior que 10 contagens e maior que cinco vezes o ruído combinado das referências.
-- Amostra menos escuro: maior que duas contagens e maior que três vezes o desvio do escuro em todos os canais; sinal insuficiente pede repetir ou ajustar a montagem.
-- Prazo operacional da referência: configurável até 24 horas. Trocar iluminação, geometria, referência ou configurações exige nova calibração, mesmo dentro do prazo.
-- Resposta relativa acima de 100% não é cortada: uma amostra pode devolver mais sinal que o cartão.
-- Os servos não têm confirmação física de posição. Os intertravamentos utilizam posições estimadas pelos comandos. A sequência de emergência faz recolhimento controlado; não constitui corte elétrico certificado.
+| Arquivo | Função |
+|---|---|
+| `main.py` | Janela principal, máquina de estados e fluxos de ensaio |
+| `scada_ui.py` · `appearance.py` · `popup_design.py` | Interface, temas e diálogos de alerta |
+| `connection_worker.py` · `serial_worker.py` | Comunicação com o ESP32 (USB, Bluetooth SPP e Wi-Fi TCP) |
+| `chemometrics.py` | Calibração, reflectância relativa, SNV e estimativa de Kappa |
+| `equipment_interlocks.py` · `manual_control_dialog.py` | Intertravamentos e painel de atuadores |
+| `database.py` · `auth_dialogs.py` · `password_hashing.py` | Usuários, senhas e histórico |
+| `pdf_generator.py` · `database_manager.py` | Laudos e gerenciador de registros |
+| `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
+| `assets/logo/` | Marca do programa |
+| `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
+| `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
 
-## Arquivos e preservação
+## Requisitos
 
-Código canônico: arquivos da pasta principal. A entrada spectrum_lab/main.py encaminha para ela.
+- **Executável:** Windows 10 ou 11.
+- **Código-fonte:** Python 3 com as dependências de `requirements.txt` (PyQt5 5.15.11, numpy, matplotlib, pyserial, reportlab e PyInstaller para gerar o executável).
+- **Firmware:** ESP32 com o sketch correspondente à versão do supervisório. Para placas de 4 MB, use o esquema de partição *No OTA (2 MB APP / 2 MB SPIFFS)*. Verifique a compatibilidade na documentação da versão antes de gravar.
 
-Executável anterior: dist/SpectrumLabPro.exe.
-Novo executável: dist/SpectrumLabPro_4_11_1.exe. A versão 4.10.0 também foi preservada.
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
-O executável guarda a calibração em %LOCALAPPDATA%/SpectrumLabPro/calibracao.json, evitando a pasta temporária do PyInstaller. O banco do executável continua ao lado do executável, preservando o histórico em dist/usuarios.db. Ao executar o código Python, os arquivos ficam na pasta principal. Para testes, SPECTRUM_LAB_DATA_DIR permite uma pasta isolada.
+## Primeiro acesso
 
-Originais, calibrações e cópias consistentes dos bancos: backups/20261008_estabilidade/.
+Na primeira execução não há usuário cadastrado. O programa pede a criação do **administrador** (nome, senha com pelo menos 8 caracteres e confirmação). Não existe usuário ou senha padrão.
 
-## Verificação
+Para liberar o modo manual, o gerenciamento de usuários ou o histórico restrito, use o login. Operadores acessam o modo manual; apenas administradores gerenciam usuários.
 
-Execute python -B tests/test_stability_regression.py. A suíte de 30 testes passou em 08/10/2026. O executável foi gerado e permaneceu ativo em teste de inicialização isolado por 15 segundos, sem erro registrado.
-Os testes usam hardware simulado e diretórios temporários. Não escrever nos arquivos reais de calibração durante testes. Os antigos scripts de teste encaminham à suíte isolada.
+## Dados locais
 
-Compilar o supervisório: python -m PyInstaller --noconfirm SpectrumLabPro_4_11_1.spec.
+Os arquivos de dados são criados automaticamente na primeira execução, sem substituir os existentes:
 
-Firmware compilado com sucesso: esp32:esp32:esp32:PartitionScheme=no_ota, core ESP32 3.3.12. Uso de flash: 1.665.459 bytes (79% do aplicativo de 2 MB); RAM estática: 65.056 bytes (19%). O pacote dist/Firmware_ESP32_4_10_0.zip contém o sketch e o driver local necessários. Não foi feito upload à placa nem ensaio físico nesta revisão.
+| Execução | Pasta dos dados |
+|---|---|
+| Código-fonte | pasta do projeto |
+| Executável | ao lado do `.exe` (banco de usuários e histórico) e `%LOCALAPPDATA%\SpectrumLabPro` (calibração, preferências e materiais) |
+| Testes | pasta indicada em `SPECTRUM_LAB_DATA_DIR` |
 
-A compilação e os testes de software não substituem ensaios na bancada. Após trocar o procedimento de referência, os valores demonstrativos podem mudar; não ajustar coeficientes apenas para recuperar resultados anteriores.
+Os arquivos `*.db`, `calibracao.json` e `crash.log` **não são versionados** (ver `.gitignore`). Eles contêm credenciais, calibrações da bancada e registros locais.
 
-A documentação técnica antiga descreve versões anteriores. Este documento prevalece quanto aos fluxos corrigidos.
+## Gerar o executável
 
-## Interface com escala proporcional — versão 4.11.1
+```bat
+python -m PyInstaller --noconfirm SpectrumLabPro_4_16_1.spec
+```
 
-O painel mantém uma única disposição. A área de referência é de 1600×900 unidades lógicas, ampliada apenas se algum conteúdo exigir um mínimo maior. A janela calcula automaticamente um único fator a partir da largura e da altura disponíveis e transforma todo o painel, incluindo textos, botões, gráficos, KPIs, espaçamentos e regiões de clique. Não há rolagem do painel nem empilhamento dos cards em telas pequenas.
+O resultado fica em `dist/SpectrumLabPro_4_16_1.exe`. O `.spec` inclui `banco_materiais.json` e a pasta `assets/`.
 
-Os quatro KPIs permanecem na mesma linha e os controles e gráficos continuam lado a lado. A proporção original é preservada; telas de outra proporção podem deixar pequenas margens. Quanto menor a área disponível, menores ficam também os textos e botões. A escala nativa do Windows é aplicada pelo Qt; o ajuste adicional usa unidades lógicas e não duplica o DPI.
+Para gerar a documentação técnica em PDF, use `build_technical_doc_pdf.py`, a partir de `DOCUMENTACAO_TECNICA_SUPERVISORIO.md`.
 
-A escala se atualiza ao redimensionar a janela, trocar de monitor ou alterar a área útil. Diálogos maiores que a tela também são reduzidos proporcionalmente. Históricos e listas conservam os controles próprios de navegação dos dados.
+## Segurança
 
-Verificação: python -B tests/test_responsive_interface.py. Quatro testes verificam o painel inteiro visível em sete tamanhos (480×320 a 1920×1080), manutenção da disposição e do resultado, cliques após transformação, ajuste ao monitor menor e diálogos sem rolagem do formulário. Escalas de 100%, 125% e 150% foram verificadas em ambiente simulado. Os 30 testes funcionais também passaram. Não foi acessado o notebook físico.
+Alterações desta versão:
 
-Imagens atuais: validation/interface_4_11_1_1366.png e validation/interface_4_11_1_911.png. As imagens 4.11.0 registram a proposta anterior com reorganização e rolagem, substituída a pedido do usuário. Cópias anteriores desta revisão: backups/20261008_escala_proporcional/.
+- **Senhas** armazenadas com PBKDF2-HMAC-SHA256 (600 000 iterações e sal aleatório). Hashes antigos (SHA-256 sem sal) continuam válidos e são migrados no próximo login correto.
+- **Sem credencial padrão:** o `admin/admin` foi removido. O primeiro administrador é criado no primeiro acesso.
+- **Política de senha:** mínimo de 8 caracteres e confirmação na criação do administrador. A senha é usada exatamente como digitada, sem remover espaços.
+- **Código de teste removido** dos fluxos de autenticação e de intertravamento. Não há mais variáveis de ambiente que alterem essas decisões.
+- **Parada de emergência honesta:** a interface informa se o comando foi enviado. Sem conexão, aparece um aviso vermelho persistente para usar o botão físico. A mensagem "em repouso" só aparece depois da confirmação do ESP32.
+- **Fechamento seguro:** fechar o aplicativo durante um movimento ou ensaio pede confirmação e envia parada antes de encerrar.
+- **Ação padrão removida** do diálogo de fim de ensaio. Enter não aciona movimento motorizado.
+- **Dados sensíveis fora do repositório:** bancos de usuários, calibração, log de falhas e caminhos pessoais de desenvolvimento foram retirados.
 
-A transformação e o encaminhamento de eventos usam QGraphicsProxyWidget do Qt: https://doc.qt.io/archives/qt-5.15/qgraphicsproxywidget.html.
+Pendências de segurança e operação estão listadas na [auditoria](docs/AUDITORIA_GUI_UX.md), na seção 9. Entre elas: estado físico desconhecido após emergência, tratamento de exceções durante operação, separação do banco de usuários e do histórico, e sessão manual com tempo limite.
 
+## Limitações conhecidas
 
-## Porta e carcaça — versão 4.14.0
+- O Kappa é demonstrativo e não foi validado analiticamente.
+- Os servos não têm confirmação física de posição. Os intertravamentos usam posições estimadas pelos comandos.
+- Os valores de referência dependem da geometria e da iluminação. Trocar qualquer um deles exige nova calibração.
+- Alterações de segurança desta versão ainda precisam de ensaio na bancada: parada com e sem conexão, queda de cabo durante movimento e fechamento durante operação.
 
-A versão com servo contínuo de porta e três fins de curso está descrita em [PORTA_SUPERVISORIO_4_14_0.md](PORTA_SUPERVISORIO_4_14_0.md). Use `dist/SpectrumLabPro_4_14_0.exe` com o sketch atualizado. A porta deve confirmar abertura antes da gaveta, e fechamento antes do avanço do sensor. Gaveta e carrinho mantêm seus servos de posição de 180°, com confirmação por movimento concluído. O quadro da carcaça exige nova autenticação para operação com equipamento aberto.
+## Documentação e histórico de versões
 
+| Versão | Documento |
+|---|---|
+| 4.16.1 | [Inicialização automática dos dados](INICIALIZACAO_AUTOMATICA_4_16_1.md) |
+| 4.16.0 | [Carrinho com servo contínuo](CARRINHO_CONTINUO_4_16_0.md) |
+| 4.15.0 | [Manual livre](MANUAL_LIVRE_4_15_0.md) |
+| 4.14.3 | [Porta sem limite](PORTA_SEM_LIMITE_4_14_3.md) |
+| 4.14.2 | [Correção do modo manual](CORRECAO_MANUAL_4_14_2.md) |
+| 4.14.1 | [Correção de conexão](CORRECAO_CONEXAO_4_14_1.md) |
+| 4.14.0 | [Porta e carcaça](PORTA_SUPERVISORIO_4_14_0.md) |
+| Técnica | [Documentação técnica do supervisório](DOCUMENTACAO_TECNICA_SUPERVISORIO.md) · [PDF](SPECTRUM-LAB_PRO_Documentacao_Tecnica.pdf) |
+| Auditoria | [Auditoria GUI / UX / UI e segurança](docs/AUDITORIA_GUI_UX.md) |
 
-## Carrinho contínuo — versão 4.16.0
+Os documentos de versões anteriores descrevem o comportamento daquela versão. Quando houver conflito, a versão mais recente prevalece.
 
-A adaptação para eixo roscado com servo contínuo e fins de curso de recuo/avanço nos GPIOs 32/33 está documentada em [CARRINHO_CONTINUO_4_16_0.md](CARRINHO_CONTINUO_4_16_0.md). Atualizar supervisório e firmware juntos. Ao ligar, o carrinho recebe neutro, sem movimento automático.
+---
 
-
-## Criação automática de dados — versão 4.16.1
-
-Use `dist/SpectrumLabPro_4_16_1.exe`. Os arquivos de dados ausentes são criados ao iniciar, sem substituir os existentes. A base de materiais editável passa a ser persistente. Veja [INICIALIZACAO_AUTOMATICA_4_16_1.md](INICIALIZACAO_AUTOMATICA_4_16_1.md) para locais e acesso inicial. Compatível com firmware 4.16.0.
+Projeto acadêmico do curso técnico em Automação Industrial.

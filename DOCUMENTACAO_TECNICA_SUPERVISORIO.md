@@ -89,11 +89,11 @@ O **SPECTRUM-LAB PRO** é um sistema supervisório industrial para controle, aut
 
 ### 1.2 Arquitetura de Software
 O software é modular e orientado a eventos assíncronos:
-- **GUI Principal:** [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) em PyQt5 com Design System Windows 11 Fluent Dark.
-- **Comunicação Assíncrona:** [`connection_worker.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/connection_worker.py) executando em `QThread` própria com buffer sem bloqueio e tratamento anti-ruído.
-- **Motor Quimiométrico:** [`chemometrics.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/chemometrics.py) com lógica matemática e física estritamente desacoplada da GUI.
-- **Banco de Dados e Acesso:** [`database.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/database.py) gerenciando usuários com permissões granulares e autenticação SHA-256 em SQLite.
-- **Geração de Laudos:** [`pdf_generator.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/pdf_generator.py) utilizando ReportLab e Matplotlib com backend `Agg` blindado contra concorrência e memory leaks.
+- **GUI Principal:** [`main.py`](main.py) em PyQt5 com Design System Windows 11 Fluent Dark.
+- **Comunicação Assíncrona:** [`connection_worker.py`](connection_worker.py) executando em `QThread` própria com buffer sem bloqueio e tratamento anti-ruído.
+- **Motor Quimiométrico:** [`chemometrics.py`](chemometrics.py) com lógica matemática e física estritamente desacoplada da GUI.
+- **Banco de Dados e Acesso:** [`database.py`](database.py) gerenciando usuários com permissões granulares e autenticação em SQLite (senhas com PBKDF2-HMAC-SHA256 e sal; hashes SHA-256 antigos são migrados no login).
+- **Geração de Laudos:** [`pdf_generator.py`](pdf_generator.py) utilizando ReportLab e Matplotlib com backend `Agg` blindado contra concorrência e memory leaks.
 
 ---
 
@@ -447,23 +447,23 @@ Implementada em `_display_repeatability_report()`, a janela oferece:
 
 | Componente | Arquivo de Origem | Função / Método | Descrição da Responsabilidade |
 | :--- | :--- | :--- | :--- |
-| **Comunicação Multithread** | [`connection_worker.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/connection_worker.py) | `ConnectionWorker.run` | Gerenciamento de portas USB, sockets TCP, parsing UTF-8 e despacho FIFO |
-| **Máquina de Estados (FSM)** | [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `_on_serial_status_received` | Orquestração sequencial dos ciclos de ensaio, repetibilidade e calibração |
-| **Seletor de Modo Operacional**| [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `on_operational_mode_changed` | Comutação de método (úmido vs seco), atualização de KPIs e validação |
-| **Isolamento de Calibração** | [`chemometrics.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/chemometrics.py) | `ChemometricsEngine.save_calibration` | Persistência atômica (`os.fsync`) de perfis independentes em `calibracao.json` |
-| **Validade Metrológica** | [`chemometrics.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/chemometrics.py) | `is_calibration_expired` | Cálculo temporal $t_{\text{atual}} - t_{\text{calib}} > \text{timeout}$ com opções de 1 min a 24 h |
-| **Intertravamento de Segurança**| [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `_check_calibration_validity` | Desabilitação de botões de ensaio quando calibração expirada / ausente |
-| **Reflectância e SNV** | [`chemometrics.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/chemometrics.py) | `calculate_relative_reflectance` / `normalize_snv` | Correção por escuro/branco do perfil ativo e normalização por área unitária |
-| **Modelos de Número Kappa** | [`chemometrics.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/chemometrics.py) | `calculate_kappa_number` | Equação multivariada específica para polpa em suspensão aquosa ou folha seca |
-| **Repetibilidade Estática** | [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `_handle_repeatability_fsm` | 5 aquisições com sensor imóvel, delay térmico de 300 ms e recuo final único |
-| **Relatório de Repetibilidade**| [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `_display_repeatability_report` | Modal 960x660 px com Kappa médio $\pm s_K$, gráficos de erro e dispersão 2D |
-| **Gráficos Espectrais** | [`animated_chart.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/animated_chart.py) | `SpectralSplineChartWidget` | Renderização contínua com barras animadas e spline cúbica Catmull-Rom |
-| **Geração de Laudos PDF** | [`pdf_generator.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/pdf_generator.py) | `generate_pdf_report` | Diagramação ReportLab com barras dinâmicas (`FigureCanvasAgg` puro), isolamento headless e foco quantitativo |
-| **Histórico no SQLite** | [`database.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/database.py) | `DatabaseManager` | Tabela `leituras_historico` com 26 colunas registrando telemetria, ADC e reflectância |
-| **Gerenciador de Histórico**| [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `HistoryDialog` | Diálogo Fluent 1080x720 px com busca, preview de KPIs, emissão direta de laudos, identificação exata de modo (seco/úmido) e exportação CSV |
-| **Blindagem de Processo e Log**| [`main.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/main.py) | `global_exception_handler` | Tratador `sys.excepthook` para captura de exceções não tratadas, geração de `crash.log` e prevenção de crash silencioso |
-| **Splash Screen Dinâmica** | [`splash_screen.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/splash_screen.py) | `AnimatedSplashScreen` | Tela de inicialização com vinculação dinâmica ao módulo `version.py` |
-| **Controle de Acesso** | [`database.py`](file:///c:/Users/mateu/.gemini/antigravity-ide/scratch/spectrum_lab/database.py) | `DatabaseManager` | Autenticação SQLite com hash SHA-256 para liberação de modo manual |
+| **Comunicação Multithread** | [`connection_worker.py`](connection_worker.py) | `ConnectionWorker.run` | Gerenciamento de portas USB, sockets TCP, parsing UTF-8 e despacho FIFO |
+| **Máquina de Estados (FSM)** | [`main.py`](main.py) | `_on_serial_status_received` | Orquestração sequencial dos ciclos de ensaio, repetibilidade e calibração |
+| **Seletor de Modo Operacional**| [`main.py`](main.py) | `on_operational_mode_changed` | Comutação de método (úmido vs seco), atualização de KPIs e validação |
+| **Isolamento de Calibração** | [`chemometrics.py`](chemometrics.py) | `ChemometricsEngine.save_calibration` | Persistência atômica (`os.fsync`) de perfis independentes em `calibracao.json` |
+| **Validade Metrológica** | [`chemometrics.py`](chemometrics.py) | `is_calibration_expired` | Cálculo temporal $t_{\text{atual}} - t_{\text{calib}} > \text{timeout}$ com opções de 1 min a 24 h |
+| **Intertravamento de Segurança**| [`main.py`](main.py) | `_check_calibration_validity` | Desabilitação de botões de ensaio quando calibração expirada / ausente |
+| **Reflectância e SNV** | [`chemometrics.py`](chemometrics.py) | `calculate_relative_reflectance` / `normalize_snv` | Correção por escuro/branco do perfil ativo e normalização por área unitária |
+| **Modelos de Número Kappa** | [`chemometrics.py`](chemometrics.py) | `calculate_kappa_number` | Equação multivariada específica para polpa em suspensão aquosa ou folha seca |
+| **Repetibilidade Estática** | [`main.py`](main.py) | `_handle_repeatability_fsm` | 5 aquisições com sensor imóvel, delay térmico de 300 ms e recuo final único |
+| **Relatório de Repetibilidade**| [`main.py`](main.py) | `_display_repeatability_report` | Modal 960x660 px com Kappa médio $\pm s_K$, gráficos de erro e dispersão 2D |
+| **Gráficos Espectrais** | [`animated_chart.py`](animated_chart.py) | `SpectralSplineChartWidget` | Renderização contínua com barras animadas e spline cúbica Catmull-Rom |
+| **Geração de Laudos PDF** | [`pdf_generator.py`](pdf_generator.py) | `generate_pdf_report` | Diagramação ReportLab com barras dinâmicas (`FigureCanvasAgg` puro), isolamento headless e foco quantitativo |
+| **Histórico no SQLite** | [`database.py`](database.py) | `DatabaseManager` | Tabela `leituras_historico` com 26 colunas registrando telemetria, ADC e reflectância |
+| **Gerenciador de Histórico**| [`main.py`](main.py) | `HistoryDialog` | Diálogo Fluent 1080x720 px com busca, preview de KPIs, emissão direta de laudos, identificação exata de modo (seco/úmido) e exportação CSV |
+| **Blindagem de Processo e Log**| [`main.py`](main.py) | `global_exception_handler` | Tratador `sys.excepthook` para captura de exceções não tratadas, geração de `crash.log` e prevenção de crash silencioso |
+| **Splash Screen Dinâmica** | [`splash_screen.py`](splash_screen.py) | `AnimatedSplashScreen` | Tela de inicialização com vinculação dinâmica ao módulo `version.py` |
+| **Controle de Acesso** | [`database.py`](database.py) | `DatabaseManager` | Autenticação SQLite com hash PBKDF2-HMAC-SHA256 para liberação de modo manual |
 
 ---
 

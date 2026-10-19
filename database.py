@@ -9,10 +9,10 @@ do executável compilado (.exe) ou do script Python.
 import sys
 import os
 import sqlite3
-import hashlib
 from contextlib import contextmanager
 from typing import List, Dict, Optional, Tuple
 from runtime_data import resolve_database_path
+from password_hashing import hash_password, verify_password, validate_new_password
 
 
 def get_database_path(db_name: str = "usuarios.db") -> str:
@@ -28,7 +28,8 @@ def get_database_path(db_name: str = "usuarios.db") -> str:
 class DatabaseManager:
     """
     Gerenciador do banco de dados SQLite para controle de acesso do SpectrumLab Pro.
-    Tabela 'usuarios' com id, username, password_hash (SHA-256) e role ('admin' ou 'operador').
+    Tabela 'usuarios' com id, username, password_hash (PBKDF2-SHA256 com sal) e role ('admin' ou 'operador').
+    Não cria usuário padrão: o primeiro administrador é cadastrado na primeira execução.
     """
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path if db_path else get_database_path("usuarios.db")
@@ -46,11 +47,11 @@ class DatabaseManager:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Gera hash seguro SHA-256."""
-        return hashlib.sha256(password.encode("utf-8")).hexdigest()
+        """Gera hash PBKDF2-HMAC-SHA256 com sal aleatório."""
+        return hash_password(password)
 
     def init_db(self):
-        """Cria a tabela e o usuário admin inicial caso vazia."""
+        """Cria as tabelas. Não cria usuário padrão."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -109,22 +110,30 @@ class DatabaseManager:
                         pass
             conn.commit()
 
+    def contar_usuarios(self) -> int:
+        """Total de usuários cadastrados (usado para o cadastro do primeiro administrador)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM usuarios")
-            count = cursor.fetchone()[0]
-            if count == 0:
-                admin_hash = self.hash_password("admin")
-                cursor.execute("""
-                    INSERT INTO usuarios (username, password_hash, role)
-                    VALUES (?, ?, ?)
-                """, ("admin", admin_hash, "admin"))
-                conn.commit()
+            return cursor.fetchone()[0]
 
     def validar_login(self, username: str, password: str) -> bool:
-        """Retorna True se username e senha forem válidos."""
+        """
+        Retorna True se username e senha forem válidos.
+        Hashes legados (SHA-256 sem sal) são regravados no formato atual após login correto.
+        """
         user = self.obter_usuario(username)
         if not user:
             return False
-        return user["password_hash"] == self.hash_password(password)
+        ok, needs_rehash = verify_password(password, user["password_hash"])
+        if ok and needs_rehash:
+            try:
+                with self._get_connection() as conn:
+                    conn.execute("UPDATE usuarios SET password_hash = ? WHERE id = ?",
+                                 (hash_password(password), user["id"]))
+            except Exception:
+                pass  # a migração é oportunista; o login continua válido
+        return ok
 
     def obter_usuario(self, username: str) -> Optional[Dict]:
         """Obtém dicionário com dados do usuário ou None."""
@@ -150,6 +159,9 @@ class DatabaseManager:
         username = username.strip()
         if not username or not password:
             return False, "Usuário e senha não podem ser vazios."
+        erro_senha = validate_new_password(password)
+        if erro_senha:
+            return False, erro_senha
         if role not in ("admin", "operador"):
             return False, "Nível inválido (use 'admin' ou 'operador')."
 
@@ -199,6 +211,9 @@ class DatabaseManager:
         """Atualiza a senha de um usuário."""
         if not nova_senha:
             return False, "Nova senha não pode ser vazia."
+        erro_senha = validate_new_password(nova_senha)
+        if erro_senha:
+            return False, erro_senha
         pwd_hash = self.hash_password(nova_senha)
         try:
             with self._get_connection() as conn:
@@ -308,5 +323,3 @@ class DatabaseManager:
             return False
 
 
-# Alias de AuthManager para compatibilidade
-AuthManager = DatabaseManager
