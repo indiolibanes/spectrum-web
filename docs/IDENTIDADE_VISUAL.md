@@ -18,6 +18,30 @@ Regras de uso:
 - Deixe, em volta de cada logo, um espaço livre igual à altura da letra "a" do wordmark ARAUCO.
 - Os logos SENAI e ARAUCO são de terceiros. O uso no executável e na documentação depende de autorização (auditoria, item B8).
 
+## Cores e fundo
+
+O tema padrão é **Ouro (preto e dourado)**. Ele pode ser trocado em *Configurações → Aparência* por Claro ou Escuro, e a escolha fica salva.
+
+| Token | Hex | Uso |
+|---|---|---|
+| canvas | `#0B0A08` | Fundo da janela (preto quente) |
+| surface | `#131108` | Cartões e painéis |
+| soft | `#1C1810` | Áreas alternadas e botões |
+| border | `#4A3D22` | Bordas e divisores |
+| text | `#F4EAD2` | Texto principal (marfim) |
+| muted | `#BFAE86` | Texto secundário e legendas |
+| disabled | `#6F6548` | Controles desabilitados |
+| accent | `#D4AF37` | Títulos, destaques e detalhes dourados |
+| positive | `#B9D98A` | Estado OK |
+| warning | `#E8C25A` | Atenção |
+| danger | `#E97462` | Erro e parada |
+
+Contraste: texto principal sobre o fundo fica acima de 15:1, e o dourado de destaque acima de 8:1. Texto secundário acima de 7:1.
+
+**Textura de celulose.** O fundo da janela principal leva `assets/textures/celulose-madeira.png`, uma textura de fibras e veios de madeira em âmbar com opacidade entre 3% e 18%. Ela se repete sem emendas e não reduz a leitura. Cartões e diálogos mantêm cor sólida.
+
+**Marca.** O ícone do programa usa o mesmo preto e dourado.
+
 ## Tipografia
 
 Famílias, todas instaladas no Windows 10 e 11 (sem instalação extra):

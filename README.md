@@ -23,7 +23,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Tema claro e escuro**, com escala proporcional da interface.
+- **Tema Ouro (preto e dourado)** por padrão, com fundo de textura de celulose. Também há os temas Claro e Escuro.
 
 ## Estrutura do repositório
 
@@ -39,6 +39,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
+| `assets/textures/` | Textura de celulose do fundo do tema ouro |
 | `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
 | `docs/IDENTIDADE_VISUAL.md` | Logos, tipografia e escala de texto |
 | `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
@@ -54,6 +55,8 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 </p>
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+
+**Cores.** Tema padrão preto e dourado: fundo `#0B0A08`, texto marfim `#F4EAD2` e destaques dourados `#D4AF37`. Para trocar, use *Configurações → Aparência*. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
 **Tipografia.** Todas as famílias vêm com o Windows 10 e 11:
 
