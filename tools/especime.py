@@ -48,7 +48,7 @@ def page(p, series, texture, arrow, hand):
 @font-face{{font-family:'EB Garamond';src:url('{f}EBGaramond-Regular.ttf');font-weight:400}}
 @font-face{{font-family:'IBM Plex Mono';src:url('{f}IBMPlexMono-Regular.ttf');font-weight:400}}
 *{{box-sizing:border-box;margin:0}}
-body{{width:1600px;height:1000px;background:{glows},url('{texture}'),{p['canvas']};color:{p['text']};font:400 13px 'IBM Plex Sans';padding:16px 20px;display:flex;flex-direction:column;gap:14px;position:relative}}
+body{{width:1600px;height:1000px;background:{glows}{(",url('" + texture + "')") if texture else ""},{p['canvas']};color:{p['text']};font:400 13px 'IBM Plex Sans';padding:16px 20px;display:flex;flex-direction:column;gap:14px;position:relative}}
 .panel{{background:{css(glass.panel_fill(p))};border:1px solid {glass.rim(p)};border-radius:16px}}
 .top{{display:flex;align-items:center;gap:14px;padding:12px 18px}}
 .brand b{{display:block;font:700 24px 'EB Garamond';color:{p['heading']}}} .brand small{{color:{p['muted']};font-size:11px}}
@@ -164,11 +164,10 @@ def main():
     pals, series = palettes()
     arrow = (ROOT / "assets/cursors/fibra-seta@2x.png").as_uri()
     hand = (ROOT / "assets/cursors/fibra-mao@2x.png").as_uri()
-    wood = (ROOT / "assets/textures/madeira-escura.png").as_uri()
     pulp = (ROOT / "assets/textures/celulose-claro.png").as_uri()
-    items = [("umber", page(pals["umber"], series["umber"], wood, arrow, hand), (1600, 1000)),
+    items = [("umber", page(pals["umber"], series["umber"], None, arrow, hand), (1600, 1000)),
              ("claro", page(pals["light"], series["light"], pulp, arrow, hand), (1600, 1000)),
-             ("config-umber", dialog_page(pals["umber"], series["umber"], wood, arrow, hand), (720, 820)),
+             ("config-umber", dialog_page(pals["umber"], series["umber"], None, arrow, hand), (720, 820)),
              ("config-claro", dialog_page(pals["light"], series["light"], pulp, arrow, hand), (720, 820))]
     asyncio.run(shoot(items, out))
     print("espécimes em", out)

@@ -91,14 +91,18 @@ class GuiSmokeTests(unittest.TestCase):
             self.manager.set_theme(theme, persist=False)
             self.assertEqual(self.app.property("spectrum_theme"), theme)
 
-    def test_canvas_root_paints_the_cellulose_texture(self):
+    def test_canvas_root_paints_the_cellulose_texture_only_in_light(self):
         import scada_ui
-        for theme in ("umber", "light"):
-            self.manager.set_theme(theme, persist=False)
-            root = scada_ui.CanvasRoot()
-            root.resize(420, 300)
-            pixmap = root.grab()
-            self.assertGreater(len(distinct_pixels(pixmap, 5, 5)), 1, f"textura invisível no tema {theme}")
+        from appearance import TEXTURE_FILES
+        self.assertNotIn("umber", TEXTURE_FILES, "o Escuro é preto liso, sem textura")
+        self.manager.set_theme("light", persist=False)
+        root = scada_ui.CanvasRoot()
+        root.resize(420, 300)
+        self.assertGreater(len(distinct_pixels(root.grab(), 5, 5)), 1, "textura invisível no tema claro")
+        self.manager.set_theme("umber", persist=False)
+        root = scada_ui.CanvasRoot()
+        root.resize(420, 300)
+        self.assertEqual(len(distinct_pixels(root.grab(), 5, 5)), 1, "fundo do Escuro deve ser preto liso")
 
     def test_legacy_theme_names_migrate_to_umber(self):
         from appearance import LEGACY_THEMES
@@ -108,7 +112,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_glass_panels_show_the_texture_through(self):
         """O cartão é translúcido: renderizado sobre a textura, não pode ser uma cor chapada."""
         import scada_ui
-        self.manager.set_theme("umber", persist=False)
+        self.manager.set_theme("light", persist=False)
         root = scada_ui.CanvasRoot()
         layout = QVBoxLayout(root)
         box = scada_ui.panel()
@@ -120,6 +124,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.pump()
         self.assertGreater(len(distinct_pixels(box.grab(), 5, 5)), 1, "painel opaco: a textura não aparece")
         root.close()
+        self.manager.set_theme("umber", persist=False)
 
     def test_analysis_indicator_renders_every_state(self):
         from analysis_indicator import AnalysisIndicator

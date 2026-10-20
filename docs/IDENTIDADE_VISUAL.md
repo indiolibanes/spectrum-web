@@ -19,7 +19,7 @@ Três referências, todas usadas como inspiração de linguagem, nunca como cóp
 - **Clareza da interface da Apple**: poucos elementos por tela, hierarquia tipográfica curta, cantos generosos (10 px nos botões e campos, 16 px nos painéis), destaque dourado (ou verde) para a ação principal e um tom por função nos demais botões, movimento com física de mola (entrada escalonada, botões que cedem ao toque e voltam com leve ultrapassagem, troca de tema em fusão). Só a *linguagem*: as fontes e o kit visual da Apple são proprietários e não são usados.
 - **Material 3** para os estados de toque (realce ao passar, cor viva ao pressionar, ondulação no ponto tocado) e alvos de toque grandes.
 
-**O que o Qt não faz.** O QSS não desfoca o que está atrás do widget. O vidro é construído com preenchimento translúcido em degradê, fio de luz na borda, a textura do fundo aparecendo por baixo dos painéis e um brilho ambiente pintado no fundo. Resultado: a mesma sensação de profundidade, sem desfoque real.
+**O que o Qt não faz.** O QSS não desfoca o que está atrás do widget. O vidro é construído com preenchimento translúcido em degradê, fio de luz na borda, a textura do fundo (no claro) aparecendo por baixo dos painéis e um brilho ambiente pintado no fundo. Resultado: a mesma sensação de profundidade, sem desfoque real.
 
 **Por que não Jetpack Compose neste programa.** O Compose é uma biblioteca em Kotlin (Android e JVM) e não pode ser embutido em um aplicativo PyQt5. O caminho para Android é um cliente separado, que fale o mesmo protocolo TCP do ESP32 (comandos em `run/fake_esp32.py`), e fica para a última fase do roteiro: primeiro UX/UI, depois animações, por fim Android e talvez web.
 
@@ -49,13 +49,13 @@ Aparece na abertura (canto inferior direito) e no **rodapé da janela principal*
 
 Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva e a troca acontece em uma fusão suave de cerca de 360 ms (sem ela, com *Reduzir animações*). *Acessibilidade* é uma seção à parte, com o teclado na tela e as animações. Preferências antigas (`dark`, `gold`) migram sozinhas para o tema Escuro.
 
-### Escuro · umber e ouro (padrão)
+### Escuro · preto e dourado (padrão)
 
-Preto quase AMOLED (`#050504`: os pixels ficam praticamente apagados em telas OLED) com os tons de papel, umber e ouro da identidade do autor.
+Preto AMOLED (`#000000`: os pixels ficam totalmente apagados em telas OLED), sem textura, com o dourado como única cor de destaque. Os tons de texto são papel quente, para não parecer frio.
 
 | Token | Hex | Uso |
 |---|---|---|
-| canvas | `#050504` | Fundo da janela |
+| canvas | `#000000` | Fundo da janela (preto AMOLED, sem textura) |
 | surface | `#17140E` | Diálogos e base dos painéis de vidro |
 | soft | `#221E15` | Áreas alternadas |
 | border | `#5A5342` | Bordas sólidas e divisores |
@@ -68,7 +68,7 @@ Preto quase AMOLED (`#050504`: os pixels ficam praticamente apagados em telas OL
 | sky / violet / rose | `#7CC4F2` / `#B9A2F2` / `#F29BB8` | Tons de função dos botões e dos ícones |
 | on_strong | `#2B2200` | Texto sobre botão dourado |
 
-**Textura de madeira.** `assets/textures/madeira-escura.png`: tábuas de fibra âmbar quase transparentes, geradas por `tools/gerar_assets.py` (semente fixa, sem imagem de terceiros). Aparece no fundo e por trás dos painéis de vidro.
+**Sem textura no escuro.** A textura de madeira foi removida: o fundo é preto liso, e o destaque vem do dourado (botão principal, números, curva e bordas), não de ornamento.
 
 ### Claro: branco e verde
 
@@ -111,7 +111,7 @@ Receitas em `glass.py` (sem Qt, testadas):
 | Botão em tom | Vidro tingido com a cor da função (30% no alto, 14% embaixo, no escuro), borda a 70% do tom |
 | Botão principal | Cor de destaque cheia, com luz no topo e foco de luz que acompanha o ponteiro (desenhados por `button_fx.py`) |
 | Campos | Poço levemente mais escuro que o painel, borda de destaque no foco |
-| Fundo | Cor do tema + textura + dois brilhos ambientes (dourado no escuro, verde no claro) |
+| Fundo | Cor do tema + textura (só no claro) + dois brilhos ambientes (dourado no escuro, verde no claro) |
 
 Diálogos usam cor sólida (são janelas separadas e não há o que enxergar através delas).
 

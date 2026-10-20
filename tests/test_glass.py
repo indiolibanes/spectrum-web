@@ -140,7 +140,7 @@ class GlassTests(unittest.TestCase):
 
 class AssetTests(unittest.TestCase):
     def test_generated_assets_exist(self):
-        for rel in ("assets/textures/madeira-escura.png", "assets/textures/celulose-claro.png",
+        for rel in ("assets/textures/celulose-claro.png",
                     "assets/cursors/fibra-seta.png", "assets/cursors/fibra-seta@2x.png",
                     "assets/cursors/fibra-mao.png", "assets/cursors/fibra-mao@2x.png"):
             path = ROOT / rel
