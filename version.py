@@ -7,12 +7,12 @@ __version__ = "4.16.2"
 __build__ = "1263"
 __release_date__ = "20/10/2026"
 __app_name__ = "SPECTRUM-LAB PRO"
-__authors__ = ("Davi Baracat", "Kauê Carvalho", "Mateus Ferreira")
-__credits__ = "Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira"
+__authors__ = ("Davi Baracat", "Kauê Alencar", "Mateus Ferreira")
+__credits__ = "Protótipo desenvolvido por Davi Baracat, Kauê Alencar e Mateus Ferreira"
 # Perfis no GitHub (só quem tem perfil informado vira link).
 __author_links__ = {
     "Davi Baracat": "https://github.com/DaviBaracat",
-    "Kauê Carvalho": "https://github.com/indiolibanes",
+    "Kauê Alencar": "https://github.com/indiolibanes",
     "Mateus Ferreira": "https://github.com/yosemate",
 }
 

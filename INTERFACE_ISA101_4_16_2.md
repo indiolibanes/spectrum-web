@@ -6,13 +6,14 @@ Versão 4.16.2 · Build 1263 · 20/10/2026.
 
 **Interface**
 
-- Estilo plano da ISA-101 nos dois temas: sem vidro, degradê, brilho ambiente nem textura (a textura de celulose foi desativada). Gráficos com barras lisas. Veja [docs/ISA-101.md](docs/ISA-101.md).
-- Tema **Noturno** (roxo, com turquesa como cor secundária) no lugar do preto e dourado. Preferências antigas (`dark`, `gold`, `umber`) migram sozinhas.
-- Cor por função de botão padronizada, sem matizes de alarme (tabela em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md)).
+- Estilo minimalista: gráficos com cor por banda; **botões neutros e iguais** (sem cor por função); cantos de 12 px; sem degradê, reflexo nem textura nos controles.
+- **Painéis translúcidos** sobre brilhos suaves do fundo, nos dois temas, para que a profundidade venha da transparência. Veja a exceção registrada em [docs/ISA-101.md](docs/ISA-101.md).
+- Tema **Noturno** com roxo profundo, **ouro** como destaque e roxo lilás como secundária. Tema **Claro** com quatro verdes distintos. Preferências antigas (`dark`, `gold`, `umber`) migram sozinhas.
+- Botões com estilo iOS: véu translúcido, mola curta ao pressionar, sem onda nem anel de luz.
+- Fonte principal trocada para **Inter** (sans-serif neutra, SIL OFL). Títulos em Dropline, marca em Arena, valores em IBM Plex Mono.
 - Logo do projeto ao lado do nome no cabeçalho.
-- Nova hierarquia de fontes: Arena (marca), Dropline (títulos), IBM Plex Sans (interface) e IBM Plex Mono (valores). A EB Garamond saiu.
 - Indicadores (KPIs) e logos do rodapé menores; cartões **ESP32 · Comunicação** e **Sensor espectral** com mais destaque.
-- Link do GitHub de Davi Baracat (@DaviBaracat) na assinatura.
+- Link do GitHub de Davi Baracat (@DaviBaracat) e nome **Kauê Alencar** na assinatura.
 
 **Teclado na tela**
 

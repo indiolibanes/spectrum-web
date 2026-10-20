@@ -119,13 +119,13 @@ class AssetsTests(unittest.TestCase):
             self.assertTrue((ty.fonts_directory() / name).exists(), name)
 
     def test_license_ships_with_fonts(self):
-        self.assertTrue((ty.fonts_directory() / "LICENSE-IBM-Plex-OFL.txt").exists())
+        self.assertTrue((ty.fonts_directory() / "LICENSE-Inter-OFL.txt").exists())
 
 
 class HierarchyTests(unittest.TestCase):
     def test_hierarchy_families(self):
         self.assertEqual((ty.FAMILY_BRAND, ty.FAMILY_DISPLAY, ty.FAMILY_UI, ty.FAMILY_DATA),
-                         ("Arena", "Dropline", "IBM Plex Sans", "IBM Plex Mono"))
+                         ("Arena", "Dropline", "Inter", "IBM Plex Mono"))
         self.assertEqual(ty.ROLES["brand"][1], "brand")
         for role in ("display", "title", "section"):
             self.assertEqual(ty.ROLES[role][1], "display", role)
@@ -134,7 +134,7 @@ class HierarchyTests(unittest.TestCase):
             self.assertEqual(ty.ROLES[role][1], "ui", role)
 
     def test_display_stack_falls_back_to_the_ui_font_for_missing_signs(self):
-        self.assertLess(ty.STACK_DISPLAY.index("Dropline"), ty.STACK_DISPLAY.index("IBM Plex Sans"))
+        self.assertLess(ty.STACK_DISPLAY.index("Dropline"), ty.STACK_DISPLAY.index("Inter"))
 
     def test_garamond_is_gone_and_new_fonts_are_loaded(self):
         self.assertFalse(any("Garamond" in name for name in ty.FONT_FILES))

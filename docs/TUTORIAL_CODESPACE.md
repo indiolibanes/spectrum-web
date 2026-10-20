@@ -1,6 +1,6 @@
 # Tutorial de teste no Codespace
 
-Roteiro para validar a interface da versão 4.16.2: estilo plano da ISA-101, tema Noturno (roxo e turquesa), tema Claro, nova hierarquia de fontes, logo ao lado do nome, teclado automático, conexão com o ESP32, Configurações em duas seções, legibilidade e responsividade.
+Roteiro para validar a interface da versão 4.16.2: minimalismo com botões neutros e painéis translúcidos, tema Noturno (roxo e dourado), tema Claro (verdes), fontes Inter e Dropline, logo ao lado do nome, teclado automático, conexão com o ESP32, Configurações em duas seções, legibilidade e responsividade.
 
 > **Importante.** A interface foi escrita sem poder abrir o PyQt5 no ambiente do assistente. A lógica pura tem testes automáticos que passam, mas **a aparência e o toque ainda não foram vistos em execução**. É isso que este roteiro verifica.
 
@@ -43,15 +43,15 @@ python3 -I tests/test_responsive_math.py
 QT_QPA_PLATFORM=offscreen python3 -m unittest tests.test_gui_smoke -v
 ```
 
-Esperado: os seis primeiros terminam com `OK` (há também `python3 -I tests/test_glass.py`, que confere o estilo plano e os contrastes). O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões (e que ele respeita *Reduzir animações*), brilho em botão desabilitado, o teclado numérico digitando `192.168.4.1`, as **duas seções separadas das Configurações** (tema em uma; teclado e animações na outra), ícones e rostos coloridos, uma cor por barra do gráfico, os links do rodapé, o cartão de calibração sem texto comprimido e o canvas adaptativo sem cortar o layout.
+Esperado: os seis primeiros terminam com `OK` (há também `python3 -I tests/test_glass.py`, que confere a translucidez, os botões neutros e os contrastes). O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões (e que ele respeita *Reduzir animações*), brilho em botão desabilitado, o teclado numérico digitando `192.168.4.1`, as **duas seções separadas das Configurações** (tema em uma; teclado e animações na outra), ícones e rostos coloridos, uma cor por barra do gráfico, os links do rodapé, o cartão de calibração sem texto comprimido e o canvas adaptativo sem cortar o layout.
 
 | Se falhar… | Significa |
 |---|---|
 | `test_embedded_fonts_are_registered` | as fontes não carregaram: confira a pasta `assets/fonts/` |
 | `test_font_styles_are_regular_and_bold_only` | o Qt registrou um estilo inesperado de fonte; copie a mensagem (ela lista qual) |
 | `test_cursor_images_load` ou `test_buttons_and_windows_get_the_cellulose_cursor` | os PNG de `assets/cursors/` não carregaram ou o cursor não foi instalado |
-| `test_panels_are_opaque_and_flat` | o painel tem degradê ou transparência: o QSS plano não foi aplicado |
-| `test_canvas_root_is_flat_in_both_themes` | o fundo não está liso (textura ou brilho voltou) |
+| `test_panels_are_translucent_over_the_background` | o painel está opaco: o fundo não aparece por trás dele |
+| `test_canvas_has_no_texture_in_both_themes` | a textura de celulose voltou a aparecer |
 | `test_keyboard_does_not_open_at_startup_or_without_touch` | o teclado abriu sem tela de toque: veja a detecção (`SPECTRUM_TOUCH`) |
 | `test_numeric_keyboard_types_an_ip_address` | o teclado não está entregando as teclas ao campo |
 | Qualquer outro | copie a saída completa e envie |
@@ -83,17 +83,17 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 | # | Passo | Esperado | |
 |---|---|---|---|
 | A1 | Observe a abertura | Marca "SpectrumLab Pro", "Da luz" e "à análise." em Dropline (ou Arena na marca); fundo quase preto liso, logos SENAI e ARAUCO; assinatura no canto inferior direito | ☐ |
-| A2 | Janela principal (Noturno) | Fundo quase preto liso, **sem** textura nem brilho; painéis planos com borda fina; destaques em **roxo** e **turquesa** | ☐ |
-| A3 | Títulos, marca e números | **Logo do projeto ao lado** de "SpectrumLab Pro" (fonte Arena); "Ensaios automáticos", "Calibração" e o título do indicador em **Dropline**; rótulos e botões em Plex Sans; valores e o número Kappa em Mono | ☐ |
+| A2 | Janela principal (Noturno) | Fundo roxo muito escuro com **brilhos roxos e dourados** suaves; painéis **translúcidos** (o brilho aparece por trás); destaques em **ouro**; **sem** textura | ☐ |
+| A3 | Títulos, marca e números | **Logo do projeto ao lado** de "SpectrumLab Pro" (fonte Arena); "Ensaios automáticos", "Calibração" e o título do indicador em **Dropline**; rótulos e botões em **Inter**; valores e o número Kappa em Mono | ☐ |
 | A4 | **Configurações** → seção **Aparência** → tema **Claro** | Troca na hora, com uma fusão suave, para branco e verde, também liso; nenhum trecho "esquecido" na cor antiga | ☐ |
-| A5 | Volte para **Noturno · roxo e turquesa** | A lista tem só dois temas | ☐ |
+| A5 | Volte para **Noturno · roxo e dourado** | A lista tem só dois temas | ☐ |
 | A6 | Feche e abra o programa | Lembra o último tema escolhido | ☐ |
-| A7 | Rodapé | Mais baixo que antes; logos SENAI e ARAUCO **menores** (cerca de 20 px de altura); à direita: "Protótipo desenvolvido por **Davi Baracat**, **Kauê Carvalho** e **Mateus Ferreira**", os três como links | ☐ |
+| A7 | Rodapé | Mais baixo que antes; logos SENAI e ARAUCO **menores** (cerca de 20 px de altura); à direita: "Protótipo desenvolvido por **Davi Baracat**, **Kauê Alencar** e **Mateus Ferreira**", os três como links | ☐ |
 | A7b | Clique nos três nomes | Abrem `github.com/DaviBaracat`, `github.com/indiolibanes` e `github.com/yosemate` | ☐ |
 | A8 | Abra qualquer diálogo (login, calibração) | Mesmas cores e fontes do painel principal; botões lisos com cantos de 10 px | ☐ |
 | A9 | Compare com `docs/img/especime-noturno.png`, `especime-claro.png` e `especime-config-*.png` | Proporções, cores e hierarquia parecidas (o espécime não tem a renderização do Qt) | ☐ |
 | A10 | Olhe os quatro indicadores | **Menores** que antes (altura ~90 px), valores ainda bem legíveis | ☐ |
-| A11 | Olhe os cartões **ESP32 · Comunicação** e **GY-AS7263 · Sensor espectral** | Borda turquesa, rótulos em 14 px e valores em 16 px negrito: são os dados mais visíveis depois do gráfico | ☐ |
+| A11 | Olhe os cartões **ESP32 · Comunicação** e **GY-AS7263 · Sensor espectral** | Borda roxo lilás, rótulos em 14 px e valores em 16 px negrito: são os dados mais visíveis depois do gráfico | ☐ |
 
 ### A2. Configurações, legibilidade e cores
 
@@ -103,9 +103,10 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 | S2 | Em **Animações**, escolha **Reduzidas** | Daqui em diante: sem entrada escalonada, sem fusão na troca de tema, botões só trocam de estado. Volte para **Completas** | ☐ |
 | L1 | No tema Noturno, leia rótulos, valores, legendas do gráfico e o cartão **Calibração** | Texto claro e nítido, nada comprimido; R², RMSE e N em linhas (rótulo à esquerda, valor à direita); nenhum texto menor que 12 px | ☐ |
 | L2 | Role a **coluna da esquerda** (método, ensaios, calibração, resultado) | Rola inteira; os cartões não encolhem para caber | ☐ |
-| L3 | Olhe os botões no tema Noturno | Todos são visíveis, **lisos** e cada função tem **sempre a mesma cor**: Conectar azul-céu, Modo manual índigo, Login cinza-azulado, repetibilidade turquesa, Calibrar orquídea, Histórico areia, PDF índigo, CSV verde, **Realizar leitura roxo cheio**; só a emergência é vermelha. Nenhum botão (fora a emergência) em vermelho, laranja ou amarelo | ☐ |
+| L3 | Olhe os botões no tema Noturno | **Todos iguais**: véu cinza-roxo translúcido, cantos de 12 px, sem cor por função. **Realizar leitura** é o único preenchimento sólido (quase branco), com borda dourada. Só **Parada de emergência** é vermelha | ☐ |
+| L3b | Passe o mouse sobre um botão | O véu fica um pouco mais forte e a borda ganha o dourado | ☐ |
 | L4 | Olhe o gráfico de barras | Uma cor por banda (azul, laranja, verde, âmbar, rosa, violeta), rótulos em cor de texto com uma tarja da cor da banda; curva clara com um ponto colorido por banda | ☐ |
-| L5 | Ícones dos indicadores | Raio roxo, tendência turquesa, folha verde, gota azul, cada um com um filete da mesma cor | ☐ |
+| L5 | Ícones dos indicadores | Raio dourado, tendência roxa, folha verde, gota azul, cada um com um filete da mesma cor | ☐ |
 | L6 | Confira simetria | Margens iguais entre cartões (cerca de 16 px), cartões alinhados nas bordas, rodapé na largura total | ☐ |
 
 ### B. Botões
@@ -113,11 +114,11 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 | # | Passo | Esperado | |
 |---|---|---|---|
 | B1 | Passe o mouse sobre **Leitura com repetibilidade** | Borda realçada e leve clareamento, sem piscar | ☐ |
-| B1b | Olhe qualquer botão de perto | Cor lisa (sem degradê nem fio de luz), cantos de 10 px, sem texto cortado | ☐ |
+| B1b | Olhe qualquer botão de perto | Véu translúcido sem degradê nem fio de luz, cantos de 12 px, sem texto cortado | ☐ |
 | B1c | Mova o mouse sobre um botão | **Sem** foco de luz seguindo o ponteiro (foi removido de propósito) | ☐ |
-| B2 | Mantenha o botão pressionado | Ele "cede" (bordas escurecem, profundidade) e uma ondulação nasce no ponto do clique | ☐ |
+| B2 | Mantenha o botão pressionado | Ele "cede" com mola e escurece de leve, como um botão do iOS; **sem** onda | ☐ |
 | B2b | Solte o botão | Volta com leve ultrapassagem (efeito de mola) e um anel que se dissipa; o tamanho do botão **não** muda | ☐ |
-| B3 | Olhe **Realizar leitura** | Cor cheia e lisa (roxo no noturno, verde no claro), texto em Plex Sans negrito | ☐ |
+| B3 | Olhe **Realizar leitura** | Cor cheia e lisa (roxo no noturno, verde no claro), texto em Inter negrito | ☐ |
 | B4 | Com a bancada desconectada | Botões de ensaio cinza, sem efeito ao passar o mouse | ☐ |
 
 ### B2. Cursor de fibra de celulose
@@ -221,5 +222,5 @@ bash run/stop.sh
 | Tela preta no noVNC | `bash run/start_app.sh` ainda não foi executado |
 | Página do noVNC não abre (erro 502, 404 ou "não foi possível acessar") | Rode `bash run/check.sh`: ele mostra se a porta 6080 está de pé. Espere 10 s e atualize; abra o endereço impresso por `start_display.sh` **no navegador logado no GitHub**; na aba **PORTS**, a 6080 deve aparecer (Private) |
 | `bash: run/start_display.sh: cannot execute` ou `\r: command not found` | Fim de linha do Windows: `sed -i 's/\r$//' run/*.sh` |
-| O Codespace mostra a interface antiga (vidro, dourado, Garamond) | Está na branch errada: `git fetch && git checkout feat/ux-acessibilidade-animacoes && git pull` |
+| O Codespace mostra a interface antiga (cores por botão, Inter) | Está na branch errada: `git fetch && git checkout feat/ux-acessibilidade-animacoes && git pull` |
 | `could not load xcb` | `bash run/setup.sh` de novo |

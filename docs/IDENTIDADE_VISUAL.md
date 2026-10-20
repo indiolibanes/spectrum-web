@@ -13,14 +13,16 @@ Este documento define logos, cores, tipografia, superfícies, cursor e comportam
 
 ## Linguagem de design
 
-Desde a 4.16.2 o programa segue a **ISA-101** (interfaces homem-máquina para automação de processos): superfícies planas e opacas, sem degradê, vidro, brilho ou textura; a cor é informação (estado, alarme) e não enfeite. Detalhes, o que mudou e como conciliamos com os botões coloridos em [`ISA-101.md`](ISA-101.md).
+Desde a 4.16.2 o programa é **minimalista e segue a ISA-101** (interfaces homem-máquina para automação de processos) com um acabamento inspirado no **iOS**:
 
-Referências de linguagem, usadas só como inspiração (nunca código ou imagem de terceiros):
+- **Gráficos com cor**: uma cor por banda espectral, sempre na mesma ordem. A cor serve para dados.
+- **Botões neutros**: todos com o mesmo véu translúcido e cantos contínuos de 12 px (estilo iOS). Não há cor por função nos botões. O botão principal é um preenchimento sólido neutro, com borda de ouro (noturno) ou verde (claro).
+- **Ouro e roxo (noturno), verdes (claro)**: aparecem em foco, títulos, bordas de destaque e no fundo, nunca como preenchimento de botão.
+- **Fundo e painéis translúcidos**: o fundo tem brilhos suaves (roxo e ouro no noturno; verdes no claro), e os painéis são translúcidos sobre eles. A profundidade vem da transparência.
+- **Alarme**: vermelho e laranja são reservados a emergência e aviso. Nada mais os usa.
+- **Movimento**: molas curtas e um véu ao pressionar, como no iOS. Sem ondulação de Material, sem reflexos e sem anel de luz.
 
-- **Clareza da interface da Apple**: poucos elementos por tela, hierarquia tipográfica curta, cantos moderados (10 px nos botões e campos, 12 px nos painéis) e movimento com física de mola. As fontes e o kit visual da Apple são proprietários e não são usados.
-- **Material 3** para os estados de toque (realce ao passar, cor viva ao pressionar, ondulação no ponto tocado) e alvos de toque grandes.
-
-O visual "vidro translúcido" das versões 4.15 a 4.16.1 foi retirado: a ISA-101 recomenda evitar gradientes, brilhos e efeitos 3D, que competem com a informação de processo.
+A translucidez é uma exceção consciente à regra "superfícies lisas" da ISA-101: ela só aparece sobre brilhos de fundo, sem textura nem degradê nos controles. Veja [`ISA-101.md`](ISA-101.md).
 
 **Por que não Jetpack Compose neste programa.** O Compose é uma biblioteca em Kotlin (Android e JVM) e não pode ser embutido em um aplicativo PyQt5. O caminho para Android é um cliente separado, que fale o mesmo protocolo TCP do ESP32 (comandos em `run/fake_esp32.py`), e fica para a última fase do roteiro: primeiro UX/UI, depois animações, por fim Android e talvez web.
 
@@ -42,95 +44,75 @@ Regras de uso:
 
 ## Assinatura
 
-> Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira
+> Protótipo desenvolvido por Davi Baracat, Kauê Alencar e Mateus Ferreira
 
-Aparece na abertura (canto inferior direito) e no **rodapé da janela principal**. Cada autor é um link para o seu GitHub: **Davi Baracat** → `github.com/DaviBaracat` (@DaviBaracat), **Kauê Carvalho** → `github.com/indiolibanes` e **Mateus Ferreira** → `github.com/yosemate`. Os nomes e os links estão em `version.py` (`__authors__` e `__author_links__`; `credits_html()` monta o texto), em um só lugar. A cor do link é a cor de link da paleta do tema (destaque).
+Aparece na abertura (canto inferior direito) e no **rodapé da janela principal**. Cada autor é um link para o seu GitHub: **Davi Baracat** → `github.com/DaviBaracat` (@DaviBaracat), **Kauê Alencar** → `github.com/indiolibanes` e **Mateus Ferreira** → `github.com/yosemate`. Os nomes e os links estão em `version.py` (`__authors__` e `__author_links__`; `credits_html()` monta o texto), em um só lugar. A cor do link é a cor de link da paleta do tema (destaque).
 
 ## Temas
 
 Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva e a troca acontece em uma fusão suave de cerca de 360 ms (sem ela, com *Reduzir animações*). *Acessibilidade* é uma seção à parte, com o teclado na tela e as animações. Preferências antigas (`dark`, `gold`, `umber`) migram sozinhas para o tema Noturno.
 
-### Noturno · roxo e turquesa (padrão)
+### Noturno · roxo e dourado (padrão)
 
-Fundo quase preto com um leve tom violeta, superfícies lisas e sem textura. **Roxo** é a cor de identidade (botão principal, seleção, números de destaque); **turquesa** é a cor secundária (dados e calibração, borda dos cartões de comunicação e sensor). Os dois ficam longe dos matizes de alarme (vermelho, laranja, amarelo), para que um alarme nunca se confunda com decoração. Por que turquesa: é o oposto do roxo no círculo cromático (contraste forte sem competir), não é cor de alarme e passa o contraste mínimo sobre o fundo escuro.
+Roxo muito profundo no fundo, com brilhos roxos e dourados; painéis translúcidos; **ouro** como destaque de foco e identidade; **roxo lilás** como cor secundária (cartões de comunicação e sensor).
 
 | Token | Hex | Uso |
 |---|---|---|
-| canvas | `#0D0B14` | Fundo da janela |
-| surface | `#181426` | Painéis e diálogos |
-| soft | `#231E37` | Áreas alternadas e indicador de análise |
-| border | `#5B5280` | Bordas sólidas e divisores |
-| text | `#F4F1FB` | Texto principal |
-| heading | `#FFFFFF` | Títulos |
-| muted | `#D2CBE6` | Texto secundário |
-| disabled | `#8F88AB` | Controles desabilitados |
-| accent | `#B79CFF` | Roxo: ação principal, destaque |
-| secondary | `#4FD1C1` | Turquesa: dados e calibração |
-| positive / warning / danger | `#7FD99A` / `#F0B24B` / `#FF8A80` | Normal / aviso / alarme (reservadas) |
-| sky / violet (índigo) / rose (orquídea) | `#7CC4F2` / `#93A6FF` / `#E89CDA` | Tons de função dos botões e ícones |
-| slate / sand | `#AEB8CC` / `#D6C6A8` | Tons neutros de função |
-| on_strong | `#1C0B45` | Texto sobre botão roxo |
+| canvas | `#0A0614` | Fundo (roxo quase preto) |
+| surface | `#1A1030` | Painéis, com 32% de opacidade |
+| soft | `#2A1F4A` | Áreas alternadas |
+| border | `#6A5A9A` | Divisores |
+| text | `#FBF7EE` | Texto principal |
+| heading | `#FFF1C4` | Títulos (ouro pálido) |
+| muted | `#D9D0EE` | Texto secundário |
+| accent | `#E8BE5C` | Ouro: foco, números de destaque, bordas de destaque |
+| secondary | `#A88BFF` | Roxo lilás: cartões de comunicação e sensor |
+| positive / warning / danger | `#8FD69B` / `#F4A259` / `#FF8A80` | Normal / aviso / alarme (reservadas) |
+| sky / violet / rose | `#8CC8FF` / `#B7A0FF` / `#F2A7D0` | Matizes de barras e ícones |
+| on_strong | `#0A0614` | Texto sobre o botão principal |
 
 ### Claro · branco e verde
 
+Fundo verde muito claro, painéis brancos translúcidos, e **quatro verdes distintos**: folha (destaque), musgo (ações secundárias), floresta (estado OK) e jade (secundária).
+
 | Token | Hex | Uso |
 |---|---|---|
-| canvas | `#F4F6F1` | Fundo da janela |
-| surface | `#FFFFFF` | Cartões e diálogos |
-| soft | `#E8EEE2` | Áreas alternadas |
-| border | `#B3C0A8` | Bordas e divisores |
-| text / heading / muted | `#142009` / `#1B2E10` / `#44523A` | Texto |
-| disabled | `#7E8873` | Controles desabilitados |
-| accent | `#436722` | Verde: ação principal |
-| secondary | `#0F6E66` | Turquesa escuro |
-| positive / warning / danger | `#266435` / `#8A5A00` / `#B3261E` | Normal / aviso / alarme (reservadas) |
-| sky / violet (índigo) / rose (orquídea) | `#1F6FA8` / `#4B55C8` / `#A03C8E` | Tons de função |
-| slate / sand | `#4A5568` / `#6A5F52` | Tons neutros de função |
-| on_strong | `#FFFFFF` | Texto sobre botão verde |
+| canvas | `#EEF5EA` | Fundo |
+| surface | `#FFFFFF` | Painéis, com 52% de opacidade |
+| soft | `#E2EDD7` | Áreas alternadas |
+| border | `#9DB38A` | Divisores |
+| text / heading / muted | `#132210` / `#18300F` / `#3F5234` | Texto |
+| accent | `#3E7A1E` | Verde folha: foco e destaque |
+| secondary | `#0E7A62` | Verde jade: cartões de comunicação e sensor |
+| positive | `#1F6B3A` | Verde floresta: estado OK |
+| warning / danger | `#8A5A00` / `#B3261E` | Aviso / alarme (reservadas) |
+| sky / violet / rose | `#1F6FA8` / `#4B55C8` / `#A03C8E` | Matizes de barras e ícones |
+| on_strong | `#FFFFFF` | Texto sobre o botão principal |
 
-**Origem do verde.** Não há manual de marca da Arauco no repositório. O verde foi derivado do logo *ARAUCO | Projeto Sucuriú* (matiz das colinas, cerca de 92°) e escurecido para dar contraste. **Se houver o manual oficial, troque `accent` e `accent_strong` em `appearance.py`** e o resto do tema acompanha.
+**Origem do verde.** Não há manual de marca da Arauco no repositório. O matiz principal (cerca de 92°) vem do logo *ARAUCO | Projeto Sucuriú*. **Se houver o manual oficial, troque `accent`, `secondary` e `positive` em `appearance.py`.**
 
-**Contrastes (WCAG, conferidos em `tests/test_glass.py`).** Texto sobre fundo e sobre painel acima de 14:1; texto secundário acima de 7:1; destaque sobre fundo e cada tom de função sobre o painel acima de 4,5:1; texto do botão em tom sobre o próprio preenchimento acima de 4,5:1. Controles desabilitados ficam perto de 3,5:1 de propósito.
+**Contrastes (WCAG, conferidos em `tests/test_glass.py`).** Texto sobre fundo e sobre painel acima de 13:1; texto secundário acima de 7:1; destaque sobre o fundo acima de 4,5:1; texto do botão principal acima de 4,5:1. Controles desabilitados ficam perto de 3,5:1 de propósito.
 
-## Cores por função e por série
+## Botões, cores e séries
 
-Padrão de cor dos botões (um matiz por função, sempre o mesmo; nenhum usa vermelho, laranja ou amarelo):
+**Botões.** Todos iguais: véu translúcido da cor de texto (10% no noturno, 7% no claro), borda fina, cantos de 12 px. Ao passar o mouse, o véu fica um pouco mais forte e a borda ganha o destaque (ouro ou verde). O **botão principal** é um preenchimento sólido neutro (quase branco no noturno, quase preto no claro) com texto invertido. **Emergência** é a única exceção: vermelho, porque é alarme.
 
-| Botão | Tom | Observação |
-|---|---|---|
-| Realizar leitura | accent (cheio) | Única ação principal da tela |
-| Leitura com repetibilidade · 5× | secondary | |
-| Calibrar · Branco e escuro | rose | |
-| Conectar ESP32 | sky | |
-| Modo manual | indigo | |
-| Login | slate | |
-| Histórico | sand | |
-| PDF | indigo | Exportação |
-| CSV | green | Exportação |
-| Console de telemetria | slate | |
-| Parada de emergência | danger (vermelho) | Única cor de alarme em um botão |
-
-As receitas (`tone_fill`, `tone_text`, `tone_border`, `tone_hot`) estão em `glass.py`; o preenchimento é sólido e o texto usa a cor do tom, com contraste conferido nos testes.
-
-- **Gráficos** usam uma cor por banda espectral, sempre na mesma ordem (`appearance.SERIES`): noturno `#3987E5 #D95926 #199E70 #C98500 #D55181 #9085E9`; claro `#2A78D6 #EB6834 #1BAF7A #EDA100 #E87BA4 #6250D6`. São cores de **dados**, não de estado, e vêm sempre com o rótulo da banda (nome e comprimento de onda) e uma tarja ao lado, para a leitura nunca depender só da cor.
-- A curva espectral usa a cor de títulos do tema, com área lisa e discreta, e um ponto por banda na cor da banda. Barras lisas, sem degradê.
+**Gráficos.** Uma cor por banda espectral, sempre na mesma ordem (`appearance.SERIES`): noturno `#3987E5 #D95926 #199E70 #C98500 #D55181 #9085E9`; claro `#2A78D6 #EB6834 #1BAF7A #EDA100 #E87BA4 #6250D6`. São cores de **dados**, sempre com o rótulo da banda (nome e comprimento de onda) e uma tarja ao lado.
 
 ## Superfícies
 
-Receitas em `glass.py` (sem Qt, testadas). O nome do módulo é herança do visual anterior; hoje tudo é plano:
+Receitas em `glass.py` (sem Qt, testadas). O nome do módulo é herança do visual anterior:
 
 | Elemento | Receita |
 |---|---|
-| Painel | Cor `surface` sólida, borda de 1 px (`border`), raio 12 px |
-| Cartão de resultado e rodapé | `surface` com 4–5% do destaque, borda no tom do destaque |
-| Cartões de comunicação e sensor | Painel com borda turquesa (`secondary`), fonte maior: são os dados mais importantes depois do gráfico |
-| Botão secundário | Cinza sólido (11% de branco sobre a superfície, no noturno); ao passar o mouse clareia e a borda vira destaque |
-| Botão em tom | Superfície tingida com a cor da função (24% no noturno), borda no tom, sem degradê |
-| Botão principal | Cor de destaque cheia e lisa |
-| Campos | Poço mais fundo que o painel, borda de destaque no foco |
-| Fundo | Cor do tema, lisa. Sem textura, sem brilho ambiente |
+| Painel | Superfície translúcida (32% no noturno, 52% no claro), borda fina de tinta do tema a 16%, raio 12 px |
+| Cartão de resultado e rodapé | O mesmo painel, um pouco mais opaco, com um sopro de ouro |
+| Cartões de comunicação e sensor | Borda na cor secundária (roxo lilás no noturno, verde jade no claro) |
+| Botão | Véu translúcido neutro (ver acima), sem gradiente nem fio de luz |
+| Campos | Poço translúcido, mais fundo que o painel |
+| Fundo | Cor do tema com brilhos suaves (`glow_spec`), sem textura |
 
-Diálogos e painéis usam a mesma cor sólida.
+Diálogos usam o mesmo painel translúcido sobre a cor do tema.
 
 ## Tipografia
 
@@ -138,16 +120,16 @@ Quatro famílias, embutidas em `assets/fonts/`; o programa as carrega na abertur
 
 | Família | Função | Licença |
 |---|---|---|
+| **Inter** | Interface: rótulos, botões, texto corrido. Sans neutra e legível em tamanhos pequenos, a mais próxima do estilo do iOS sem usar a fonte da Apple | SIL OFL |
 | **Arena** | Marca: o nome "SpectrumLab Pro" no cabeçalho. Não tem dígitos nem acentos: só serve para o nome | Não documentada (ver abaixo) |
-| **Dropline** | Títulos e cabeçalhos de seção. Cobre acentos e dígitos; só existe em peso regular (por isso nunca é pedida em negrito) | Não documentada (ver abaixo) |
-| **IBM Plex Sans** | Interface: rótulos, botões, texto corrido | SIL OFL |
+| **Dropline** | Títulos e cabeçalhos de seção. Cobre acentos e dígitos; só existe em peso regular | Não documentada (ver abaixo) |
 | **IBM Plex Mono** | Valores de medição (KPIs, número kappa, eixos, console), largura fixa | SIL OFL |
 
-A EB Garamond, usada antes nos títulos, saiu da interface. Os arquivos *Evershore* e *The Heritage Legacy Fancy Logo*, enviados junto, são decorativos (letras de exibição) e **não são usados** na interface operacional.
+A IBM Plex Sans, usada antes na interface, saiu. A EB Garamond também saiu. Os arquivos *Evershore* e *The Heritage Legacy Fancy Logo*, enviados junto, são decorativos e **não são usados** na interface operacional.
 
-**Aviso de licença.** Os arquivos Arena, Dropline, Evershore e Heritage não trazem licença legível, e o repositório é público. A Evershore declara `fsType 4` (incorporação só para visualização/impressão). Antes de distribuir o executável ou publicar o repositório com essas fontes, confirme os direitos de uso com a origem delas; se não houver permissão, basta trocar `FAMILY_BRAND` e `FAMILY_DISPLAY` em `typography.py` (o resto do programa usa os papéis, não os nomes).
+**Aviso de licença.** Os arquivos Arena, Dropline, Evershore e Heritage não trazem licença legível, e o repositório é público. A Evershore declara `fsType 4` (incorporação só para visualização/impressão). Antes de distribuir o executável ou publicar o repositório com essas fontes, confirme os direitos de uso com a origem delas; se não houver permissão, troque `FAMILY_BRAND` e `FAMILY_DISPLAY` em `typography.py`.
 
-Só os pesos **400 e 700** são usados nas Plex: são os que Windows, macOS e Linux agrupam na mesma família sem ambiguidade. A Dropline e a Arena só têm o regular: o QSS normalizado remove o negrito delas para o Qt não "engrossar" o desenho. A Dropline não tem alguns sinais (`·`, `…`, `–`): a pilha de fontes cai para a Plex Sans nesses caracteres.
+Só os pesos **400 e 700** são usados nas famílias que têm os dois. A Dropline e a Arena só têm o regular: o QSS normalizado remove o negrito delas. A Dropline não tem alguns sinais (`·`, `…`, `–`): a pilha cai para a Inter nesses caracteres.
 
 Se uma fonte não carregar, o programa usa Segoe UI / Consolas (nessa ordem de preferência por papel).
 
@@ -161,11 +143,11 @@ Se uma fonte não carregar, o programa usa Segoe UI / Consolas (nessa ordem de p
 | brand | 24 | Arena 400 | Nome "SpectrumLab Pro" no cabeçalho |
 | title | 24 | Dropline 400 | Títulos de diálogo |
 | section | 20 | Dropline 400 | Títulos de painel e do indicador de análise |
-| button | 16 | Sans 700 | Botão principal e Concluir do teclado |
-| card | 14 | Sans 400 | Título de cartão, botões |
-| body | 14 | Sans 400 | Texto corrido, campos |
-| label | 12 | Sans 400 | Rótulos pequenos |
-| caption | 12 | Sans 400 | Legendas e apoio |
+| button | 16 | Inter 700 | Botão principal e Concluir do teclado |
+| card | 14 | Inter 400 | Título de cartão, botões |
+| body | 14 | Inter 400 | Texto corrido, campos |
+| label | 12 | Inter 400 | Rótulos pequenos |
+| caption | 12 | Inter 400 | Legendas e apoio |
 | data | 14 | Mono 400 | Tabelas e console |
 
 Regras:
@@ -199,11 +181,11 @@ Inspiração: movimento da Apple (molas com amortecimento, entradas escalonadas,
 
 | Elemento | Efeito |
 |---|---|
-| Botão em repouso | Sólido e liso; botões em tom, tingidos pela função |
-| Passar o mouse/dedo | Borda realçada e leve clareamento (180 ms); sem reflexos |
-| Pressionado | O botão "cede": escurecimento nas bordas e profundidade, com **mola** (320 ms) e ondulação (620 ms) a partir do ponto tocado |
-| Soltar | Volta com **leve ultrapassagem** e um anel que se dissipa (900 ms) |
-| Em andamento | Vira "Analisando…" com uma faixa suave que percorre o botão |
+| Botão em repouso | Véu neutro translúcido, cantos de 12 px |
+| Passar o mouse/dedo | Véu um pouco mais forte e borda de destaque (180 ms) |
+| Pressionado | O botão "cede" com **mola** (320 ms) e um véu uniforme que escurece, como no iOS (sem onda) |
+| Soltar | Volta com **leve ultrapassagem** (900 ms), sem anel |
+| Em andamento | Vira "Analisando…" com um véu de destaque |
 | Desabilitado | Cinza apagado, texto cinza do tema, sem efeito |
 | Abertura da janela | Painéis entram em sequência (atraso de 70 ms entre eles, 750 ms cada) com subida e fusão |
 | Troca de tema | Fusão de ~360 ms entre a imagem antiga e a nova |

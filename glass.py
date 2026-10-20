@@ -1,21 +1,23 @@
 """
-Superfícies e cores de botão do SPECTRUM-LAB PRO, no estilo plano pedido pela ISA-101.
+Superfícies e cores de botão do SPECTRUM-LAB PRO.
 
-O nome do módulo vem da versão anterior ("vidro"); hoje tudo aqui é opaco e plano:
-sem degradê, sem translucidez, sem brilho ambiente e sem textura. A ISA-101 pede telas
-sóbrias, em que a cor é informação (estado, alarme) e não enfeite. As receitas continuam
-com os mesmos nomes (panel_fill, button_fill, tone_fill...) para o resto do código.
+Estilo: minimalista e inspirado no iOS. Os **gráficos** têm cor (uma por banda); os **botões**
+são neutros, translúcidos e sem fio de luz. Os painéis são translúcidos sobre um fundo com brilhos
+roxos (noturno) ou verdes (claro), para que a profundidade venha da transparência e não de ornamento.
+Ouro (noturno) e verde (claro) aparecem como foco e identidade, nunca como preenchimento de botão.
 
 Módulo sem Qt, para poder ser testado em qualquer lugar (tests/test_glass.py).
 """
 from animation_math import mix_hex
 
-# Tons de botão por função: matizes que NÃO são cores de alarme (vermelho, laranja e amarelo
-# ficam reservados a alarmes e avisos). Ver docs/ISA-101.md.
+# Tons por função (usados só nas barras dos indicadores e nos testes). Os botões são neutros.
 TONES = ("accent", "secondary", "sky", "indigo", "rose", "green", "slate", "sand")
 _TONE_KEYS = {"accent": "accent", "secondary": "secondary", "sky": "sky", "indigo": "violet",
               "rose": "rose", "green": "positive", "slate": "slate", "sand": "sand"}
-DARK_BORDER_STRENGTH = 1.0
+
+# Opacidade dos painéis: quanto menor, mais o fundo aparece (translucidez).
+PANEL_ALPHA_DARK = 0.32
+PANEL_ALPHA_LIGHT = 0.52
 
 
 def _channels(color):
@@ -34,94 +36,87 @@ def is_dark(p):
 
 
 def rgba(color, alpha):
-    """'#RRGGBB' + opacidade de 0 a 1 -> 'rgba(r, g, b, N%)' para o QSS (seleções e barras de rolagem)."""
+    """'#RRGGBB' + opacidade de 0 a 1 -> 'rgba(r, g, b, N%)' para o QSS."""
     r, g, b = _channels(color)
     return f"rgba({r}, {g}, {b}, {round(max(0.0, min(1.0, alpha)) * 100)}%)"
 
 
 def rim(p, strength=1.0):
-    """Cor sólida da borda de painéis e botões. strength < 1 suaviza em direção à superfície."""
-    if strength >= 1.0:
-        return mix_hex(p["border"], p["text"], min(0.25, (strength - 1.0) * 0.5)) if strength > 1.0 else p["border"]
-    return mix_hex(p["surface"], p["border"], max(0.0, strength))
+    """Fio fino e neutro das bordas (tinta do tema, translúcida). strength aumenta ou reduz."""
+    return rgba(p["text"], 0.16 * strength)
 
 
 def panel_fill(p):
-    """Painel: a cor de superfície, lisa."""
-    return p["surface"]
+    """Painel translúcido: a superfície com opacidade, deixando o fundo aparecer."""
+    return rgba(p["surface"], PANEL_ALPHA_DARK if is_dark(p) else PANEL_ALPHA_LIGHT)
 
 
 def result_fill(p):
-    """Cartão do resultado e rodapé: superfície com um traço do tom de destaque (4%)."""
-    return mix_hex(p["surface"], p["accent"], 0.05 if is_dark(p) else 0.04)
+    """Cartão do resultado e rodapé: um pouco mais opaco, com um sopro de destaque."""
+    base = mix_hex(p["surface"], p["accent"], 0.08)
+    return rgba(base, (PANEL_ALPHA_DARK if is_dark(p) else PANEL_ALPHA_LIGHT) + 0.10)
 
 
 def button_fill(p, state="rest"):
-    """Botão secundário (cinza): sólido; ao passar o mouse clareia, sem mudar de cor."""
+    """Botão neutro e translúcido (estilo iOS): um véu da cor de texto; ao passar o mouse, um pouco mais."""
     if is_dark(p):
-        amount = {"rest": 0.11, "hover": 0.18, "disabled": 0.04}[state]
-        return mix_hex(p["surface"], "#FFFFFF", amount)
-    return {"rest": p["soft"], "hover": mix_hex(p["soft"], p["accent"], 0.12), "disabled": p["canvas"]}[state]
+        alpha = {"rest": 0.10, "hover": 0.17, "disabled": 0.04}[state]
+    else:
+        alpha = {"rest": 0.07, "hover": 0.12, "disabled": 0.04}[state]
+    return rgba(p["text"], alpha)
 
 
 def primary_fill(p, state="rest"):
-    """Botão principal: cor de destaque cheia e lisa."""
-    accent = p["accent_strong"]
+    """Botão principal: preenchimento sólido neutro (cor de texto), que escurece ou clareia pouco."""
     if state == "hot":
-        return mix_hex(accent, "#FFFFFF", 0.28)
+        return mix_hex(p["text"], p["accent"], 0.25)
     if state == "hover":
-        return mix_hex(accent, "#FFFFFF", 0.14)
-    return accent
+        return mix_hex(p["text"], p["accent"], 0.12)
+    return p["text"]
 
 
 def field_fill(p):
-    """Campos de texto: um poço mais fundo que o painel."""
-    if is_dark(p):
-        return mix_hex(p["canvas"], p["surface"], 0.45)
-    return "#FFFFFF"
+    """Campos de texto: um poço translúcido, mais fundo que o painel."""
+    return rgba(p["canvas"], 0.55) if is_dark(p) else rgba("#FFFFFF", 0.85)
 
 
 def glow_spec(p):
-    """Sem brilho ambiente (ISA-101: fundo neutro e sem decoração)."""
-    return []
+    """Brilhos suaves do fundo (x e y em fração da janela): dão profundidade aos painéis translúcidos."""
+    if is_dark(p):
+        return [(0.08, 0.00, 0.85, p["secondary"], 0.26), (0.98, 1.00, 0.75, p["accent"], 0.14)]
+    return [(0.10, 0.00, 0.80, "#7DBE6A", 0.22), (0.95, 1.00, 0.70, "#B8DDA0", 0.28)]
 
 
 def edge_highlight(p):
-    """(cor, alfa) do fio de luz no topo dos botões: desligado (alfa 0)."""
+    """Sem fio de luz no topo dos botões (alfa 0)."""
     return ("#FFFFFF", 0.0)
 
 
 def tone_color(p, tone):
-    """Cor de um tom de botão (ver TONES) na paleta do tema."""
+    """Cor de um tom (ver TONES) na paleta do tema: usada nas barras e indicadores, não nos botões."""
     return p[_TONE_KEYS[tone]]
 
 
 def tone_text(p, tone):
-    """Texto do botão em tom: a cor do tom clareada (escuro) ou escurecida (claro), para manter o contraste."""
-    base = tone_color(p, tone)
-    return mix_hex(base, "#FFFFFF", 0.55) if is_dark(p) else mix_hex(base, "#000000", 0.30)
+    """Texto de botão: sempre a cor de texto do tema (botões neutros)."""
+    return p["text"]
 
 
 def tone_fill(p, tone, state="rest"):
-    """Botão em tom: superfície tingida com a cor do tom, sólida; mais forte ao passar o mouse."""
-    base = tone_color(p, tone)
-    if is_dark(p):
-        amount = {"rest": 0.24, "hover": 0.36}[state]
-        return mix_hex(p["surface"], base, amount)
-    amount = {"rest": 0.14, "hover": 0.24}[state]
-    return mix_hex("#FFFFFF", base, amount)
+    """Preenchimento de botão: neutro, igual para todas as funções."""
+    return button_fill(p, state)
 
 
 def tone_border(p, tone, state="rest"):
-    base = tone_color(p, tone)
-    return mix_hex(p["surface"], base, 0.70) if state == "rest" else base
+    """Borda de botão: fio neutro em repouso; destaque dourado/verde ao passar o mouse."""
+    return rgba(p["accent"], 0.85) if state == "hover" else rim(p, 1.5)
 
 
 def tone_hot(p, tone):
-    """Botão em tom pressionado: a cor cheia do tom."""
-    return tone_color(p, tone)
+    """Botão pressionado: o mesmo preenchimento principal."""
+    return primary_fill(p, "hot")
 
 
 def on_tone(p):
-    """Texto sobre um tom cheio (pressionado)."""
+    """Texto sobre o preenchimento principal (pressionado)."""
     return p["on_strong"]

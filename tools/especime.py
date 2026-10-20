@@ -36,25 +36,27 @@ def tone_css(p, tone):
 def page(p, series, texture, arrow, hand):
     f = ROOT.as_uri() + "/assets/fonts/"
     dark = glass.is_dark(p)
+    glows = ",".join(
+        f"radial-gradient(circle at {fx*100:.0f}% {fy*100:.0f}%,{glass.rgba(c, a)} 0,transparent {r*100:.0f}vmax)" for fx, fy, r, c, a in glass.glow_spec(p))
     accent = p["accent_strong"]
     return f"""<!doctype html><meta charset=utf-8><style>
-@font-face{{font-family:'IBM Plex Sans';src:url('{f}IBMPlexSans-Regular.ttf');font-weight:400}}
-@font-face{{font-family:'IBM Plex Sans';src:url('{f}IBMPlexSans-Bold.ttf');font-weight:700}}
+@font-face{{font-family:'Inter';src:url('{f}Inter-Regular.ttf');font-weight:400}}
+@font-face{{font-family:'Inter';src:url('{f}Inter-Bold.ttf');font-weight:700}}
 @font-face{{font-family:'Dropline';src:url('{f}DroplineRegular.otf');font-weight:400}}
 @font-face{{font-family:'Arena';src:url('{f}Arena.ttf');font-weight:400}}
 @font-face{{font-family:'IBM Plex Mono';src:url('{f}IBMPlexMono-Regular.ttf');font-weight:400}}
 *{{box-sizing:border-box;margin:0}}
-body{{width:1600px;min-height:1000px;background:{p['canvas']};color:{p['text']};font:400 13px 'IBM Plex Sans';padding:16px 20px;display:flex;flex-direction:column;gap:14px;position:relative}}
+body{{width:1600px;min-height:1000px;background:{glows},{p['canvas']};color:{p['text']};font:400 13px 'Inter';padding:16px 20px;display:flex;flex-direction:column;gap:14px;position:relative}}
 .panel{{background:{css(glass.panel_fill(p))};border:1px solid {glass.rim(p)};border-radius:12px}}
 .top{{display:flex;align-items:center;gap:14px;padding:12px 18px}}
 .brand{{display:flex;align-items:center;gap:10px}} .brand img{{width:40px;height:40px}} .brand b{{display:block;font:400 24px 'Arena','Dropline';color:{p['heading']}}} .brand small{{color:{p['muted']};font-size:12px}}
 .btn{{padding:10px 16px;border-radius:10px;border:1px solid {glass.rim(p)};background:{css(glass.button_fill(p))};color:{p['text']}}}
 .btn.hover{{background:{css(glass.button_fill(p,'hover'))};border-color:{p['accent']}}}
 .btn.pressed{{background:{css(glass.primary_fill(p,'hot'))};color:{p['on_strong']};border-color:{accent}}}
-.btn.primary{{background:{css(glass.primary_fill(p))};color:{p['on_strong']};border-color:{accent};padding:13px 18px;font:700 15px 'IBM Plex Sans'}}
-.btn.busy{{background:{mix_hex(p['surface'],p['accent'],.35)};color:{p['heading']};border-color:{p['accent']};font:700 15px 'IBM Plex Sans'}}
+.btn.primary{{background:{css(glass.primary_fill(p))};color:{p['on_strong']};border-color:{accent};padding:13px 18px;font:700 15px 'Inter'}}
+.btn.busy{{background:{glass.button_fill(p,'hover')};color:{p['heading']};border-color:{p['accent']};font:700 15px 'Inter'}}
 .btn.danger{{color:{p['danger']};border-color:{p['danger']};background:{mix_hex(p['surface'],p['danger'],.2)}}}
-input{{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {p['accent']};border-radius:10px;padding:9px 13px;font:400 13px 'IBM Plex Sans';width:150px}}
+input{{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {p['accent']};border-radius:10px;padding:9px 13px;font:400 13px 'Inter';width:150px}}
 .kpis{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}} .kpi{{padding:8px 18px}}
 .kpi .t{{color:{p['muted']}}} .kpi .v{{font:400 28px 'IBM Plex Mono'}} .kpi .s{{color:{p['muted']};font-size:11px}}
 .main{{display:grid;grid-template-columns:420px 1fr;gap:16px;flex:1}}
@@ -76,7 +78,7 @@ input{{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {p['a
 .kb .cap{{display:flex;justify-content:space-between;color:{p['muted']};font-size:11px;margin-bottom:8px}}
 .kb .row{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}}
 .kb .k{{height:56px;border-radius:10px;border:1px solid {glass.rim(p,1.2)};background:{css(glass.button_fill(p))};display:flex;align-items:center;justify-content:center;font:400 19px 'IBM Plex Mono'}}
-.kb .a{{color:{p['muted']};font:400 13px 'IBM Plex Sans'}} .kb .e{{background:{css(glass.primary_fill(p))};color:{p['on_strong']};border-color:{accent};font:700 15px 'IBM Plex Sans'}} .kb .p{{background:{css(glass.primary_fill(p,'hot'))};color:{p['on_strong']};border-color:{accent}}}
+.kb .a{{color:{p['muted']};font:400 13px 'Inter'}} .kb .e{{background:{css(glass.primary_fill(p))};color:{p['on_strong']};border-color:{accent};font:700 15px 'Inter'}} .kb .p{{background:{css(glass.primary_fill(p,'hot'))};color:{p['on_strong']};border-color:{accent}}}
 .cur{{position:absolute;width:32px;height:32px}}
 .face{{background:radial-gradient(circle at 35% 30%,#FFF0A0,#FFD23F 55%,#F2A20C);border:1.5px solid rgba(140,80,0,.7)}} .face:before,.face:after{{background:#4A2B00}} .mouth{{border-bottom-color:#4A2B00}}
 .btn{{font-size:14px}} .btn.t-accent{{{tone_css(p,'accent')}}}
@@ -87,14 +89,14 @@ input{{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {p['a
 .btn.t-green{{{tone_css(p,'green')}}}
 .btn.t-slate{{{tone_css(p,'slate')}}}
 .btn.t-sand{{{tone_css(p,'sand')}}}
-.kpi{{display:flex;gap:14px;align-items:center;position:relative;overflow:hidden}} .kpi .ic{{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 18px 'IBM Plex Sans'}}
+.kpi{{display:flex;gap:14px;align-items:center;position:relative;overflow:hidden}} .kpi .ic{{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 18px 'Inter'}}
 .kpi .bar{{position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:2px}}
 .lbl{{font-size:13px}} .kpi .t{{font-size:14px}} .kpi .s{{font-size:12px}}
 .bars{{position:absolute;left:30px;right:30px;bottom:34px;top:30px;display:flex;gap:26px;align-items:flex-end}}
 .bars div{{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}}
-.bars i{{display:block;width:100%;border-radius:8px 8px 0 0;opacity:.88}} .bars b{{font:400 14px 'IBM Plex Mono'}} .bars s{{text-decoration:none;display:block;width:24px;height:4px;border-radius:2px}} .bars em{{font:700 12px 'IBM Plex Sans';font-style:normal;color:{p['text']}}} .bars u{{text-decoration:none;font-size:12px;color:{p['muted']}}}
+.bars i{{display:block;width:100%;border-radius:8px 8px 0 0;opacity:.88}} .bars b{{font:400 14px 'IBM Plex Mono'}} .bars s{{text-decoration:none;display:block;width:24px;height:4px;border-radius:2px}} .bars em{{font:700 12px 'Inter';font-style:normal;color:{p['text']}}} .bars u{{text-decoration:none;font-size:12px;color:{p['muted']}}}
 .foot{{padding:14px 20px;font-size:14px;border:1px solid {glass.tone_border(p,'accent')};background:{css(glass.result_fill(p))}}} .foot b{{font-weight:700;color:{p['accent']}}} .cred{{font-size:14px;color:{p['text']}}}
-.comm{{padding:10px 18px;border-color:{glass.tone_border(p,'secondary')}}} .comm .g{{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 14px;margin-top:6px;color:{p['muted']};font-size:14px}} .comm .g b{{font:700 16px 'IBM Plex Sans';color:{p['text']}}}
+.comm{{padding:10px 18px;border-color:{glass.tone_border(p,'secondary')}}} .comm .g{{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 14px;margin-top:6px;color:{p['muted']};font-size:14px}} .comm .g b{{font:700 16px 'Inter';color:{p['text']}}}
 .cal{{display:flex;flex-direction:column;gap:6px;font-size:14px}} .cal div{{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid {glass.rim(p,.5)}}} .cal span{{color:{p['muted']}}} .cal b{{font:400 16px 'IBM Plex Mono';color:{p['text']}}}
 </style><body>
 <div class='panel top'><div class=brand><img src='{ROOT.as_uri()}/assets/logo/spectrumlab-mark.svg'><div><b>SpectrumLab Pro</b><small>Supervisório NIR</small></div></div>
@@ -117,7 +119,7 @@ input{{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {p['a
 </svg></div>
 <div class=ind><div class=face><div class=mouth></div></div><h4>Leitura com repetibilidade</h4><p>Lendo o espectro. Seis bandas do infravermelho próximo em ação.</p><div class=steps><i style='background:{series[0]}'></i><i style='background:{series[1]}'></i><i style='background:{series[2]}'></i><i></i><i></i><small>Etapa 3 de 5</small></div></div></div></div>
 <div style='display:grid;grid-template-columns:4fr 7fr;gap:14px'><div class='panel comm'><b class=sec>ESP32 · Comunicação</b><div class=g><span>Conexão</span><b>Wi-Fi · 192.168.4.1</b><span>Protocolo</span><b>2 · confirmado</b><span>Heartbeat</span><b>0,4 s</b></div></div><div class='panel comm'><b class=sec>GY-AS7263 · Sensor espectral</b><div class=g><span>Temperatura interna</span><b>31 °C</b><span>Ganho</span><b>16×</b><span>Integração</span><b>50 ms</b></div></div></div>
-<div class='panel foot'><span>Status: pronto para a próxima amostra.</span><span class=cred>Protótipo desenvolvido por <b>Davi Baracat</b> (@DaviBaracat), <b>Kauê Carvalho</b> (@indiolibanes) e <b>Mateus Ferreira</b> (@yosemate)</span></div>
+<div class='panel foot'><span>Status: pronto para a próxima amostra.</span><span class=cred>Protótipo desenvolvido por <b>Davi Baracat</b> (@DaviBaracat), <b>Kauê Alencar</b> (@indiolibanes) e <b>Mateus Ferreira</b> (@yosemate)</span></div>
 </body>"""
 
 
@@ -136,7 +138,7 @@ h1{{font:400 28px 'Dropline';color:{p['heading']}}}
 .done{{align-self:flex-end}}
 </style><body><h1>Configurações</h1>
 <div class=sect><h2>Aparência</h2><p>Tema da interface. A mudança é aplicada na hora e a escolha fica salva.</p>
-<div class=pick><span class='btn sel'>Noturno<br>roxo e turquesa</span><span class=btn>Claro<br>branco e verde</span></div></div>
+<div class=pick><span class='btn sel'>Noturno<br>roxo e dourado</span><span class=btn>Claro<br>branco e verde</span></div></div>
 <div class=sect><h2>Acessibilidade</h2><p>Recursos para uso com o dedo, em telas pequenas e para quem prefere menos movimento.</p>
 <span class=cap>Teclado na tela</span><div class=combo>Automático: só em aparelhos com tela de toque</div>
 <p>Neste aparelho: nenhuma tela de toque detectada. O campo de IP abre um teclado numérico e a porta, só de dígitos. Os demais campos abrem o teclado completo, com acentos.</p>

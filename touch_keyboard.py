@@ -114,7 +114,7 @@ class TouchKeyboard(QWidget):
         accent = p["accent_strong"]
         hot = glass.primary_fill(p, "hot")
         rim = glass.rim(p, 1.2)
-        base = p["canvas"] if glass.is_dark(p) else p["soft"]
+        base = p["surface"]
         return f"""QWidget#touchKeyboard {{background:{base};border:1px solid {rim};}}
 QLabel#kbCaption {{color:{p['muted']};{ty.qss('label')}}}
 QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:8px;padding:0;font-family:{ty.STACK_UI};font-size:16px;font-weight:400;}}

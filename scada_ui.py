@@ -67,11 +67,11 @@ def dashboard_style(p):
     hover_border=p['accent']
     result_border=glass.tone_border(p,'accent')
     danger_hot=mix_hex(p['danger_strong'],'#FFFFFF',.25)
-    busy=mix_hex(p['surface'],p['accent'],.35)
+    busy=glass.button_fill(p,'hover')
     danger_fill=mix_hex(p['surface'],p['danger'],.20)
     tones=''.join(f'''QPushButton[tone="{t}"] {{background:{glass.tone_fill(p,t)};color:{glass.tone_text(p,t)};border:1px solid {glass.tone_border(p,t)};}}
 QPushButton[tone="{t}"]:hover {{background:{glass.tone_fill(p,t,'hover')};border:1px solid {glass.tone_border(p,t,'hover')};}}
-QPushButton[tone="{t}"]:pressed {{background:{glass.tone_hot(p,t)};color:{glass.on_tone(p)};border:1px solid {glass.tone_color(p,t)};}}
+QPushButton[tone="{t}"]:pressed {{background:{glass.tone_hot(p,t)};color:{glass.on_tone(p)};border:1px solid {glass.tone_border(p,t,'hover')};}}
 QPushButton[tone="{t}"]:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
 QFrame[bar="{t}"] {{background:{glass.tone_color(p,t)};border:0;border-radius:2px;}}
 ''' for t in glass.TONES)
@@ -82,10 +82,10 @@ QLabel#credits {{color:{p['text']};}}
 QLabel[role="heading"] {{color:{p['heading']};}}
 QFrame#scadaPanel {{background:{glass.panel_fill(p)};border:1px solid {rim};border-radius:12px;}}
 QFrame#scadaFooter {{background:{glass.result_fill(p)};border:1px solid {glass.tone_border(p,'accent')};border-radius:12px;}}
-QFrame#scadaPanel[priority="high"] {{border:1px solid {glass.tone_border(p,'secondary')};}}
+QFrame#scadaPanel[priority="high"] {{border:1px solid {glass.rgba(p['secondary'],.75)};}}
 QFrame[compact="true"] QPushButton {{padding:9px 14px;}}
 QFrame#scadaResult {{background:{glass.result_fill(p)};border:1px solid {result_border};border-radius:12px;}}
-QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:10px;padding:11px 18px;{ty.qss('card')}}}
+QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:12px;padding:11px 18px;{ty.qss('card')}}}
 QPushButton:hover {{background:{glass.button_fill(p,'hover')};border:1px solid {hover_border};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};border:1px solid {accent};}}

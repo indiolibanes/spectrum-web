@@ -9,6 +9,8 @@
   Versão 4.16.2 · Build 1263 · 20/10/2026
 </p>
 
+> **Nota sobre o desenvolvimento com IA.** Este projeto foi feito com assistentes de IA, declarado aqui de forma explícita: **em parceria com o Antigravity** como assistente durante o desenvolvimento, com o **código principal escrito no Codex e no Claude Code**. A maioria dos testes é feita no **GitHub Codespaces** (display virtual e ESP32 simulado), com também testes em **amostras reais**. A interface foi inspirada em projetos de terceiros e em ideias autorais, com dezenas de implementações e melhorias após feedbacks de usuários reais. Por exemplo, o BitChord foi usado só como referência de linguagem visual, sem código nem recurso copiado. A revisão técnica e a validade dos resultados são responsabilidade dos autores.
+
 ---
 
 O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisição de seis canais espectrais (610 a 860 nm, sensor GY-AS7263), referenciamento de branco e escuro, reflectância relativa, estimativa demonstrativa do número Kappa, ensaios de repetibilidade, histórico em banco SQLite e laudo em PDF.
@@ -23,7 +25,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Dois temas, no estilo da ISA-101:** Noturno (quase preto com roxo e turquesa, padrão) e Claro (branco e verde, na linha da Arauco). Superfícies planas, sem vidro, brilho nem textura; a cor é informação (alarmes reservados), cada função de botão tem sempre a mesma cor e os gráficos usam uma cor por banda. Veja [docs/ISA-101.md](docs/ISA-101.md).
+- **Minimalista, no estilo da ISA-101 e do iOS:** Noturno (roxo profundo com ouro, padrão) e Claro (branco e verde). Gráficos com cor por banda; botões neutros e translúcidos; painéis translúcidos sobre brilhos suaves do fundo; vermelho e laranja só para alarme. Veja [docs/ISA-101.md](docs/ISA-101.md).
 - **Indicador de análise:** abaixo do gráfico, um rosto colorido e mensagens em português acompanham cada etapa do ensaio.
 - **Responsivo:** a janela se adapta a qualquer tela (cabeçalho em duas linhas, indicadores em grade, painéis empilhados) sem comprimir o texto.
 - **Animações** inspiradas no movimento da Apple (molas, entrada escalonada, fusão na troca de tema), com opção de reduzi-las.
@@ -46,26 +48,15 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
-| `assets/fonts/` | Fontes Arena e Dropline (marca e títulos) e IBM Plex (licença OFL) |
+| `assets/fonts/` | Fontes Arena e Dropline (marca e títulos), Inter e IBM Plex Mono (licença OFL) |
 | `assets/textures/` · `assets/cursors/` | Textura do fundo do tema claro (celulose) e cursores de fibra de celulose |
-| `glass.py` · `cursors.py` | Receitas do vidro (cores e QSS) e instalação dos cursores |
-| `tools/` | Geradores reproduzíveis das texturas, dos cursores e dos espécimes de tema |
+| `glass.py` · `cursors.py` | Receitas de superfície e de botão (cores e QSS) e instalação dos cursores |
+| `tools/` | Geradores reproduzíveis dos cursores e dos espécimes de tema |
 | `tests/` | Testes das regras puras e teste gráfico de fumaça |
 | `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
 | `docs/IDENTIDADE_VISUAL.md` | Logos, temas, tipografia, animações e teclado |
 | `docs/TUTORIAL_CODESPACE.md` | Roteiro de teste da interface no Codespace |
 | `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
-
-## Como foi desenvolvido
-
-Este projeto foi feito com assistentes de IA, e isso está declarado aqui de forma explícita:
-
-- **Em parceria com o Antigravity**, como assistente de IA durante o desenvolvimento.
-- **Desenvolvimento principal no Codex e no Claude Code**: código, refatorações, testes e documentação.
-- **Testes**: a maior parte é feita no **GitHub Codespaces**, com um display virtual e uma bancada simulada (ESP32 falso). Também há testes com **amostras reais** na bancada.
-- **Autoria**: a interface foi inspirada em projetos de terceiros (por exemplo, o BitChord, usado só como referência de linguagem visual, sem código copiado) e também em ideias autorais. Ela recebeu dezenas de implementações e melhorias após feedbacks de usuários reais.
-
-Revisão técnica, decisões de segurança e a validade dos resultados são responsabilidade dos autores.
 
 ## Identidade visual
 
@@ -79,20 +70,29 @@ Revisão técnica, decisões de segurança e a validade dos resultados são resp
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Cores.** Dois temas, em *Configurações → Aparência*: **Noturno · roxo e turquesa** (fundo `#0D0B14`, painéis `#181426`, roxo `#B79CFF` como destaque, turquesa `#4FD1C1` como cor secundária) e **Claro** (fundo `#F4F6F1`, cartões brancos, verde `#436722`). Os dois são lisos, sem textura. O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+**Cores.** Dois temas, em *Configurações → Aparência*:
 
-**Tipografia.** Quatro famílias embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável. As IBM Plex têm licença OFL. **Arena e Dropline foram enviadas sem licença legível: confirme os direitos de uso antes de distribuir** (detalhes em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md)):
+- **Noturno · roxo e dourado** (padrão): fundo roxo muito profundo `#0A0614`, painéis translúcidos, **ouro** `#E8BE5C` como destaque de foco e identidade e **roxo lilás** `#A88BFF` como secundária.
+- **Claro · branco e verde**: fundo `#EEF5EA`, painéis brancos translúcidos e quatro verdes distintos: folha `#3E7A1E` (destaque), jade `#0E7A62` (secundária), floresta `#1F6B3A` (estado OK) e musgo como tom de apoio.
+
+Os botões são neutros nos dois temas; a cor fica nos gráficos e nos destaques. Vermelho e laranja são reservados a alarme. O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+
+**Hierarquia visual.** A tela segue quatro níveis (ISA-101): 1) visão geral, com o cabeçalho, os indicadores e o gráfico espectral; 2) controle, com os ensaios e o resultado do número kappa; 3) detalhe, com os cartões **ESP32 · Comunicação** e **GY-AS7263 · Sensor espectral**, logo abaixo do gráfico; 4) suporte, com histórico, PDF, CSV, console e configurações.
+
+**Tipografia.** Quatro famílias embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável:
 
 | Família | Uso |
 |---|---|
-| Arena | Marca (nome ao lado do logo) |
-| Dropline | Títulos e cabeçalhos |
-| IBM Plex Sans | Interface, rótulos e texto corrido |
-| IBM Plex Mono | Valores de medição e tabelas |
+| Arena | Marca: o nome "SpectrumLab Pro" ao lado do logo |
+| Dropline | Títulos e cabeçalhos de seção |
+| Inter | Interface: botões, rótulos e texto corrido (estilo iOS, sans-serif neutra) |
+| IBM Plex Mono | Valores de medição, número kappa e tabelas |
+
+A Inter tem licença SIL OFL, assim como a IBM Plex Mono. **Arena e Dropline foram enviadas sem licença legível: confirme os direitos de uso antes de distribuir** (detalhes em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md)).
 
 A escala vai de 12 px (mínimo) a 40 px (número Kappa), mais 44 px só na abertura. O cursor do mouse é uma seta de fibra de celulose (desligue com `SPECTRUM_SYSTEM_CURSOR=1`). A tabela completa está no documento de identidade visual.
 
-**Assinatura.** Protótipo desenvolvido por [Davi Baracat](https://github.com/DaviBaracat), [Kauê Carvalho](https://github.com/indiolibanes) e [Mateus Ferreira](https://github.com/yosemate). No programa, o rodapé repete a assinatura com os mesmos links.
+**Assinatura.** Protótipo desenvolvido por [Davi Baracat](https://github.com/DaviBaracat), [Kauê Alencar](https://github.com/indiolibanes) e [Mateus Ferreira](https://github.com/yosemate). No programa, o rodapé repete a assinatura com os mesmos links.
 
 ## Testes
 
@@ -172,7 +172,7 @@ Pendências de segurança e operação estão listadas na [auditoria](docs/AUDIT
 
 | Versão | Documento |
 |---|---|
-| 4.16.2 | [Interface ISA-101, tema noturno e correções](INTERFACE_ISA101_4_16_2.md) |
+| 4.16.2 | [Interface minimalista, tema noturno e correções](INTERFACE_ISA101_4_16_2.md) |
 | 4.16.1 | [Inicialização automática dos dados](INICIALIZACAO_AUTOMATICA_4_16_1.md) |
 | 4.16.0 | [Carrinho com servo contínuo](CARRINHO_CONTINUO_4_16_0.md) |
 | 4.15.0 | [Manual livre](MANUAL_LIVRE_4_15_0.md) |
