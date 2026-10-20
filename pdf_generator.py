@@ -13,6 +13,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether
+from chemometrics import classify_experimental_kappa
 from version import __version__, __build__
 
 NAVY = '#192F39'
@@ -54,6 +55,7 @@ def generate_pdf_report(filename, sample_id=None, operator=None, kappa_value=Non
                         material_name=None, match_percentage=None,
                         calibration_snapshot=None, acquisition_count=0, raw_scans=None):
     """Keep the public API; historical records never inherit today's reference."""
+    kappa_status = classify_experimental_kappa(float(kappa_value))[0] if _number(kappa_value) is not None else MISSING
     reference = calibration_snapshot or {}
     refs = _vector(values)
     adc = _vector(raw_adc_values)
@@ -76,7 +78,7 @@ def generate_pdf_report(filename, sample_id=None, operator=None, kappa_value=Non
         index = adc.index(max(adc)); peak_wavelength_nm = WAVELENGTHS[index]; peak_intensity_adc = adc[index]
 
     doc = SimpleDocTemplate(str(filename), pagesize=A4, leftMargin=42, rightMargin=42,
-                            topMargin=62, bottomMargin=48, title='Laudo técnico experimental - ' + str(sample_id or MISSING),
+                            topMargin=62, bottomMargin=48, title='Relatório experimental de leitura espectral - ' + str(sample_id or MISSING),
                             author='SPECTRUM-LAB PRO', subject='Caracterização espectral e rastreabilidade instrumental')
     width = doc.width
     body = ParagraphStyle('Body', fontName='Helvetica', fontSize=9, leading=13, textColor=colors.HexColor(NAVY))
@@ -128,16 +130,16 @@ def generate_pdf_report(filename, sample_id=None, operator=None, kappa_value=Non
         c.drawRightString(pw-42, 24, f'Página {document.page}')
         c.restoreState()
 
-    story = [p('Laudo técnico', title), p('Caracterização espectral e estimativa demonstrativa de Kappa', body), Spacer(1, 14)]
+    story = [p('Relatório experimental<br/>de leitura espectral', title), p('Caracterização espectral e estimativa demonstrativa de Kappa', body), Spacer(1, 14)]
     story.append(cards([('Amostra', sample_id), ('Operador', operator), ('Data da medição', timestamp), ('Método operacional', mode)]))
     story.append(section('01  /  Resultado do ensaio'))
-    result_card = Table([[p('KAPPA ESTIMADO', label), p('INTERPRETAÇÃO DO MODELO', label)],
+    result_card = Table([[p('KAPPA DEMONSTRATIVO', label), p('FAIXA DO MODELO EXPERIMENTAL', label)],
                          [p(_fmt(kappa_value), result), p(_text(kappa_status), body)]], colWidths=[width*.34, width*.66])
     result_card.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor(SOFT)),
                                     ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                                     ('LEFTPADDING', (0,0), (-1,-1), 14), ('RIGHTPADDING', (0,0), (-1,-1), 14),
                                     ('TOPPADDING', (0,0), (-1,-1), 9), ('BOTTOMPADDING', (0,0), (-1,-1), 9)]))
-    story += [result_card, Spacer(1, 7), p('Estimativa por equações parametrizadas, sem validação analítica. A interpretação acima é a classificação registrada pelo software.', small)]
+    story += [result_card, Spacer(1, 7), p('Estimativa por equações parametrizadas, sem validação analítica. A faixa numérica descreve apenas o modelo experimental; não identifica processo industrial nem teor de lignina.', small)]
     story.append(cards([('Razão R680 / R730', _fmt(ratio_celulose, 3)), ('Razão R860 / R760', _fmt(ratio_agua, 3)),
                         ('Soma dos sinais ADC', _fmt(global_intensity_adc, 1, ' ADC')), ('Canal de maior sinal', _fmt(peak_wavelength_nm, 0, ' nm') + (' / ' + _fmt(peak_intensity_adc, 1, ' ADC') if peak_intensity_adc is not None else ''))]))
     story.append(section('02  /  Perfil espectral relativo'))

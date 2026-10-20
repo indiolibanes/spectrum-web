@@ -49,11 +49,24 @@ def responder(bancada, comando, enviar):
     if comando == "PING":
         enviar("STATUS:PONG")
         enviar("STATUS:PROTOCOLO_2")
+        enviar("STATUS:ADMIN_PROTOCOLO_1")
         enviar("STATUS:SENSOR_OK")
         enviar(bancada.estado_linha())
         return True
     if comando == "ESTADO_PORTA":
         enviar(bancada.estado_linha())
+        return True
+    if comando == "DIAG_SENSOR":
+        # Mesmo formato do firmware 4.16.2: telemetria do ESP32 e do sensor (valores simulados).
+        enviar("ESPDIAG:TEMP:" + f"{random.uniform(34, 41):.1f}" + "|CPU_MHZ:240|HEAP_FREE:"
+               + str(random.randint(150000, 190000)) + "|HEAP_TOTAL:327680")
+        enviar("DIAG:TEMP:27.0|HW:SIMULADOR|STATUS:SIMULADO")
+        return True
+    if comando == "ADMIN_CARCACA":
+        # Simula a sessão administrativa: a validação de usuário/senha fica no supervisório.
+        with bancada.lock:
+            bancada.autorizada = True
+        enviar("STATUS:ADMIN_CARCACA_AUTORIZADA")
         return True
 
     def movimento(atualizar, status):

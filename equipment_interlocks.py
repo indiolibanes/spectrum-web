@@ -22,6 +22,7 @@ class EquipmentInterlocks:
         self.reset()
 
     def reset(self):
+        self.admin_capable = False
         self.capable = False
         self.manual_capable = False
         self.carriage_capable = False
@@ -35,6 +36,10 @@ class EquipmentInterlocks:
         self.authenticating = False
         self.received_at = 0
         self.expected_motion = None
+
+    def admin_session(self):
+        user=getattr(self.window,"authenticated_user",None) or {}
+        return str(user.get("role","")).lower()=="admin"
 
     def revoke(self, notify=True):
         had_access = self.authorized
@@ -71,9 +76,9 @@ class EquipmentInterlocks:
             self.carriage_retracted = values["SENSOR_RECUADO"] == "1"
             self.carriage_advanced = values["SENSOR_AVANCADO"] == "1"
         self.received_at = time.monotonic()
-        if self.housing_closed:
+        if self.housing_closed and not self.admin_session():
             self.revoke()
-        if previous is True and not self.housing_closed:
+        if previous is True and not self.housing_closed and not (self.admin_session() and self.authorized):
             self.revoke()
             if self.busy():
                 self.window._fail_operation("Carcaça aberta durante a operação. Autentique novamente para continuar.")
@@ -109,6 +114,8 @@ class EquipmentInterlocks:
                 text, color = "Carcaça: sem confirmação", "#94A3B8"
             elif self.housing_closed:
                 text, color = "Carcaça fechada • chave ativa", "#10B981"
+            elif self.admin_session():
+                text, color = "Carcaça aberta • sessão admin", "#F59E0B"
             elif self.authorized:
                 text, color = "Carcaça aberta • acesso autorizado", "#F59E0B"
             else:
@@ -133,6 +140,8 @@ class EquipmentInterlocks:
 
     def authenticate(self):
         w = self.window
+        if self.admin_session():
+            return True
         if self.authenticating:
             return False
         epoch = w._operation_epoch
@@ -194,6 +203,9 @@ class EquipmentInterlocks:
         if not self.carriage_capable or self.carriage_retracted is None:
             w._cancel_equipment_request("Atualize o firmware e aguarde os fins de curso do carrinho contínuo.")
             return False
+        if self.admin_session() and self.admin_capable and not self.authorized:
+            return self.wait_for("CMD:ADMIN_CARCACA", "ADMIN_CARCACA_AUTORIZADA",
+                                 lambda: w.send_serial_command(command, manual=manual))
         if not self.housing_closed and not self.authorized:
             # Nenhum movimento é enviado antes do login e do ACK do firmware.
             w._hardware_watchdog.stop()
@@ -272,6 +284,18 @@ class EquipmentInterlocks:
             self.capable = True
             w._refresh_controls()
             return True
+        if status == "ADMIN_PROTOCOLO_1":
+            self.admin_capable = True
+            return True
+        if status == "ADMIN_CARCACA_AUTORIZADA":
+            if not self.admin_session():
+                self.revoke()
+                w.serial_worker.send_command("CMD:REVOGAR_CARCACA")
+                return True
+            self.authorized = True
+            self.refresh_indicator()
+            if not self.pending or self.pending[0] != status:
+                return True
         if status.startswith("CARCACA_AUTORIZACAO_REVOGADA"):
             active = self.authorized and self.busy() and not status.endswith(":CARCACA_FECHADA")
             self.revoke(notify=False)
@@ -305,8 +329,8 @@ class EquipmentInterlocks:
             w._hardware_watchdog.stop()
             if epoch != w._operation_epoch:
                 return True
-            if expected == "CARCACA_AUTORIZADA":
-                self.authorized = not self.housing_closed
+            if expected in ("CARCACA_AUTORIZADA", "ADMIN_CARCACA_AUTORIZADA"):
+                self.authorized = self.admin_session() or not self.housing_closed
                 self.refresh_indicator()
                 for _, timer in w._manual_pending.values():
                     timer.start(30000)

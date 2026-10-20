@@ -319,9 +319,8 @@ def build_dashboard(w):
     w._scada_refresh_timer=QTimer(w)
     def refresh():
         w.card_esp32.refresh(w)
+        w.card_telemetria.refresh_freshness(busy=w.equipment.busy())
         w.btn_login.setText('Sair · '+w.authenticated_user.get('username','Operador') if w.authenticated_user else 'Login')
-        card=w.card_telemetria
-        if card.last_received and __import__('time').monotonic()-card.last_received>10:card.reset('Telemetria desatualizada')
     w._scada_refresh_timer.timeout.connect(refresh);w._scada_refresh_timer.start(1000);refresh()
     w._responsive_ready=True
     # As páginas manuais e o badge são os únicos controles ocultos necessários.

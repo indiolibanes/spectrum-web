@@ -3,8 +3,8 @@ Módulo Centralizado de Versionamento Semântico
 SPECTRUM-LAB PRO (Fluent Edition)
 """
 
-__version__ = "4.16.2"
-__build__ = "1263"
+__version__ = "4.16.4"
+__build__ = "1265"
 __release_date__ = "20/10/2026"
 __app_name__ = "SPECTRUM-LAB PRO"
 __authors__ = ("Davi Baracat", "Kauê Alencar", "Mateus Ferreira")

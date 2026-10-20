@@ -312,7 +312,11 @@ class ConnectionWorker(QThread):
                     while b"\n" in buf:
                         raw,_,rest=buf.partition(b"\n")
                         buffers[channel]=buf=bytearray(rest)
-                        line=raw.decode("utf-8",errors="strict").strip()
+                        try:
+                            line=raw.decode("utf-8",errors="strict").strip()
+                        except UnicodeDecodeError:
+                            self.line_received.emit("[RX DESCARTADO] Linha com codificação inválida; aguardando próximo pacote.")
+                            continue
                         if line:
                             self._parse_incoming_line(line)
         except Exception as err:
