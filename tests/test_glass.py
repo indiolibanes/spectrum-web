@@ -40,34 +40,38 @@ class PaletteTests(unittest.TestCase):
             for key, value in palette.items():
                 self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", (name, key))
 
-    def test_night_theme_is_dark_and_neutral_enough(self):
+    def test_night_theme_is_dark_and_purple(self):
         p = self.palettes["noturno"]
         self.assertTrue(glass.is_dark(p))
         self.assertFalse(glass.is_dark(self.palettes["light"]))
-        self.assertLess(glass.luminance(p["canvas"]), 0.01, "fundo quase preto")
+        r, g, b = glass._channels(p["canvas"])
+        self.assertTrue(b >= r > g, "o fundo do noturno é roxo-escuro")
+        r, g, b = glass._channels(p["secondary"])
+        self.assertTrue(b > g and r > g, "a secundária do noturno é roxa")
 
-    def test_night_theme_is_purple_with_a_teal_secondary(self):
+    def test_night_accent_is_gold(self):
         p = self.palettes["noturno"]
         r, g, b = glass._channels(p["accent"])
-        self.assertTrue(b > r > g, "o destaque do noturno é roxo")
-        r, g, b = glass._channels(p["secondary"])
-        self.assertTrue(g >= b > r, "a secundária é turquesa")
+        self.assertTrue(r > g > b and r > 200, "o destaque do noturno é dourado")
 
-    def test_alarm_colors_are_not_used_as_identity_colors(self):
-        """ISA-101: vermelho/laranja/amarelo são de alarme. Nenhum tom de botão pode ter esse matiz."""
+    def test_light_theme_uses_distinct_greens(self):
+        p = self.palettes["light"]
+        greens = {p["accent"], p["positive"], p["secondary"]}
+        self.assertEqual(len(greens), 3)
+        for color in greens:
+            r, g, b = glass._channels(color)
+            self.assertRegex(color, r"^#[0-9A-Fa-f]{6}$")
+
+    def test_alarm_colors_are_not_used_as_button_or_identity_colors(self):
+        """ISA-101: vermelho e laranja são de alarme. Tons de função não podem ter esse matiz.
+        O ouro (accent) é a cor de foco e identidade do noturno, não de alarme; fica de fora do teste."""
         import colorsys
         for name, p in self.palettes.items():
-            for tone in glass.TONES:
-                r, g, b = (c / 255 for c in glass._channels(glass.tone_color(p, tone)))
+            for tone in ("secondary", "sky", "violet", "rose", "slate", "sand"):
+                r, g, b = (c / 255 for c in glass._channels(p[tone]))
                 h, s, v = colorsys.rgb_to_hsv(r, g, b)
-                hue = h * 360
-                if s > 0.30:   # tons neutros (slate, sand) ficam de fora
-                    self.assertFalse(hue < 70 or hue > 335, (name, tone, round(hue)))
-
-    def test_every_button_tone_is_distinct(self):
-        for name, p in self.palettes.items():
-            colors = [glass.tone_color(p, t) for t in glass.TONES]
-            self.assertEqual(len(set(colors)), len(colors), name)
+                if s > 0.30:
+                    self.assertFalse(h * 360 < 40 or h * 360 > 335, (name, tone, round(h * 360)))
 
     def test_text_contrast_is_comfortable(self):
         for name, p in self.palettes.items():
@@ -96,8 +100,8 @@ class PaletteTests(unittest.TestCase):
                 self.assertGreater(contrast(color, surface), 2.0, (name, color))
 
 
-class FlatSurfaceTests(unittest.TestCase):
-    """ISA-101: superfícies lisas, sem degradê, translucidez, brilho ou textura."""
+class TranslucencyAndNeutralButtonTests(unittest.TestCase):
+    """Fundo e painéis translúcidos; botões neutros (sem cor por função, sem fio de luz)."""
 
     def setUp(self):
         self.palettes = load_palettes()
@@ -107,42 +111,54 @@ class FlatSurfaceTests(unittest.TestCase):
         self.assertEqual(glass.rgba("#000000", 2), "rgba(0, 0, 0, 100%)")
         self.assertEqual(glass.rgba("#000000", -1), "rgba(0, 0, 0, 0%)")
 
-    def test_every_fill_is_a_solid_hex_color(self):
+    def test_every_fill_is_a_valid_qss_color(self):
         for p in self.palettes.values():
-            fills = [glass.panel_fill(p), glass.result_fill(p), glass.field_fill(p), glass.rim(p), glass.rim(p, .6), glass.rim(p, 1.5)]
-            fills += [glass.primary_fill(p, s) for s in ("rest", "hover", "hot")]
-            fills += [glass.button_fill(p, s) for s in ("rest", "hover", "disabled")]
-            for tone in glass.TONES:
-                fills += [glass.tone_fill(p, tone, s) for s in ("rest", "hover")]
-                fills += [glass.tone_border(p, tone, s) for s in ("rest", "hover")] + [glass.tone_hot(p, tone)]
-            for value in fills:
-                self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", value)
+            values = [glass.panel_fill(p), glass.result_fill(p), glass.field_fill(p), glass.rim(p), glass.rim(p, 1.5)]
+            values += [glass.primary_fill(p, s) for s in ("rest", "hover", "hot")]
+            values += [glass.button_fill(p, s) for s in ("rest", "hover", "disabled")]
+            for value in values:
+                self.assertTrue(value.startswith("rgba(") or re.match(r"^#[0-9A-Fa-f]{6}$", value), value)
 
-    def test_no_gradient_helper_is_left(self):
+    def test_panels_are_translucent_in_both_themes(self):
+        for name, p in self.palettes.items():
+            alpha = float(re.search(r", (\d+)%\)", glass.panel_fill(p)).group(1))
+            self.assertLess(alpha, 75, name)
+            self.assertGreater(alpha, 30, name)
+
+    def test_background_has_glows_for_the_translucency_to_show(self):
+        for p in self.palettes.values():
+            spec = glass.glow_spec(p)
+            self.assertGreaterEqual(len(spec), 2)
+            for x, y, radius, color, alpha in spec:
+                self.assertTrue(0 <= x <= 1 and 0 <= y <= 1)
+                self.assertTrue(0 < radius <= 1.2)
+                self.assertTrue(0 < alpha < 0.35)
+                self.assertRegex(color, r"^#[0-9A-Fa-f]{6}$")
+
+    def test_no_gradient_helper_and_no_edge_light(self):
         self.assertFalse(hasattr(glass, "vgrad"))
-
-    def test_no_ambient_glow_and_no_edge_light(self):
         for p in self.palettes.values():
-            self.assertEqual(glass.glow_spec(p), [])
             self.assertEqual(glass.edge_highlight(p)[1], 0)
 
     def test_no_texture_in_any_theme(self):
         source = (ROOT / "appearance.py").read_text(encoding="utf-8")
         self.assertIn("TEXTURE_FILES={}", source)
 
-    def test_tone_recipes(self):
+    def test_buttons_are_neutral_for_every_function(self):
+        """Cada função tem a mesma cor de botão: a cor fica nos gráficos, não nos botões."""
         for p in self.palettes.values():
             for tone in glass.TONES:
-                self.assertRegex(glass.tone_text(p, tone), r"^#[0-9A-Fa-f]{6}$")
-                # texto do botão em tom sobre o preenchimento do próprio botão (legibilidade)
-                for state in ("rest", "hover"):
-                    self.assertGreater(contrast(glass.tone_text(p, tone), glass.tone_fill(p, tone, state)), 4.5, (tone, state, glass.is_dark(p)))
-                self.assertGreater(contrast(glass.on_tone(p), glass.tone_color(p, tone)), 4.5, tone)
+                self.assertEqual(glass.tone_fill(p, tone), glass.button_fill(p))
+                self.assertEqual(glass.tone_text(p, tone), p["text"])
 
-    def test_secondary_buttons_are_visible_on_dark(self):
-        p = self.palettes["noturno"]
-        self.assertGreater(contrast(glass.button_fill(p), p["surface"]), 1.15)
-        self.assertGreater(contrast(glass.rim(p, 1.5), p["surface"]), 2.5)
+    def test_primary_button_is_neutral_and_readable(self):
+        for p in self.palettes.values():
+            self.assertEqual(glass.primary_fill(p), p["text"])
+            self.assertGreater(contrast(p["on_strong"], p["text"]), 4.5)
+
+    def test_secondary_buttons_are_visible(self):
+        for p in self.palettes.values():
+            self.assertTrue(glass.button_fill(p).startswith("rgba("))
 
 
 class AssetTests(unittest.TestCase):

@@ -10,22 +10,23 @@ from popup_design import popup_owner, popup_stylesheet
 from typography import normalize_qss, install as install_typography
 import keyboard_layouts as kl
 PALETTES={
- # Noturno (ISA-101): fundo neutro quase preto com leve tom violeta, superfícies lisas e sem textura.
- # Roxo é a cor de identidade (ações e seleção); turquesa é a secundária (dados e calibração).
- # Vermelho, laranja e amarelo ficam reservados a alarmes e avisos (positive/warning/danger).
- "noturno":{"canvas":"#0D0B14","surface":"#181426","soft":"#231E37","border":"#5B5280",
-          "text":"#F4F1FB","heading":"#FFFFFF","muted":"#D2CBE6","disabled":"#8F88AB","accent":"#B79CFF",
-          "secondary":"#4FD1C1","slate":"#AEB8CC","sand":"#D6C6A8",
-          "positive":"#7FD99A","warning":"#F0B24B","danger":"#FF8A80",
-          "sky":"#7CC4F2","violet":"#93A6FF","rose":"#E89CDA",
-          "accent_strong":"#B79CFF","positive_strong":"#7FD99A","danger_strong":"#FF8A80","on_strong":"#1C0B45"},
- # Claro (ISA-101): branco e verde, liso, sem textura. O matiz (~92 graus) vem do logo do Projeto Sucuriú.
- "light":{"canvas":"#F4F6F1","surface":"#FFFFFF","soft":"#E8EEE2","border":"#B3C0A8",
-          "text":"#142009","heading":"#1B2E10","muted":"#44523A","disabled":"#7E8873","accent":"#436722",
-          "secondary":"#0F6E66","slate":"#4A5568","sand":"#6A5F52",
-          "positive":"#266435","warning":"#8A5A00","danger":"#B3261E",
+ # Noturno: roxo profundo com ouro como destaque. Os painéis são translúcidos sobre um fundo com
+ # brilhos roxos e dourados. Ouro é a cor de foco e de identidade; os botões são neutros.
+ # Vermelho e laranja ficam reservados a alarme e aviso.
+ "noturno":{"canvas":"#0A0614","surface":"#1A1030","soft":"#2A1F4A","border":"#6A5A9A",
+          "text":"#FBF7EE","heading":"#FFF1C4","muted":"#D9D0EE","disabled":"#8E84B0","accent":"#E8BE5C",
+          "secondary":"#A88BFF","slate":"#AEB8CC","sand":"#D6C6A8",
+          "positive":"#8FD69B","warning":"#F4A259","danger":"#FF8A80",
+          "sky":"#8CC8FF","violet":"#B7A0FF","rose":"#F2A7D0",
+          "accent_strong":"#F0C867","positive_strong":"#8FD69B","danger_strong":"#FF8A80","on_strong":"#0A0614"},
+ # Claro: branco e verde, em quatro tons distintos (folha, musgo, floresta e jade). O matiz principal
+ # (~92 graus) vem do logo do Projeto Sucuriú. Sobre um fundo levemente verde, com painéis translúcidos.
+ "light":{"canvas":"#EEF5EA","surface":"#FFFFFF","soft":"#E2EDD7","border":"#9DB38A",
+          "text":"#132210","heading":"#18300F","muted":"#3F5234","disabled":"#7E8873","accent":"#3E7A1E",
+          "secondary":"#0E7A62","slate":"#4A5568","sand":"#6A5F52",
+          "positive":"#1F6B3A","warning":"#8A5A00","danger":"#B3261E",
           "sky":"#1F6FA8","violet":"#4B55C8","rose":"#A03C8E",
-          "accent_strong":"#436722","positive_strong":"#266435","danger_strong":"#B3261E","on_strong":"#FFFFFF"},
+          "accent_strong":"#3E7A1E","positive_strong":"#1F6B3A","danger_strong":"#B3261E","on_strong":"#FFFFFF"},
 }
 # Cores por série (bandas espectrais), em ordem fixa. Validadas com o validador de paletas
 # (diferença para daltonismo e contraste sobre a superfície) nos dois temas.
@@ -35,7 +36,7 @@ SERIES={
 }
 DEFAULT_THEME="noturno"
 LEGACY_THEMES={"dark":"noturno","gold":"noturno","umber":"noturno"}   # preferências salvas por versões anteriores
-THEME_LABELS={"noturno":"Noturno · roxo e turquesa","light":"Claro · branco e verde"}
+THEME_LABELS={"noturno":"Noturno · roxo e dourado","light":"Claro · branco e verde"}
 TEXTURE_FILES={}   # ISA-101: nenhum tema usa textura
 def texture_path(theme=None):
     """Textura do fundo da janela principal, ou None quando o tema não tem textura."""
@@ -296,7 +297,7 @@ class AppearanceDialog(QDialog):
         self.theme_buttons={}
         self.theme_group=QButtonGroup(self);self.theme_group.setExclusive(True)
         pickers=QHBoxLayout();pickers.setSpacing(12)
-        for key,text in (("noturno","Noturno\nroxo e turquesa"),("light","Claro\nbranco e verde")):
+        for key,text in (("noturno","Noturno\nroxo e dourado"),("light","Claro\nbranco e verde")):
             button=QPushButton(text);button.setCheckable(True);button.setMinimumHeight(68)
             button.setProperty("fxTone","soft");button.setChecked(manager.theme==key)
             button.clicked.connect(lambda _=False,k=key:self.change_theme(k))

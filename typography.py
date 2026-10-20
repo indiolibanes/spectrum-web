@@ -5,14 +5,14 @@ Hierarquia (embutida no programa para que Windows, Linux e o executável tenham 
 
     Arena           marca: só o nome "SpectrumLab Pro" no cabeçalho (não tem dígitos nem acentos)
     Dropline        títulos e cabeçalhos de seção (tem acentos e dígitos; só existe em peso regular)
-    IBM Plex Sans   interface: rótulos, botões e texto corrido        (SIL OFL)
+    Inter           interface: rótulos, botões e texto corrido        (SIL OFL)
     IBM Plex Mono   valores de medição, tabelas e console             (SIL OFL)
 
 Arena e Dropline foram enviadas pelo autor do projeto; a licença de uso delas não está documentada
-nos arquivos (ver docs/IDENTIDADE_VISUAL.md). As Plex têm licença SIL OFL (LICENSE-IBM-Plex-OFL.txt).
+nos arquivos (ver docs/IDENTIDADE_VISUAL.md). A Inter e a IBM Plex Mono têm licença SIL OFL (LICENSE-Inter-OFL.txt).
 EB Garamond, usada antes nos títulos, deixou de ser carregada.
 
-Nas Plex só existem os pesos 400 (regular) e 700 (negrito). É de propósito: os arquivos Medium e
+Nas famílias Inter e Plex Mono só existem os pesos 400 (regular) e 700 (negrito). É de propósito: os arquivos Medium e
 SemiBold dessas famílias declaram nomes de família próprios, e o Windows os registraria como
 famílias separadas, quebrando o peso pedido no QSS. Regular e Bold formam par normal.
 
@@ -22,14 +22,14 @@ import re
 import sys
 from pathlib import Path
 
-FAMILY_UI = "IBM Plex Sans"
+FAMILY_UI = "Inter"
 FAMILY_DISPLAY = "Dropline"
 FAMILY_BRAND = "Arena"
 FAMILY_DATA = "IBM Plex Mono"
 
 # Pilhas com alternativas, caso a fonte embutida não carregue.
 STACK_UI = f"'{FAMILY_UI}', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-# A Dropline não tem alguns sinais ("·", "…", "–"): o Qt os busca na Plex Sans, que vem em seguida.
+# A Dropline não tem alguns sinais ("·", "…", "–"): o Qt os busca na Inter, que vem em seguida.
 STACK_DISPLAY = f"'{FAMILY_DISPLAY}', '{FAMILY_UI}', 'Segoe UI', Arial, sans-serif"
 STACK_BRAND = f"'{FAMILY_BRAND}', '{FAMILY_DISPLAY}', '{FAMILY_UI}', Arial, sans-serif"
 STACK_DATA = f"'{FAMILY_DATA}', 'Consolas', 'Courier New', monospace"
@@ -61,7 +61,7 @@ ROLES = {
 _STACKS = {"ui": STACK_UI, "display": STACK_DISPLAY, "data": STACK_DATA, "brand": STACK_BRAND}
 
 FONT_FILES = (
-    "IBMPlexSans-Regular.ttf", "IBMPlexSans-Bold.ttf",
+    "Inter-Regular.ttf", "Inter-Bold.ttf",
     "IBMPlexMono-Regular.ttf",
     "DroplineRegular.otf", "Arena.ttf",
 )
@@ -109,7 +109,7 @@ _RE_LETTERSPACING = re.compile(r"\bletter-spacing\s*:\s*[^;{}]+;?\s*", re.I)
 
 def _map_family(value):
     low = value.lower()
-    if "ibm plex" in low or "dropline" in low or "arena" in low:
+    if "ibm plex" in low or "inter" in low or "dropline" in low or "arena" in low:
         return value.strip()
     if "garamond" in low:
         return STACK_DISPLAY
@@ -207,7 +207,7 @@ def make_font(kind="ui", pixel_size=SIZE_BODY, weight=400):
     family = {"ui": FAMILY_UI, "display": FAMILY_DISPLAY, "data": FAMILY_DATA, "brand": FAMILY_BRAND}[kind]
     font = QFont(family)
     if kind in ("display", "brand") and hasattr(font, "setFamilies"):
-        font.setFamilies([family, FAMILY_UI])   # sinais que faltam na Dropline/Arena vêm da Plex Sans
+        font.setFamilies([family, FAMILY_UI])   # sinais que faltam na Dropline/Arena vêm da Inter
     font.setPixelSize(int(pixel_size))
     bold = snap_weight(weight) == BOLD and kind not in REGULAR_ONLY
     font.setWeight(QFont.Bold if bold else QFont.Normal)

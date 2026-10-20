@@ -5,9 +5,8 @@ O QSS não anima. O preenchimento, a borda e o tom por função ficam nas folhas
 popup_design, glass.py); este módulo acrescenta, numa camada transparente por cima de cada botão:
 
   - realce suave ao passar o mouse (sem reflexos nem brilho: estilo plano da ISA-101);
-  - pressão com mola: ao apertar, as bordas escurecem (como um botão que afunda) e, ao soltar, o
+  - pressão com mola: ao apertar, o botão escurece de leve e cede (como no iOS) e, ao soltar, o
     botão "volta" com um leve vai e volta (física de mola, animation_math.spring);
-  - onda de toque (ripple) a partir do ponto tocado e um anel de luz no instante do clique;
   - brilho que percorre o botão enquanto ele estiver "em andamento" (propriedade fxBusy = True).
 
 Não se altera o tamanho do botão ao apertar: mexer na geometria de um widget que o layout controla
@@ -28,7 +27,7 @@ import glass
 import motion
 from animation_math import busy_sweep_x, ripple_alpha, ripple_radius, spring
 
-RADIUS = 10.0   # igual ao border-radius dos botões em glass.py / scada_ui.py
+RADIUS = 12.0   # igual ao border-radius dos botões em scada_ui.py (cantos contínuos, estilo iOS)
 HOVER_MS = 180
 RIPPLE_MS = 620
 PRESS_MS = 320       # mola ao apertar: rápida, quase sem vai e volta
@@ -149,11 +148,8 @@ class _Overlay(QWidget):
             self.update()
         elif kind == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton and self.button.isEnabled():
-                self.ripple_center = QPointF(event.pos())
                 self.spot = QPointF(event.pos())
-                self.ripple_anim.stop()
-                self.ripple_anim.start()
-                self._run_spring(1.0, 0.20, 0.80, PRESS_MS)
+                self._run_spring(1.0, 0.20, 0.80, PRESS_MS)   # iOS: escurece e cede, sem onda
         elif kind == QEvent.MouseButtonRelease:
             if event.button() == Qt.LeftButton and (self.depth > 0.01 or self.spring_anim.state() == QVariantAnimation.Running):
                 self._run_spring(0.0, 0.55, 0.40, RELEASE_MS)   # volta com um leve "pop"
@@ -167,10 +163,8 @@ class _Overlay(QWidget):
 
     # -- pintura --------------------------------------------------------------------------
     def _tone(self, pal):
-        tone = self.button.property("tone")
-        if tone in glass.TONES:
-            return QColor(glass.tone_color(pal, tone))
-        return QColor(pal["accent"])
+        # Botões são neutros (estilo iOS): o reflexo e a faixa usam a cor de texto do tema.
+        return QColor(pal["text"])
 
     def paintEvent(self, event):
         enabled = self.button.isEnabled()
@@ -210,23 +204,9 @@ class _Overlay(QWidget):
 
         if enabled and self.depth > 0.001:   # afundando: as bordas escurecem em direção ao centro
             shade = QColor(0, 0, 0)
-            inner = QColor(shade)
-            inner.setAlpha(0)
-            edge = QColor(shade)
-            edge.setAlphaF(min(0.40, 0.34 * self.depth))
-            vignette = QRadialGradient(QPointF(width / 2.0, height / 2.0), max(width, height) * 0.62)
-            vignette.setColorAt(0.55, inner)
-            vignette.setColorAt(1.0, edge)
-            painter.fillRect(self.rect(), vignette)
-        elif enabled and self.depth < -0.001:   # ultrapassagem da mola: um anel de luz percorre a borda
-            ring = QColor(white if strong else accent)
-            ring.setAlphaF(min(0.85, -self.depth * 3.2))
-            painter.setPen(QPen(ring, 2.0))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawRoundedRect(QRectF(1.0, 1.0, width - 2.0, height - 2.0), RADIUS - 1, RADIUS - 1)
-            glow = QColor(ring)
-            glow.setAlphaF(ring.alphaF() * 0.30)
-            painter.fillPath(clip, glow)
+            dim = QColor(shade)
+            dim.setAlphaF(min(0.16, 0.14 * self.depth))   # realce do iOS: um véu uniforme, sem vinheta
+            painter.fillRect(self.rect(), dim)
 
         if self._is_busy():
             phase = ((time.monotonic() - self.busy_started) / BUSY_PERIOD_S) % 1.0

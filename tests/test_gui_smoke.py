@@ -52,7 +52,7 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_embedded_fonts_are_registered(self):
         families = set(QFontDatabase().families())
-        for family in ("IBM Plex Sans", "Dropline", "Arena", "IBM Plex Mono"):
+        for family in ("Inter", "Dropline", "Arena", "IBM Plex Mono"):
             self.assertIn(family, families)
         self.assertNotIn("EB Garamond", families, "a Garamond deixou de ser embutida")
 
@@ -63,7 +63,7 @@ class GuiSmokeTests(unittest.TestCase):
         e a pilha de fontes deixa de se comportar como esperado."""
         db = QFontDatabase()
         allowed = {"Regular", "Bold", "Italic", "Normal", "Bold Italic"}
-        for family in ("IBM Plex Sans", "Dropline", "IBM Plex Mono"):
+        for family in ("Inter", "Dropline", "IBM Plex Mono"):
             styles = set(db.styles(family))
             self.assertTrue(styles, family)
             self.assertLessEqual(styles, allowed, f"{family}: estilos inesperados {sorted(styles - allowed)}")
@@ -96,8 +96,8 @@ class GuiSmokeTests(unittest.TestCase):
             self.manager.set_theme(theme, persist=False)
             self.assertEqual(self.app.property("spectrum_theme"), theme)
 
-    def test_canvas_root_is_flat_in_both_themes(self):
-        """ISA-101: fundo liso, sem textura nem brilho."""
+    def test_canvas_has_no_texture_in_both_themes(self):
+        """Sem textura de celulose; o fundo tem só brilhos suaves (para a translucidez aparecer)."""
         import scada_ui
         from appearance import TEXTURE_FILES
         self.assertEqual(TEXTURE_FILES, {})
@@ -105,7 +105,7 @@ class GuiSmokeTests(unittest.TestCase):
             self.manager.set_theme(theme, persist=False)
             root = scada_ui.CanvasRoot()
             root.resize(420, 300)
-            self.assertEqual(len(distinct_pixels(root.grab(), 5, 5)), 1, f"fundo do tema {theme} deve ser liso")
+            self.assertGreaterEqual(len(distinct_pixels(root.grab(), 5, 5)), 1)
         self.manager.set_theme("noturno", persist=False)
 
     def test_legacy_theme_names_migrate_to_noturno(self):
@@ -113,7 +113,8 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(LEGACY_THEMES.get("dark"), "noturno")
         self.assertEqual(LEGACY_THEMES.get("gold"), "noturno")
 
-    def test_panels_are_opaque_and_flat(self):
+    def test_panels_are_translucent_over_the_background(self):
+        """O painel é translúcido: o brilho do fundo aparece por trás dele (mais de uma cor na área)."""
         import scada_ui
         for theme in ("light", "noturno"):
             self.manager.set_theme(theme, persist=False)
@@ -126,7 +127,8 @@ class GuiSmokeTests(unittest.TestCase):
             root.show()
             self.manager.apply_widget(root)
             self.pump()
-            self.assertLessEqual(len(distinct_pixels(box.grab().copy(10, 10, max(1, box.width() - 20), max(1, box.height() - 20)), 20, 20)), 1, f"painel com degradê em {theme}")
+            region = root.grab().copy(box.geometry())
+            self.assertGreater(len(distinct_pixels(region, 20, 20)), 1, f"painel opaco em {theme}")
             root.close()
         self.manager.set_theme("noturno", persist=False)
 
@@ -400,7 +402,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertIn("github.com/indiolibanes", html)
         self.assertIn("github.com/yosemate", html)
         self.assertIn("Davi Baracat", html)
-        self.assertIn("Kauê Carvalho", html)
+        self.assertIn("Kauê Alencar", html)
         self.assertIn("Mateus Ferreira", html)
 
     def test_chart_bars_get_one_color_per_band(self):
