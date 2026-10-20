@@ -45,20 +45,39 @@ class PaletteTests(unittest.TestCase):
         self.assertTrue(glass.is_dark(self.palettes["umber"]))
         self.assertFalse(glass.is_dark(self.palettes["light"]))
 
-    def test_dark_theme_inherits_the_identity_colors(self):
+    def test_dark_theme_keeps_the_gold_and_paper_identity(self):
         p = self.palettes["umber"]
-        self.assertEqual(p["accent"].upper(), "#E2C35C")
-        self.assertEqual(p["heading"].upper(), "#FFF1B4")
-        self.assertEqual(p["surface"].upper(), "#14120D")
+        r, g, b = glass._channels(p["accent"])
+        self.assertTrue(r > g > b and r > 200, "o destaque deve continuar dourado")
+        r, g, b = glass._channels(p["text"])
+        self.assertTrue(r >= g >= b, "o texto deve continuar cor de papel (quente)")
+        self.assertLess(glass.luminance(p["surface"]), 0.02)
 
     def test_text_contrast_is_comfortable(self):
         for name, p in self.palettes.items():
-            self.assertGreater(contrast(p["text"], p["canvas"]), 12, name)
-            self.assertGreater(contrast(p["muted"], p["surface"]), 6, name)
+            self.assertGreater(contrast(p["text"], p["canvas"]), 14, name)
+            self.assertGreater(contrast(p["text"], p["surface"]), 13, name)
+            self.assertGreater(contrast(p["muted"], p["surface"]), 7, name)
+            self.assertGreater(contrast(p["heading"], p["surface"]), 12, name)
             self.assertGreater(contrast(p["accent"], p["canvas"]), 4.5, name)
             self.assertGreater(contrast(p["on_strong"], p["accent_strong"]), 4.5, name)
             self.assertGreater(contrast(p["on_strong"], p["danger_strong"]), 4.5, name)
             self.assertGreater(contrast(p["disabled"], p["canvas"]), 3.0, name)
+            for tone in ("sky", "violet", "rose", "positive", "warning", "danger"):
+                self.assertGreater(contrast(p[tone], p["surface"]), 4.5, (name, tone))
+
+    def test_series_palettes_have_six_distinct_colors(self):
+        source = (ROOT / "appearance.py").read_text(encoding="utf-8")
+        start, end = source.index("SERIES={"), source.index("DEFAULT_THEME")
+        ns = {}
+        exec(source[start:end], ns)
+        for name, colors in ns["SERIES"].items():
+            self.assertEqual(len(colors), 6, name)
+            self.assertEqual(len(set(colors)), 6, name)
+            surface = self.palettes[name]["surface"]
+            for color in colors:
+                self.assertRegex(color, r"^#[0-9A-Fa-f]{6}$")
+                self.assertGreater(contrast(color, surface), 2.0, (name, color))
 
 
 class GlassTests(unittest.TestCase):
@@ -85,6 +104,22 @@ class GlassTests(unittest.TestCase):
         for p in self.palettes.values():
             self.assertIn("%", glass.panel_fill(p))
             self.assertNotIn("100%", glass.panel_fill(p))
+
+    def test_tone_recipes(self):
+        for p in self.palettes.values():
+            for tone in glass.TONES:
+                for state in ("rest", "hover"):
+                    self.assertTrue(glass.tone_fill(p, tone, state).startswith("qlineargradient("))
+                    self.assertTrue(glass.tone_border(p, tone, state).startswith("rgba("))
+                self.assertRegex(glass.tone_text(p, tone), r"^#[0-9A-Fa-f]{6}$")
+                self.assertGreater(contrast(glass.tone_text(p, tone), p["surface"]), 7, (tone, glass.is_dark(p)))
+                self.assertGreater(contrast(glass.on_tone(p), glass.tone_color(p, tone)), 4.5, tone)
+
+    def test_secondary_buttons_are_visible_on_dark(self):
+        """Antes eram vidro a 4-9%: quase invisíveis sobre o preto. Agora o preenchimento passa de 14%."""
+        p = self.palettes["umber"]
+        self.assertIn("15%", glass.button_fill(p))
+        self.assertGreaterEqual(glass.DARK_RIM_ALPHA * 1.6, 0.35)
 
     def test_glow_specs_are_in_range(self):
         for p in self.palettes.values():

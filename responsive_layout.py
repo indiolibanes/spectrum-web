@@ -3,11 +3,15 @@ from PyQt5.QtCore import Qt, QRectF, QSize, QObject, QEvent, QTimer
 from PyQt5.QtGui import QPainter, QTransform
 from PyQt5.QtWidgets import (QGraphicsView,QGraphicsScene,QWidget,QVBoxLayout,
                              QDialog,QFrame,QSizePolicy)
+import responsive_math
 
 class ScaledCanvasView(QGraphicsView):
     """Um único fator transforma textos, gráficos, espaçamentos e áreas de clique."""
-    def __init__(self,content,design_size=QSize(1600,900),parent=None):
+    def __init__(self,content,design_size=QSize(1600,900),parent=None,adaptive=False):
         super().__init__(parent)
+        self.adaptive=adaptive          # True: o canvas acompanha a janela (ver responsive_math.py)
+        self.layout_listener=None       # função(largura_lógica, altura_lógica) chamada quando o canvas muda
+        self._last_logical=None
         self.content=content
         content.ensurePolished()
         if content.layout(): content.layout().activate()
@@ -37,11 +41,43 @@ class ScaledCanvasView(QGraphicsView):
         self.update_scale()
     def update_scale(self):
         if not hasattr(self,"design_size"): return
+        if self.adaptive:
+            self._update_adaptive()
+            return
         width=max(1,self.viewport().width()-2)
         height=max(1,self.viewport().height()-2)
         self.scale_factor=min(width/self.design_size.width(),height/self.design_size.height())
         self.setTransform(QTransform().scale(self.scale_factor,self.scale_factor))
         self.centerOn(self.canvas_scene.sceneRect().center())
+    def _update_adaptive(self):
+        """Escala perto de 1:1 e canvas do tamanho da janela; o layout se reorganiza em vez de encolher."""
+        vw,vh=self.viewport().width(),self.viewport().height()
+        if vw<2 or vh<2: return
+        if self._last_logical is not None and getattr(self,"_last_viewport",None)==(vw,vh): return
+        self._last_viewport=(vw,vh)
+        layout=self.content.layout()
+        if layout:
+            layout.activate()
+            minimum=layout.minimumSize()
+        else:
+            minimum=self.content.minimumSizeHint()
+        scale,lw,lh=responsive_math.fit(vw,vh,minimum.width(),minimum.height())
+        if self.layout_listener:
+            # O ouvinte pode trocar a disposição (cabeçalho em duas linhas, empilhar painéis), o que muda
+            # o tamanho mínimo; por isso a escala é recalculada uma vez depois dele.
+            self.layout_listener(lw,lh)
+            if layout:
+                layout.activate()
+                minimum=layout.minimumSize()
+                scale,lw,lh=responsive_math.fit(vw,vh,minimum.width(),minimum.height())
+        self.scale_factor=scale
+        self._last_logical=(lw,lh)
+        self.content.setFixedSize(lw,lh)
+        self.proxy.resize(lw,lh)
+        self.canvas_scene.setSceneRect(QRectF(0,0,lw,lh))
+        self.setTransform(QTransform().scale(scale,scale))
+        self.horizontalScrollBar().setValue(0)
+        self.verticalScrollBar().setValue(0)
 
 class DialogScreenAdapter(QObject):
     """Diálogos que excedem a tela também são reduzidos proporcionalmente."""

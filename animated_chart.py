@@ -1,5 +1,6 @@
 from appearance import theme_color
 from typography import make_font
+import typography as ty
 """
 SPECTRUM-LAB PRO | Módulo de Visualização Espectral & Gráficos Analíticos
 Implementa:
@@ -35,10 +36,21 @@ class SingleBarWidget(QWidget):
         self.target_value = 0.0
         self.max_value = 100.0
         self.unit_str = "%"
+        self.series_index = None   # posição da banda: define a cor da barra (appearance.SERIES)
 
         self.anim = QPropertyAnimation(self, b"animatedValue")
-        self.anim.setDuration(600)
-        self.anim.setEasingCurve(QEasingCurve.OutCubic)
+        self.anim.setDuration(850)
+        curve = QEasingCurve(QEasingCurve.OutBack)   # sobe e assenta com um leve vai e volta, como uma mola
+        curve.setOvershoot(0.9)
+        self.anim.setEasingCurve(curve)
+
+    def band_color(self):
+        """Cor da banda: uma por canal (paleta validada para daltonismo); sem índice, a cor do tema."""
+        if self.series_index is not None:
+            from appearance import series_colors
+            colors = series_colors()
+            return colors[self.series_index % len(colors)]
+        return theme_color(self.color_hex, "accent")
 
     def get_animated_value(self):
         return self._current_value
@@ -55,6 +67,7 @@ class SingleBarWidget(QWidget):
         self.target_value = target_val
         self.max_value = max(1.0, max_val)
         self.unit_str = unit
+        self.anim.setDuration(0 if __import__("motion").reduced() else 850)
         self.anim.stop()
         self.anim.setStartValue(self._current_value)
         self.anim.setEndValue(float(target_val))
@@ -102,10 +115,10 @@ class SingleBarWidget(QWidget):
         if bar_h > 1.0:
             bar_rect = QRectF(x, y, bar_width, bar_h)
             gradient = QLinearGradient(x, y + bar_h, x, y)
-            base_col = QColor(theme_color(self.color_hex,"accent"))
-            light_col = base_col.lighter(112)
-            base_col.setAlpha(75)
-            light_col.setAlpha(75)
+            base_col = QColor(self.band_color())
+            light_col = base_col.lighter(120)
+            base_col.setAlpha(150)
+            light_col.setAlpha(225)
             gradient.setColorAt(0.0, base_col)
             gradient.setColorAt(1.0, light_col)
 
@@ -123,18 +136,21 @@ class SingleBarWidget(QWidget):
         else:
             val_text = f"{int(self._current_value)}"
         painter.setPen(QPen(QColor(theme_color("#F3F4F6","text"))))
-        painter.setFont(make_font("data", 13, 500))
-        painter.drawText(QRectF(0, y - 20, w, 18), Qt.AlignCenter, val_text)
+        painter.setFont(make_font("data", 14, 400))
+        painter.drawText(QRectF(0, y - 22, w, 20), Qt.AlignCenter, val_text)
 
-        # 4. Wavelength Label below bar
-        painter.setPen(QPen(QColor(theme_color(self.color_hex,"accent"))))
-        painter.setFont(make_font("ui", 11, 600))
-        painter.drawText(QRectF(0, h - bottom_padding + 4, w, 18), Qt.AlignCenter, self.wavelength)
+        # 4. Wavelength label below the bar: text in the text color, with a swatch of the band color
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(self.band_color())))
+        painter.drawRoundedRect(QRectF(w / 2.0 - 12, h - bottom_padding + 5, 24, 4), 2, 2)
+        painter.setPen(QPen(QColor(theme_color("#F3F4F6","text"))))
+        painter.setFont(make_font("ui", 12, 700))
+        painter.drawText(QRectF(0, h - bottom_padding + 10, w, 18), Qt.AlignCenter, self.wavelength)
 
         # 5. Secondary Name
         painter.setPen(QPen(QColor(theme_color("#9CA3AF","text"))))
-        painter.setFont(make_font("ui", 11, 400))
-        painter.drawText(QRectF(0, h - bottom_padding + 22, w, 14), Qt.AlignCenter, self.label_name)
+        painter.setFont(make_font("ui", 12, 400))
+        painter.drawText(QRectF(0, h - bottom_padding + 28, w, 16), Qt.AlignCenter, self.label_name)
 
 
 class SplineOverlay(QWidget):
@@ -176,29 +192,39 @@ class SplineOverlay(QWidget):
             fill_path.lineTo(points[0].x(), self.height() - 42)
             fill_path.closeSubpath()
 
+            from appearance import palette_for
+            pal = palette_for()
+            line_color = QColor(pal["heading"])
+
             area_grad = QLinearGradient(0, 32, 0, self.height() - 42)
-            area_grad.setColorAt(0.0, QColor(8, 125, 123, 0))
-            area_grad.setColorAt(1.0, QColor(8, 125, 123, 0))
+            top_fill = QColor(pal["accent"])
+            top_fill.setAlpha(70)
+            bottom_fill = QColor(pal["accent"])
+            bottom_fill.setAlpha(0)
+            area_grad.setColorAt(0.0, top_fill)
+            area_grad.setColorAt(1.0, bottom_fill)
             painter.setPen(Qt.NoPen)
             painter.setBrush(QBrush(area_grad))
             painter.drawPath(fill_path)
 
             # Glow behind spline
-            glow_pen = QPen(QColor(8, 125, 123, 0), 5)
-            painter.setPen(glow_pen)
+            glow = QColor(pal["accent"])
+            glow.setAlpha(60)
+            painter.setPen(QPen(glow, 7))
             painter.setBrush(Qt.NoBrush)
             painter.drawPath(path)
 
             # Main Spline Curve line
-            spline_pen = QPen(QColor(theme_color("#38BDF8","text")), 2.2)
-            painter.setPen(spline_pen)
+            painter.setPen(QPen(line_color, 2.6))
             painter.drawPath(path)
 
-            # Draw highlight dots at vertices
-            for pt in points:
-                painter.setPen(QPen(QColor(theme_color("#FFFFFF","text")), 1.5))
-                painter.setBrush(QBrush(QColor(theme_color("#0284C7","text"))))
-                painter.drawEllipse(pt, 3.5, 3.5)
+            # Vertices: one dot per band, in the band color, ringed with the surface color
+            from appearance import series_colors
+            colors = series_colors()
+            for index, pt in enumerate(points):
+                painter.setPen(QPen(QColor(pal["surface"]), 2))
+                painter.setBrush(QBrush(QColor(colors[index % len(colors)])))
+                painter.drawEllipse(pt, 5.0, 5.0)
         except Exception:
             pass
 
@@ -242,7 +268,8 @@ class SpectralSplineChartWidget(QFrame):
         title_icon.setStyleSheet("font-size: 14px;")
 
         chart_title = QLabel("Bandas espectrais · 610–860 nm")
-        chart_title.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: bold; font-family: 'Segoe UI'; letter-spacing: 0.5px;")
+        chart_title.setStyleSheet("color: #FFFFFF; " + ty.qss("section"))
+        chart_title.setProperty("role", "heading")
 
         header_layout.addWidget(title_icon)
         header_layout.addWidget(chart_title)
@@ -270,10 +297,10 @@ class SpectralSplineChartWidget(QFrame):
                 background-color: #202020;
                 color: #9CA3AF;
                 border: 1px solid #3d3d3d;
-                padding: 4px 9px;
-                font-size: 10px;
+                padding: 8px 14px;
+                font-size: 12px;
                 font-weight: bold;
-                border-radius: 4px;
+                border-radius: 8px;
             }
             QPushButton:checked {
                 background-color: #0078D4;
@@ -307,8 +334,9 @@ class SpectralSplineChartWidget(QFrame):
         bars_layout.setSpacing(6)
 
         self.bars = []
-        for wl, color, name in self.CHANNELS:
+        for index, (wl, color, name) in enumerate(self.CHANNELS):
             bar = SingleBarWidget(wl, color, name, self.bars_container)
+            bar.series_index = index
             bars_layout.addWidget(bar)
             self.bars.append(bar)
 

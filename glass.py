@@ -9,8 +9,9 @@ Módulo sem Qt, para poder ser testado em qualquer lugar (tests/test_glass.py).
 """
 from animation_math import mix_hex
 
-DARK_RIM_ALPHA = 0.16
-LIGHT_RIM_ALPHA = 0.22
+DARK_RIM_ALPHA = 0.24
+LIGHT_RIM_ALPHA = 0.28
+TONES = ("gold", "sky", "violet", "rose", "green", "amber")   # tons de botão por função
 
 
 def _channels(color):
@@ -62,7 +63,7 @@ def result_fill(p):
 def button_fill(p, state="rest"):
     """Botão secundário: vidro leve; ao passar o mouse ganha luz, sem mudar de cor."""
     if is_dark(p):
-        a = {"rest": (0.090, 0.040), "hover": (0.150, 0.075), "disabled": (0.030, 0.015)}[state]
+        a = {"rest": (0.15, 0.075), "hover": (0.24, 0.13), "disabled": (0.04, 0.02)}[state]
         return vgrad(rgba("#FFFFFF", a[0]), rgba("#FFFFFF", a[1]))
     tops = {"rest": ("#FFFFFF", p["soft"]), "hover": ("#FFFFFF", mix_hex(p["soft"], p["accent"], 0.10)),
             "disabled": (p["soft"], p["soft"])}[state]
@@ -96,3 +97,39 @@ def glow_spec(p):
 def edge_highlight(p):
     """(cor, alfa) do fio de luz desenhado pelo efeito dos botões no topo de cada botão."""
     return ("#FFFFFF", 0.30) if is_dark(p) else ("#FFFFFF", 0.80)
+
+
+_TONE_KEYS = {"gold": "accent", "sky": "sky", "violet": "violet", "rose": "rose", "green": "positive", "amber": "warning"}
+
+
+def tone_color(p, tone):
+    """Cor de um tom de botão (gold, sky, violet, rose, green, amber) na paleta do tema."""
+    return p[_TONE_KEYS[tone]]
+
+
+def tone_text(p, tone):
+    """Texto do botão em tom: a cor do tom clareada (escuro) ou escurecida (claro), para manter o contraste."""
+    base = tone_color(p, tone)
+    return mix_hex(base, "#FFFFFF", 0.55) if is_dark(p) else mix_hex(base, "#000000", 0.30)
+
+
+def tone_fill(p, tone, state="rest"):
+    """Botão em tom: vidro tingido com a cor do tom; mais forte ao passar o mouse."""
+    base = tone_color(p, tone)
+    top, bottom = {"rest": (0.30, 0.14), "hover": (0.42, 0.24)}[state] if is_dark(p) else {"rest": (0.18, 0.08), "hover": (0.28, 0.15)}[state]
+    return vgrad(rgba(base, top), rgba(base, bottom))
+
+
+def tone_border(p, tone, state="rest"):
+    return rgba(tone_color(p, tone), 0.70 if state == "rest" else 1.0)
+
+
+def tone_hot(p, tone):
+    """Botão em tom pressionado: cor cheia, com luz em cima."""
+    base = tone_color(p, tone)
+    return vgrad(mix_hex(base, "#FFFFFF", 0.30), base)
+
+
+def on_tone(p):
+    """Texto sobre um tom cheio (pressionado)."""
+    return p["on_strong"]

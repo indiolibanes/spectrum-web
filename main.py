@@ -848,7 +848,8 @@ class CardKpiCalibracao(QFrame):
         icon = QLabel("📊")
         icon.setStyleSheet("font-size: 14px;")
         lbl_title = QLabel("Status da Calibração")
-        lbl_title.setStyleSheet("color: #38BDF8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;")
+        lbl_title.setStyleSheet("color: #38BDF8; " + ty.qss("section"))
+        lbl_title.setProperty("role", "heading")
 
         self.lbl_badge = QLabel("Não Calibrado / Baixo Ajuste")
         self.lbl_badge.setAlignment(Qt.AlignCenter)
@@ -857,8 +858,8 @@ class CardKpiCalibracao(QFrame):
             color: #F87171;
             border: 1px solid #DC2626;
             border-radius: 4px;
-            padding: 3px 8px;
-            font-size: 10px;
+            padding: 4px 10px;
+            font-size: 12px;
             font-weight: bold;
         """)
 
@@ -868,57 +869,40 @@ class CardKpiCalibracao(QFrame):
         header.addWidget(self.lbl_badge)
         layout.addLayout(header)
 
-        # Métricas em destaque (3 colunas com cartões individuais)
-        metrics_layout = QHBoxLayout()
+        # Métricas em destaque: uma linha por indicador (rótulo à esquerda, valor à direita).
+        # Antes eram três colunas estreitas: o texto não cabia e ficava comprimido.
+        metrics_layout = QVBoxLayout()
         metrics_layout.setSpacing(8)
 
-        # 1. R²
-        box_r2 = QFrame()
-        box_r2.setStyleSheet("background-color: #11141A; border: 1px solid #1F2937; border-radius: 6px;")
-        l_r2 = QVBoxLayout(box_r2)
-        l_r2.setContentsMargins(8, 6, 8, 6)
-        l_r2.setSpacing(2)
-        sub_r2 = QLabel("CV branco máximo (%)")
-        sub_r2.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: 600;")
+        def metric_row(name, value_label, color_hex):
+            row = QFrame()
+            row.setObjectName("calibMetricRow")
+            row.setStyleSheet("background-color: #11141A; border: 1px solid #1F2937; border-radius: 10px;")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(14, 10, 14, 10)
+            row_layout.setSpacing(12)
+            caption = QLabel(name)
+            caption.setWordWrap(True)
+            caption.setStyleSheet("color: #9CA3AF; border: 0; background: transparent; " + ty.qss("card"))
+            value_label.setStyleSheet(f"color: {color_hex}; border: 0; background: transparent; " + ty.qss("kpi"))
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            row_layout.addWidget(caption, 1)
+            row_layout.addWidget(value_label, 0)
+            return row
+
         self.lbl_r2 = QLabel("--")
-        self.lbl_r2.setStyleSheet("color: #38BDF8; font-size: 16px; font-weight: 800;")
-        l_r2.addWidget(sub_r2)
-        l_r2.addWidget(self.lbl_r2)
-        metrics_layout.addWidget(box_r2)
-
-        # 2. RMSE
-        box_rmse = QFrame()
-        box_rmse.setStyleSheet("background-color: #11141A; border: 1px solid #1F2937; border-radius: 6px;")
-        l_rmse = QVBoxLayout(box_rmse)
-        l_rmse.setContentsMargins(8, 6, 8, 6)
-        l_rmse.setSpacing(2)
-        sub_rmse = QLabel("Ruído escuro máximo (ADC)")
-        sub_rmse.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: 600;")
+        metrics_layout.addWidget(metric_row("CV branco máximo (%)", self.lbl_r2, "#38BDF8"))
         self.lbl_rmse = QLabel("--")
-        self.lbl_rmse.setStyleSheet("color: #A78BFA; font-size: 16px; font-weight: 800;")
-        l_rmse.addWidget(sub_rmse)
-        l_rmse.addWidget(self.lbl_rmse)
-        metrics_layout.addWidget(box_rmse)
-
-        # 3. Pontos (N)
-        box_n = QFrame()
-        box_n.setStyleSheet("background-color: #11141A; border: 1px solid #1F2937; border-radius: 6px;")
-        l_n = QVBoxLayout(box_n)
-        l_n.setContentsMargins(8, 6, 8, 6)
-        l_n.setSpacing(2)
-        sub_n = QLabel("Pontos (N)")
-        sub_n.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: 600;")
+        metrics_layout.addWidget(metric_row("Ruído escuro máximo (ADC)", self.lbl_rmse, "#A78BFA"))
         self.lbl_n = QLabel("N = 0")
-        self.lbl_n.setStyleSheet("color: #FBBF24; font-size: 16px; font-weight: 800;")
-        l_n.addWidget(sub_n)
-        l_n.addWidget(self.lbl_n)
-        metrics_layout.addWidget(box_n)
+        metrics_layout.addWidget(metric_row("Pontos de calibração", self.lbl_n, "#FBBF24"))
 
         layout.addLayout(metrics_layout)
 
         # Rodapé com metadados de calibração (Data/Hora e Operador)
         self.lbl_calib_footer = QLabel("🕒 Calibração: --")
-        self.lbl_calib_footer.setStyleSheet("color: #9CA3AF; font-size: 10px;")
+        self.lbl_calib_footer.setStyleSheet("color: #9CA3AF; " + ty.qss("caption"))
+        self.lbl_calib_footer.setWordWrap(True)
         layout.addWidget(self.lbl_calib_footer)
 
     def atualizar(self,r2=None,rmse=None,n_amostras=0,timestamp=None,operador=None,is_expired=False):

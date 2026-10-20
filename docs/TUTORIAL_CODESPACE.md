@@ -1,17 +1,17 @@
 # Tutorial de teste no Codespace
 
-Roteiro para validar a interface nova: tema Escuro (preto quase AMOLED, umber e ouro, sobre madeira), tema Claro, vidro translúcido, títulos em EB Garamond, botões refinados, cursor de fibra de celulose, indicador de análise, teclado na tela e assinatura. Tempo estimado: 40 minutos, sendo 10 de preparação.
+Roteiro para validar a interface nova: tema Escuro (preto quase AMOLED, umber e ouro, sobre madeira), tema Claro, Configurações em duas seções (Aparência e Acessibilidade), legibilidade e responsividade, botões em tons com animação de mola, gráficos coloridos, indicador de análise com rosto colorido, teclado na tela, rodapé com links e cursor de fibra de celulose. Tempo estimado: 50 minutos, sendo 10 de preparação.
 
 > **Importante.** A interface foi escrita sem poder abrir o PyQt5 no ambiente do assistente. A lógica pura tem testes automáticos que passam, mas **a aparência e o toque ainda não foram vistos em execução**. É isso que este roteiro verifica.
 
 ## 1. Criar o Codespace
 
-1. No GitHub, abra o repositório `indiolibanes/spectrum-web`.
-2. Troque a branch para **`feat/ui-vidro-umber`** (esta é a branch da interface nova e já traz os scripts de `run/`). A branch anterior, `feat/ui-ouro-arauco`, tem a versão sem vidro.
-3. **Code → Codespaces → Create codespace on feat/ui-vidro-umber**.
+1. No GitHub, abra o repositório **`indiolibanes/spectrum-web`** (onde a branch desta fase está publicada; depois do merge no `yosemate/spectrum`, use ele).
+2. Troque a branch para **`feat/ux-acessibilidade-animacoes`** (a interface desta fase: Configurações separadas, contraste maior no escuro, layout responsivo, botões e animações novos).
+3. **Code → Codespaces → Create codespace on feat/ux-acessibilidade-animacoes**.
 4. Aguarde o VS Code (web) abrir. Confira, no canto inferior esquerdo, que a branch é a certa.
 
-Já tem um Codespace antigo? Abra o terminal e rode `git fetch && git checkout feat/ui-vidro-umber && git pull`.
+Já tem um Codespace antigo? Abra o terminal e rode `git fetch && git checkout feat/ux-acessibilidade-animacoes && git pull`.
 
 ## 2. Instalar dependências (uma vez por Codespace)
 
@@ -39,10 +39,11 @@ python3 -I tests/test_glass.py
 python3 -I tests/test_analysis_messages.py
 python3 -I tests/test_animation_math.py
 python3 -I tests/test_keyboard_layouts.py
+python3 -I tests/test_responsive_math.py
 QT_QPA_PLATFORM=offscreen python3 -m unittest tests.test_gui_smoke -v
 ```
 
-Esperado: os cinco primeiros terminam com `OK`. O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões, brilho em botão desabilitado e o teclado numérico digitando `192.168.4.1`.
+Esperado: os seis primeiros terminam com `OK`. O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões (e que ele respeita *Reduzir animações*), brilho em botão desabilitado, o teclado numérico digitando `192.168.4.1`, as **duas seções separadas das Configurações** (tema em uma; teclado e animações na outra), ícones e rostos coloridos, uma cor por barra do gráfico, os links do rodapé, o cartão de calibração sem texto comprimido e o canvas adaptativo sem cortar o layout.
 
 | Se falhar… | Significa |
 |---|---|
@@ -83,12 +84,26 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 | A1 | Observe a abertura | Marca "SpectrumLab Pro" em Garamond cor de ouro pálido; "Da luz" em ouro pálido e "à análise." em dourado; madeira escura ao fundo, logos SENAI e ARAUCO; assinatura no canto inferior direito | ☐ |
 | A2 | Janela principal | Fundo quase preto (confira em tela OLED, se tiver), veios de madeira discretos nas margens **e por trás dos painéis**, painéis de vidro com fio de luz na borda, destaques dourados | ☐ |
 | A3 | Títulos e números | "SpectrumLab Pro", "Ensaios automáticos" e o título do indicador em **Garamond** (serifa fina); rótulos e botões em Plex Sans; valores dos indicadores e o número Kappa em Mono | ☐ |
-| A4 | **Configurações** → tema **Claro** | Troca na hora para branco e verde; nenhum trecho azul ou preto "esquecido" | ☐ |
+| A4 | **Configurações** → seção **Aparência** → tema **Claro** | Troca na hora, com uma fusão suave, para branco e verde; nenhum trecho azul ou preto "esquecido". O tema fica **só** nessa seção | ☐ |
 | A5 | Volte para **Escuro · umber e ouro** | Preto, madeira e ouro. A lista tem só dois temas | ☐ |
 | A6 | Feche e abra o programa | Lembra o último tema escolhido | ☐ |
-| A7 | Rodapé | À direita: "Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira" | ☐ |
+| A7 | Rodapé | Cartão com borda de destaque, bem visível nos dois temas. À direita: "Protótipo desenvolvido por Davi Baracat, **Kauê Carvalho** e **Mateus Ferreira**", com os dois nomes em destaque como links | ☐ |
+| A7b | Clique em **Kauê Carvalho** e em **Mateus Ferreira** | Abrem `github.com/indiolibanes` e `github.com/yosemate` no navegador | ☐ |
 | A8 | Abra qualquer diálogo (login, calibração) | Mesmas cores e fontes do painel principal; botões de vidro com cantos de 10 px | ☐ |
-| A9 | Compare com `docs/img/especime-umber.png` e `especime-claro.png` | Proporções, cores e hierarquia parecidas (o espécime não tem desfoque nem a renderização do Qt) | ☐ |
+| A9 | Compare com `docs/img/especime-umber.png`, `especime-claro.png` e `especime-config-*.png` | Proporções, cores e hierarquia parecidas (o espécime não tem desfoque nem a renderização do Qt) | ☐ |
+
+### A2. Configurações, legibilidade e cores
+
+| # | Passo | Esperado | |
+|---|---|---|---|
+| S1 | Abra **Configurações** | Duas seções em cartões: **Aparência** (dois botões, Escuro e Claro) e **Acessibilidade** (Teclado na tela e Animações). O tema claro/escuro **não** aparece junto do teclado | ☐ |
+| S2 | Em **Animações**, escolha **Reduzidas** | Daqui em diante: sem entrada escalonada, sem fusão na troca de tema, botões só trocam de estado. Volte para **Completas** | ☐ |
+| L1 | No tema Escuro, leia rótulos, valores, legendas do gráfico e o cartão **Calibração** | Texto claro e nítido, nada comprimido; R², RMSE e N em linhas (rótulo à esquerda, valor à direita); nenhum texto menor que 12 px | ☐ |
+| L2 | Role a **coluna da esquerda** (método, ensaios, calibração, resultado) | Rola inteira; os cartões não encolhem para caber | ☐ |
+| L3 | Olhe os botões no tema Escuro | Todos são visíveis sobre o preto: vidro claro com borda, cada função com seu tom (azul-céu, violeta, rosa, verde, âmbar), o principal em dourado cheio | ☐ |
+| L4 | Olhe o gráfico de barras | Uma cor por banda (azul, laranja, verde, âmbar, rosa, violeta), rótulos em cor de texto com uma tarja da cor da banda; curva clara com um ponto colorido por banda | ☐ |
+| L5 | Olhe os quatro indicadores | Ícones coloridos (raio, tendência, folha, gota) e uma barra de cor à esquerda de cada um | ☐ |
+| L6 | Confira simetria | Margens iguais entre cartões (cerca de 16 px), cartões alinhados nas bordas, rodapé na largura total | ☐ |
 
 ### B. Botões
 
@@ -96,7 +111,9 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 |---|---|---|---|
 | B1 | Passe o mouse sobre **Leitura com repetibilidade** | Borda dourada/verde, o vidro ganha luz e o realce surge sem piscar | ☐ |
 | B1b | Olhe qualquer botão de perto | Um fio de luz fino no topo, cantos de 10 px, sem texto cortado | ☐ |
-| B2 | Mantenha o botão pressionado | Cor viva (mais clara) e uma ondulação que nasce no ponto do clique e some | ☐ |
+| B1c | Mova o mouse sobre um botão | Um foco de luz suave acompanha o ponteiro | ☐ |
+| B2 | Mantenha o botão pressionado | Ele "cede" (bordas escurecem, profundidade) e uma ondulação nasce no ponto do clique | ☐ |
+| B2b | Solte o botão | Volta com leve ultrapassagem (efeito de mola) e um anel que se dissipa; o tamanho do botão **não** muda | ☐ |
 | B3 | Olhe **Realizar leitura** | Destaque cheio com luz no topo (dourado no escuro, verde no claro), texto em Plex Sans negrito | ☐ |
 | B4 | Com a bancada desconectada | Botões de ensaio cinza, sem efeito ao passar o mouse | ☐ |
 
@@ -138,9 +155,10 @@ Conecte: Wi-Fi, IP `127.0.0.1`, porta `8080`, **Conectar ESP32**.
 | D2 | Calibrar · Branco e escuro (confirme os pop-ups) | Título "Calibração · padrão branco" e depois "referência escura"; etapas 1 a 5 avançando | ☐ |
 | D3 | **Realizar leitura** | O botão vira **Analisando…** com um brilho percorrendo; o indicador mostra etapas e frases que trocam a cada ~4,5 s | ☐ |
 | D4 | Durante a leitura do espectro | Curva animada no indicador (etapa 3 de 5) | ☐ |
-| D5 | Fim do ciclo | "Análise concluída. Boa amostra!", rosto com pulinho e faíscas por ~7 s; o botão volta a **Realizar leitura** | ☐ |
+| D5 | Fim do ciclo | "Análise concluída. Boa amostra!", rosto **amarelo** com pulinho e faíscas coloridas por ~7 s; o botão volta a **Realizar leitura** | ☐ |
 | D6 | Ensaio de repetibilidade | Título "Leitura com repetibilidade"; entre as leituras, "Aguardando a próxima leitura…" | ☐ |
-| D7 | Parada de emergência durante um ciclo | Rosto sério e mensagem de emergência, sem sorriso | ☐ |
+| D7 | Parada de emergência durante um ciclo | Rosto laranja preocupado (com gota) e mensagem de emergência, sem sorriso | ☐ |
+| D8 | Ao iniciar o programa e ao rodar a leitura | Painéis entram em sequência com subida suave; as barras do gráfico sobem com mola | ☐ |
 
 ### E. Responsividade
 
@@ -148,9 +166,11 @@ Repita A2, C1 e D3 em cada configuração (veja `run/README.md`, seção 7):
 
 | Teste | Como | Esperado |
 |---|---|---|
-| 1920×1080 | `RESOLUTION=1920x1080 bash run/start_display.sh` + `bash run/start_app.sh` | Sem cortes; cabeçalho cabe com os campos de IP maiores (confira se nenhum botão do cabeçalho fica cortado) |
+| 1920×1080 | `RESOLUTION=1920x1080 bash run/start_display.sh` + `bash run/start_app.sh` | Cabeçalho em **uma** linha, indicadores em **4 colunas**, painéis lado a lado; sem cortes |
 | 125% | `QT_SCALE_FACTOR=1.25 bash run/start_app.sh` | Idem |
-| 1366×768 | `RESOLUTION=1366x768 bash run/start_display.sh` + `bash run/start_app.sh` | Idem; teclado cabe na tela |
+| 1366×768 | `RESOLUTION=1366x768 bash run/start_display.sh` + `bash run/start_app.sh` | Cabeçalho em **duas** linhas (campos na primeira, ações na segunda); texto do mesmo tamanho, sem compressão; teclado cabe na tela |
+| 1024×768 e 800×1280 (vertical) | `RESOLUTION=1024x768 ...` e `RESOLUTION=800x1280 ...` | Indicadores em grade 2×2; painel do gráfico **embaixo** do painel de ensaios (empilhados); a janela inteira rola se preciso, o texto continua legível |
+| Arrastar a borda da janela | Redimensione com o mouse | O layout se reorganiza nos pontos de quebra, sem saltos nem texto cortado |
 
 ## 7. O que enviar de volta
 
@@ -177,5 +197,5 @@ bash run/stop.sh
 | Tela preta no noVNC | `bash run/start_app.sh` ainda não foi executado |
 | Página do noVNC não abre (erro 502, 404 ou "não foi possível acessar") | Rode `bash run/check.sh`: ele mostra se a porta 6080 está de pé. Espere 10 s e atualize; abra o endereço impresso por `start_display.sh` **no navegador logado no GitHub**; na aba **PORTS**, a 6080 deve aparecer (Private) |
 | `bash: run/start_display.sh: cannot execute` ou `\r: command not found` | Fim de linha do Windows: `sed -i 's/\r$//' run/*.sh` |
-| O Codespace mostra a interface antiga (sem vidro, sem Garamond) | Está na branch errada: `git fetch && git checkout feat/ui-vidro-umber && git pull` |
+| O Codespace mostra a interface antiga (sem vidro, sem Garamond) | Está na branch errada: `git fetch && git checkout feat/ux-acessibilidade-animacoes && git pull` |
 | `could not load xcb` | `bash run/setup.sh` de novo |

@@ -3,12 +3,12 @@
 Roteiro para rodar o supervisório num navegador, com display virtual e uma bancada simulada (ESP32 falso).
 **Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (EB Garamond e IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
 
-> Para testar a interface nova (temas, botões, indicador de análise e teclado na tela), use o roteiro completo em [docs/TUTORIAL_CODESPACE.md](../docs/TUTORIAL_CODESPACE.md). Este arquivo cobre só a parte de execução e responsividade.
+> Para testar a interface nova (temas, Configurações, botões e animações, gráficos, indicador de análise e teclado na tela), use o roteiro completo em [docs/TUTORIAL_CODESPACE.md](../docs/TUTORIAL_CODESPACE.md). Este arquivo cobre só a parte de execução e responsividade.
 
 ## 1. Criar o Codespace
 
-1. No GitHub, abra o repositório `indiolibanes/spectrum-web`.
-2. Troque a branch para `feat/ui-vidro-umber` (interface nova, já com os scripts de `run/`).
+1. No GitHub, abra o repositório `indiolibanes/spectrum-web` (ou o `yosemate/spectrum`, depois do merge desta branch).
+2. Troque a branch para `feat/ux-acessibilidade-animacoes` (interface desta fase, já com os scripts de `run/`).
 3. Clique em **Code → Codespaces → Create codespace on** a branch escolhida.
 4. Aguarde o VS Code (web) abrir.
 
@@ -79,17 +79,19 @@ Reinicie o programa a cada troca de resolução ou escala (`Ctrl+C` no terminal 
 | A. Resolução de referência | `RESOLUTION=1920x1080 bash run/start_display.sh` + `bash run/start_app.sh` | 1920x1080 em 100% |
 | B. Escala 125% | `QT_SCALE_FACTOR=1.25 bash run/start_app.sh` (display 1920x1080) | 1536x864 lógicos |
 | C. Notebook comum | `RESOLUTION=1366x768 bash run/start_display.sh` + `bash run/start_app.sh` | 1366x768 em 100% |
+| D. Tela vertical | `RESOLUTION=800x1280 bash run/start_display.sh` + `bash run/start_app.sh` | Tablet em retrato |
 
-Para o teste B, use `QT_SCALE_FACTOR=1.25 bash run/start_app.sh`. Os demais, sem essa variável.
+Para o teste B, use `QT_SCALE_FACTOR=1.25 bash run/start_app.sh`. Os demais, sem essa variável. Redimensionar a janela com o mouse também vale: o layout se adapta ao tamanho real, sem escala fixa.
 
 ### Checklist por tela
 
 Anote **OK** ou o problema em cada item:
 
 - [ ] Nenhum texto cortado nem sobreposto.
-- [ ] Textos com pelo menos 11 px.
-- [ ] Os KPIs ficam na mesma linha (não quebram em duas).
-- [ ] Botões de ação visíveis sem rolar a janela.
+- [ ] Textos com pelo menos 12 px e sem compressão (inclusive no cartão de calibração, no tema escuro).
+- [ ] Os KPIs ficam em 4 colunas em telas largas e em grade 2×2 em telas estreitas ou verticais.
+- [ ] O cabeçalho passa para duas linhas abaixo de ~1590 px lógicos e os painéis se empilham em tela vertical.
+- [ ] Botões de ação visíveis (a coluna da esquerda rola; nada é espremido para caber).
 - [ ] Diálogos (login, calibração, configurações) cabem na tela.
 - [ ] Logo do cabeçalho visível e alinhado ao título.
 - [ ] Barras de rolagem aparecem onde devem, não em toda parte.

@@ -16,10 +16,11 @@ from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 import analysis_messages as messages
 import glass
-from animation_math import blink_amount, bounce, mouth_params, pulse, spectrum_points
+from animation_math import bounce, pulse, spectrum_points
+from emoji_icons import draw_face
 from typography import make_font
 
-HEIGHT = 92
+HEIGHT = 100
 MESSAGE_SECONDS = 4.5      # tempo de cada frase
 CELEBRATE_SECONDS = 7.0    # quanto tempo o "análise concluída" fica na tela
 FAST_MS = 40               # animação enquanto algo se move
@@ -142,7 +143,7 @@ class AnalysisIndicator(QWidget):
         painter.drawPath(bar)
 
         # Rosto
-        self._draw_face(painter, QPointF(46, h / 2.0), 22.0, mood, t, celebrate, tone)
+        self._draw_face(painter, QPointF(50, h / 2.0), 24.0, mood, t, celebrate, tone)
 
         # Bloco da direita: espectro e etapas (só quando há espaço)
         right_width = 0
@@ -152,52 +153,23 @@ class AnalysisIndicator(QWidget):
             self._draw_steps(painter, QRectF(w - right_width - 6, 58, right_width - 10, 22), t, phase, celebrate, tone, pal)
 
         # Textos
-        text_left = 86
+        text_left = 96
         text_width = max(60, w - text_left - right_width - 18)
         painter.setPen(QColor(pal["heading"]))
         painter.setFont(make_font("display", 19, 700))
         title_text = QFontMetrics(painter.font()).elidedText(title, Qt.ElideRight, int(text_width))
-        painter.drawText(QRectF(text_left, 12, text_width, 22), Qt.AlignLeft | Qt.AlignVCenter, title_text)
+        painter.drawText(QRectF(text_left, 10, text_width, 28), Qt.AlignLeft | Qt.AlignVCenter, title_text)
         painter.setPen(QColor(pal["muted"]))
-        painter.setFont(make_font("ui", 13, 400))
-        painter.drawText(QRectF(text_left, 38, text_width, 44), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, message)
+        painter.setFont(make_font("ui", 14, 400))
+        painter.drawText(QRectF(text_left, 42, text_width, 52), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, message)
         painter.end()
 
     def _draw_face(self, painter, center, radius, mood, t, celebrate, tone):
+        """Rosto de emoji colorido (ver emoji_icons.draw_face): amarelo e vivo nos dois temas."""
         painter.save()
         if celebrate:
             painter.translate(0, -bounce(t, 0.8, 4.0))
-        face_fill = QColor(tone)
-        face_fill.setAlphaF(0.16)
-        painter.setPen(QPen(tone, 2))
-        painter.setBrush(face_fill)
-        painter.drawEllipse(center, radius, radius)
-
-        eye_dx, eye_y, eye_r = radius * 0.38, center.y() - radius * 0.18, radius * 0.10
-        eye_open = 1.0 - blink_amount(t)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(tone)
-        for sign in (-1, 1):
-            painter.drawEllipse(QPointF(center.x() + sign * eye_dx, eye_y), eye_r, max(0.9, eye_r * eye_open))
-
-        curve, width_rel = mouth_params("smile" if celebrate else mood)
-        half = radius * width_rel
-        mouth_y = center.y() + radius * 0.26
-        mouth = QPainterPath(QPointF(center.x() - half, mouth_y))
-        mouth.quadTo(QPointF(center.x(), mouth_y + curve * radius * 0.78), QPointF(center.x() + half, mouth_y))
-        pen = QPen(tone, 2.2)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        painter.drawPath(mouth)
-
-        if celebrate:   # três faíscas piscando ao redor
-            painter.setPen(Qt.NoPen)
-            for i, (dx, dy) in enumerate(((-30, -14), (30, -18), (34, 10))):
-                spark = QColor(tone)
-                spark.setAlphaF(pulse(t + i * 0.3, 0.9, 0.2, 0.9))
-                painter.setBrush(spark)
-                painter.drawEllipse(QPointF(center.x() + dx, center.y() + dy), 2.4, 2.4)
+        draw_face(painter, center, radius, mood, t, celebrate)
         painter.restore()
 
     def _draw_spectrum(self, painter, rect, t, phase, tone, pal):
@@ -231,12 +203,15 @@ class AnalysisIndicator(QWidget):
             label = "Em repouso" if phase.kind == "idle" else "Aguarde"
             painter.drawText(rect, Qt.AlignRight | Qt.AlignVCenter, label)
             return
-        gap, bar_h = 6.0, 6.0
+        gap, bar_h = 6.0, 7.0
         bar_w = (rect.width() - gap * (total - 1)) / total
+        from appearance import series_colors
+        series = series_colors()
         painter.setPen(Qt.NoPen)
         for i in range(1, total + 1):
             x = rect.left() + (i - 1) * (bar_w + gap)
-            color = QColor(tone if (celebrate or i <= phase.step) else pal["border"])
+            step_tone = QColor(series[(i - 1) % len(series)])   # cada etapa tem a sua cor
+            color = QColor(step_tone if (celebrate or i <= phase.step) else pal["border"])
             if not celebrate and i == phase.step:
                 color.setAlphaF(pulse(t))
             painter.setBrush(color)

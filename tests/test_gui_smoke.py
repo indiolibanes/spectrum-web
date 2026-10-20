@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 try:
     from PyQt5.QtCore import QAbstractAnimation, QPoint, Qt
-    from PyQt5.QtGui import QFontDatabase
+    from PyQt5.QtGui import QFontDatabase, QFontInfo
     from PyQt5.QtTest import QTest
     from PyQt5.QtWidgets import QApplication, QLineEdit, QPushButton, QVBoxLayout, QWidget
     HAVE_QT = True
@@ -26,6 +26,7 @@ except ImportError:   # pragma: no cover
     HAVE_QT = False
 
 import analysis_messages as messages  # noqa: E402
+import responsive_math  # noqa: E402,F401
 
 
 def distinct_pixels(pixmap, step_x=23, step_y=7):
@@ -219,6 +220,142 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertFalse(self.manager.keyboard.enabled)
         self.manager.set_touch_keyboard(True)
         self.assertTrue(self.manager.keyboard.enabled)
+
+
+    # ---- Configurações: aparência e acessibilidade em seções separadas
+    def _dialog(self):
+        from appearance import AppearanceDialog
+        dialog = AppearanceDialog(self.manager)
+        dialog.show()
+        self.pump()
+        return dialog
+
+    def test_settings_separates_appearance_from_accessibility(self):
+        from PyQt5.QtWidgets import QComboBox, QFrame
+        dialog = self._dialog()
+        sections = [f for f in dialog.findChildren(QFrame) if f.objectName() == "settingsSection"]
+        self.assertEqual(len(sections), 2)
+        appearance_section, access_section = sections
+        # o tema fica só na primeira seção; teclado e animações só na segunda
+        for button in dialog.theme_buttons.values():
+            self.assertTrue(appearance_section.isAncestorOf(button))
+            self.assertFalse(access_section.isAncestorOf(button))
+        for combo in (dialog.keyboard_selector, dialog.motion_selector):
+            self.assertIsInstance(combo, QComboBox)
+            self.assertTrue(access_section.isAncestorOf(combo))
+            self.assertFalse(appearance_section.isAncestorOf(combo))
+        dialog.close()
+
+    def test_settings_theme_buttons_switch_theme(self):
+        dialog = self._dialog()
+        dialog.theme_buttons["light"].click()
+        self.assertEqual(self.manager.theme, "light")
+        self.assertTrue(dialog.theme_buttons["light"].isChecked())
+        self.assertFalse(dialog.theme_buttons["umber"].isChecked())
+        dialog.theme_buttons["umber"].click()
+        self.assertEqual(self.manager.theme, "umber")
+        dialog.close()
+
+    def test_reduce_motion_option(self):
+        import motion
+        dialog = self._dialog()
+        dialog.motion_selector.setCurrentIndex(1)
+        self.assertTrue(self.manager.reduce_motion)
+        self.assertTrue(motion.reduced())
+        dialog.motion_selector.setCurrentIndex(0)
+        self.assertFalse(self.manager.reduce_motion)
+        self.assertFalse(motion.reduced())
+        dialog.close()
+
+    def test_theme_switch_with_crossfade_leaves_no_overlay_behind(self):
+        from PyQt5.QtWidgets import QWidget
+        host = QWidget()
+        host.resize(300, 200)
+        host.show()
+        self.pump()
+        before = len(host.findChildren(QWidget))
+        self.manager.set_theme("light", persist=False)
+        self.manager.set_theme("umber", persist=False)
+        QTest.qWait(700)
+        self.assertEqual(len(host.findChildren(QWidget)), before)
+        host.close()
+
+    def test_press_effect_honors_reduced_motion(self):
+        import motion
+        motion.set_reduced(True)
+        try:
+            button = QPushButton("Teste")
+            button.resize(160, 44)
+            button.show()
+            self.pump()
+            QTest.mousePress(button, Qt.LeftButton, Qt.NoModifier, QPoint(30, 20))
+            self.pump()
+            self.assertEqual(button._fx_overlay.spring_anim.state(), QAbstractAnimation.Stopped)
+            QTest.mouseRelease(button, Qt.LeftButton, Qt.NoModifier, QPoint(30, 20))
+        finally:
+            motion.set_reduced(False)
+
+    # ---- Legibilidade e vetores coloridos
+    def test_colored_faces_and_glyphs_paint_in_both_themes(self):
+        import emoji_icons
+        for theme in ("umber", "light"):
+            self.manager.set_theme(theme, persist=False)
+            for kind in ("bolt", "trend", "leaf", "drop"):
+                icon = emoji_icons.GlyphIcon(kind, 28)
+                icon.show()
+                self.assertGreater(len(distinct_pixels(icon.grab(), 3, 3)), 3, (theme, kind))
+        self.manager.set_theme("umber", persist=False)
+
+    def test_calibration_card_has_no_compressed_text(self):
+        try:
+            from main import CardKpiCalibracao
+        except Exception as error:   # importar o main exige as dependências do equipamento
+            self.skipTest(f"main não importável aqui: {error}")
+        for theme in ("umber", "light"):
+            self.manager.set_theme(theme, persist=False)
+            card = CardKpiCalibracao()
+            card.resize(330, 220)
+            card.show()
+            self.manager.apply_widget(card)
+            self.pump()
+            for label in (card.lbl_r2, card.lbl_rmse, card.lbl_n):
+                self.assertGreaterEqual(QFontInfo(label.font()).pixelSize(), 12, (theme, label.text()))
+                self.assertLessEqual(label.sizeHint().width(), label.width() + 1, (theme, label.text()))
+            card.close()
+        self.manager.set_theme("umber", persist=False)
+
+    def test_credits_link_to_the_authors_github(self):
+        import version
+        html = version.credits_html("#D4A84B")
+        self.assertIn("github.com/indiolibanes", html)
+        self.assertIn("github.com/yosemate", html)
+        self.assertIn("Kauê Carvalho", html)
+        self.assertIn("Mateus Ferreira", html)
+
+    def test_chart_bars_get_one_color_per_band(self):
+        from animated_chart import SingleBarWidget
+        from appearance import series_colors
+        colors = []
+        for index in range(len(series_colors())):
+            bar = SingleBarWidget("450nm", "#087D7B", "Azul")
+            bar.series_index = index
+            colors.append(bar.band_color())
+        self.assertEqual(len(set(colors)), len(colors))
+
+    def test_adaptive_canvas_never_clips_the_layout_minimum(self):
+        from responsive_layout import ScaledCanvasView
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.addWidget(QPushButton("Ação"))
+        content.setMinimumSize(900, 520)
+        for size in ((800, 1280), (1024, 600), (1366, 768), (1920, 1080)):
+            view = ScaledCanvasView(content, parent=None, adaptive=True)
+            view.resize(*size)
+            view.show()
+            self.pump()
+            self.assertGreaterEqual(content.width(), 900)
+            self.assertGreaterEqual(content.height(), 520)
+            view.close()
 
 
 if __name__ == "__main__":

@@ -72,3 +72,33 @@ def mix_hex(color_a, color_b, amount):
     a = [int(color_a[i:i + 2], 16) for i in (1, 3, 5)]
     b = [int(color_b[i:i + 2], 16) for i in (1, 3, 5)]
     return "#" + "".join(f"{round(x + (y - x) * amount):02X}" for x, y in zip(a, b))
+
+
+def spring(t, response=0.5, damping=0.6):
+    """
+    Resposta de uma mola amortecida que vai de 0 a 1 (com ultrapassagem quando damping < 1).
+
+    t em segundos; response é o período aproximado da oscilação; damping 1 não ultrapassa.
+    É o movimento "elástico" das interfaces da Apple: chega rápido e assenta com um leve vai e volta.
+    """
+    if t <= 0:
+        return 0.0
+    response = max(1e-3, response)
+    damping = max(0.0, damping)
+    omega = 2.0 * math.pi / response
+    if damping >= 1.0:
+        return 1.0 - (1.0 + omega * t) * math.exp(-omega * t)
+    wd = omega * math.sqrt(1.0 - damping * damping)
+    decay = math.exp(-damping * omega * t)
+    return 1.0 - decay * (math.cos(wd * t) + (damping * omega / wd) * math.sin(wd * t))
+
+
+def ease_out_expo(progress):
+    """Desaceleração forte no fim: usada nas entradas de painéis."""
+    p = clamp01(progress)
+    return 1.0 if p >= 1.0 else 1.0 - 2.0 ** (-10.0 * p)
+
+
+def staggered(elapsed, index, delay=0.06, duration=0.55):
+    """Progresso (0 a 1) do item `index` de uma lista que entra em cascata, `delay` s depois do anterior."""
+    return clamp01((elapsed - index * delay) / max(1e-3, duration))
