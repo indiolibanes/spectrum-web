@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Supervisório espectrométrico NIR para caracterização de celulose</strong><br>
-  Versão 4.16.1 · Build 1262 · 17/10/2026
+  Versão 4.16.2 · Build 1263 · 20/10/2026
 </p>
 
 ---
@@ -23,11 +23,11 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Dois temas:** Escuro (preto AMOLED sóbrio com destaques dourados, padrão) e Claro (branco e verde, na linha da Arauco, sobre textura de celulose). Painéis em vidro translúcido, botões em tons por função e gráficos com uma cor por banda.
+- **Dois temas, no estilo da ISA-101:** Noturno (quase preto com roxo e turquesa, padrão) e Claro (branco e verde, na linha da Arauco). Superfícies planas, sem vidro, brilho nem textura; a cor é informação (alarmes reservados), cada função de botão tem sempre a mesma cor e os gráficos usam uma cor por banda. Veja [docs/ISA-101.md](docs/ISA-101.md).
 - **Indicador de análise:** abaixo do gráfico, um rosto colorido e mensagens em português acompanham cada etapa do ensaio.
 - **Responsivo:** a janela se adapta a qualquer tela (cabeçalho em duas linhas, indicadores em grade, painéis empilhados) sem comprimir o texto.
 - **Animações** inspiradas no movimento da Apple (molas, entrada escalonada, fusão na troca de tema), com opção de reduzi-las.
-- **Configurações** em duas seções: *Aparência* (tema claro ou escuro) e *Acessibilidade* (teclado na tela para touchscreen, numérico no campo de IP e completo nos demais, e redução de animações).
+- **Configurações** em duas seções: *Aparência* (tema noturno ou claro) e *Acessibilidade* (teclado na tela em modo automático, sempre ou nunca; numérico no campo de IP e completo nos demais; e redução de animações). O teclado só abre em aparelhos de toque, é compacto e fica no canto superior esquerdo.
 
 ## Estrutura do repositório
 
@@ -46,7 +46,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
-| `assets/fonts/` | Fontes EB Garamond e IBM Plex (licença OFL) |
+| `assets/fonts/` | Fontes Arena e Dropline (marca e títulos) e IBM Plex (licença OFL) |
 | `assets/textures/` · `assets/cursors/` | Textura do fundo do tema claro (celulose) e cursores de fibra de celulose |
 | `glass.py` · `cursors.py` | Receitas do vidro (cores e QSS) e instalação dos cursores |
 | `tools/` | Geradores reproduzíveis das texturas, dos cursores e dos espécimes de tema |
@@ -79,24 +79,26 @@ Revisão técnica, decisões de segurança e a validade dos resultados são resp
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Cores.** Dois temas, em *Configurações → Aparência*: **Escuro · preto e dourado** (fundo preto AMOLED `#000000`, sem textura, texto `#F8F4EA`, títulos `#FFF3BF`, destaques dourados `#E8C96A`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+**Cores.** Dois temas, em *Configurações → Aparência*: **Noturno · roxo e turquesa** (fundo `#0D0B14`, painéis `#181426`, roxo `#B79CFF` como destaque, turquesa `#4FD1C1` como cor secundária) e **Claro** (fundo `#F4F6F1`, cartões brancos, verde `#436722`). Os dois são lisos, sem textura. O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Tipografia.** EB Garamond nos títulos e IBM Plex na interface e nos números (ambas licença OFL), embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável:
+**Tipografia.** Quatro famílias embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável. As IBM Plex têm licença OFL. **Arena e Dropline foram enviadas sem licença legível: confirme os direitos de uso antes de distribuir** (detalhes em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md)):
 
 | Família | Uso |
 |---|---|
-| EB Garamond | Marca e títulos |
+| Arena | Marca (nome ao lado do logo) |
+| Dropline | Títulos e cabeçalhos |
 | IBM Plex Sans | Interface, rótulos e texto corrido |
 | IBM Plex Mono | Valores de medição e tabelas |
 
 A escala vai de 12 px (mínimo) a 40 px (número Kappa), mais 44 px só na abertura. O cursor do mouse é uma seta de fibra de celulose (desligue com `SPECTRUM_SYSTEM_CURSOR=1`). A tabela completa está no documento de identidade visual.
 
-**Assinatura.** Protótipo desenvolvido por Davi Baracat, [Kauê Carvalho](https://github.com/indiolibanes) e [Mateus Ferreira](https://github.com/yosemate). No programa, o rodapé repete a assinatura com os mesmos links.
+**Assinatura.** Protótipo desenvolvido por [Davi Baracat](https://github.com/DaviBaracat), [Kauê Carvalho](https://github.com/indiolibanes) e [Mateus Ferreira](https://github.com/yosemate). No programa, o rodapé repete a assinatura com os mesmos links.
 
 ## Testes
 
 ```bash
 python3 -I tests/test_typography.py
+python3 -I tests/test_glass.py
 python3 -I tests/test_analysis_messages.py
 python3 -I tests/test_animation_math.py
 python3 -I tests/test_keyboard_layouts.py
@@ -137,10 +139,10 @@ Os arquivos `*.db`, `calibracao.json` e `crash.log` **não são versionados** (v
 ## Gerar o executável
 
 ```bat
-python -m PyInstaller --noconfirm SpectrumLabPro_4_16_1.spec
+python -m PyInstaller --noconfirm SpectrumLabPro_4_16_2.spec
 ```
 
-O resultado fica em `dist/SpectrumLabPro_4_16_1.exe`. O `.spec` inclui `banco_materiais.json` e a pasta `assets/`.
+O resultado fica em `dist/SpectrumLabPro_4_16_2.exe`. O `.spec` inclui `banco_materiais.json` e a pasta `assets/`.
 
 Para gerar a documentação técnica em PDF, use `build_technical_doc_pdf.py`, a partir de `DOCUMENTACAO_TECNICA_SUPERVISORIO.md`.
 
@@ -170,6 +172,7 @@ Pendências de segurança e operação estão listadas na [auditoria](docs/AUDIT
 
 | Versão | Documento |
 |---|---|
+| 4.16.2 | [Interface ISA-101, tema noturno e correções](INTERFACE_ISA101_4_16_2.md) |
 | 4.16.1 | [Inicialização automática dos dados](INICIALIZACAO_AUTOMATICA_4_16_1.md) |
 | 4.16.0 | [Carrinho com servo contínuo](CARRINHO_CONTINUO_4_16_0.md) |
 | 4.15.0 | [Manual livre](MANUAL_LIVRE_4_15_0.md) |

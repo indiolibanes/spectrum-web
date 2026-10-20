@@ -86,6 +86,10 @@ MESSAGES = {
     "fault": (
         "Algo não saiu como esperado. Verifique o equipamento e tente de novo.",
     ),
+    "offline": (
+        "Conecte o ESP32 para começar. Escolha Wi-Fi ou USB e toque em Conectar ESP32.",
+        "Sem conexão com a bancada: as leituras e os movimentos ficam bloqueados.",
+    ),
     "emergency": (
         "Parada de emergência acionada. Confirme que o equipamento está seguro antes de reiniciar.",
     ),
@@ -96,7 +100,7 @@ KIND_MOOD = {
     "drawer_close": "calm", "sensor_forward": "calm", "reading": "calm", "sensor_back": "smile",
     "drawer_open": "smile", "preparing": "calm", "waiting": "calm", "waiting_next": "calm",
     "wrapup": "smile", "cancel": "calm", "idle": "smile", "done": "smile",
-    "fault": "alert", "emergency": "alert",
+    "fault": "alert", "emergency": "alert", "offline": "alert",
 }
 
 BUSY_KINDS = {"drawer_close", "sensor_forward", "reading", "sensor_back", "drawer_open", "preparing", "wrapup", "cancel"}
@@ -128,6 +132,8 @@ def phase_for(state):
     state = (state or "IDLE").strip().upper()
     if state == "IDLE":
         return Phase("idle", "Pronto", 0, 0, KIND_MOOD["idle"], False)
+    if state == "DESCONECTADO":
+        return Phase("offline", "ESP32 desconectado", 0, 0, "alert", False)
     if state == "EMERGENCIA":
         return Phase("emergency", "Parada de emergência", 0, 0, "alert", False)
     if state == "FALHA":
@@ -160,12 +166,12 @@ def finished(previous_state, state):
     """True quando um ciclo terminou normalmente: saiu de um estado de operação e voltou a IDLE."""
     prev = (previous_state or "IDLE").upper()
     now = (state or "IDLE").upper()
-    return now == "IDLE" and prev not in ("IDLE", "FALHA", "EMERGENCIA") and "CANCELANDO" not in prev
+    return now == "IDLE" and prev not in ("IDLE", "FALHA", "EMERGENCIA", "DESCONECTADO") and "CANCELANDO" not in prev
 
 
 def known_states():
     """Todos os estados usados pelo main.py (para testes e para o simulador)."""
-    states = ["IDLE", "FALHA", "EMERGENCIA", "AGUARDANDO_POPUP", "PREP_ABRINDO_GAVETA", "REP_AGUARDANDO_PROXIMA",
+    states = ["IDLE", "DESCONECTADO", "FALHA", "EMERGENCIA", "AGUARDANDO_POPUP", "PREP_ABRINDO_GAVETA", "REP_AGUARDANDO_PROXIMA",
               "CONCLUSAO_FECHANDO_GAVETA", "CALIB_CONCLUSAO_FECHANDO_GAVETA", "CANCELANDO_FECHANDO_GAVETA",
               "CALIB_CANCELANDO_FECHANDO_GAVETA"]
     for mode in ("AUTO", "REP", "CALIB_ETAPA1", "CALIB_ETAPA2"):

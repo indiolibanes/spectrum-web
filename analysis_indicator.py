@@ -11,7 +11,7 @@ fica sério. O texto vem de analysis_messages.py (testado sem Qt).
 import time
 
 from PyQt5.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QFontMetrics, QLinearGradient, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 import analysis_messages as messages
@@ -123,19 +123,9 @@ class AnalysisIndicator(QWidget):
 
         # Cartão tonal com uma barra de cor à esquerda
         card = QRectF(0.5, 0.5, w - 1.0, h - 1.0)
-        dark = glass.is_dark(pal)
-        top_fill = QColor(pal["soft"] if dark else "#FFFFFF")
-        top_fill.setAlphaF(0.78)
-        bottom_fill = QColor(pal["surface"] if dark else pal["soft"])
-        bottom_fill.setAlphaF(0.62)
-        sheen = QLinearGradient(0, 0, 0, h)
-        sheen.setColorAt(0.0, top_fill)
-        sheen.setColorAt(1.0, bottom_fill)
-        rim = QColor(pal["heading"] if dark else pal["accent"])
-        rim.setAlphaF(glass.DARK_RIM_ALPHA if dark else glass.LIGHT_RIM_ALPHA)
-        painter.setPen(QPen(rim, 1))
-        painter.setBrush(sheen)
-        painter.drawRoundedRect(card, 14, 14)
+        painter.setPen(QPen(QColor(glass.rim(pal)), 1))
+        painter.setBrush(QColor(pal["soft"]))
+        painter.drawRoundedRect(card, 10, 10)
         bar = QPainterPath()
         bar.addRoundedRect(QRectF(0.5, 0.5, 6, h - 1.0), 3, 3)
         painter.setPen(Qt.NoPen)

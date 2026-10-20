@@ -8,7 +8,7 @@ def _title(text):
 
 class SensorDiagnosticsCard(QFrame):
     def __init__(self,parent=None):
-        super().__init__(parent);self.setObjectName('scadaPanel');self.last_received=None
+        super().__init__(parent);self.setObjectName('scadaPanel');self.setProperty('priority','high');self.last_received=None
         layout=QVBoxLayout(self);layout.setContentsMargins(18,14,18,14);layout.setSpacing(10)
         row=QHBoxLayout();row.addWidget(_title('GY-AS7263 · Sensor espectral'));row.addStretch()
         self.lbl_status_badge=QLabel('Aguardando telemetria');row.addWidget(self.lbl_status_badge);layout.addLayout(row)
@@ -19,8 +19,8 @@ class SensorDiagnosticsCard(QFrame):
                 ('Saturação nas contagens','lbl_sat'),('Irradiância absoluta','lbl_irrad'),
                 ('Firmware do chip','lbl_chip_firmware')]
         for i,(title,name) in enumerate(fields):
-            caption=QLabel(title);caption.setStyleSheet('color: #9CA3AF; '+ty.qss('label'))
-            value=QLabel('—');value.setStyleSheet(ty.qss('body'));setattr(self,name,value)
+            caption=QLabel(title);caption.setStyleSheet('color: #9CA3AF; '+ty.qss('body'))
+            value=QLabel('—');value.setStyleSheet(ty.qss('button'));setattr(self,name,value)
             row,col=divmod(i,3);grid.addWidget(caption,row,col*2);grid.addWidget(value,row,col*2+1)
         self.lbl_status_sensor=QLabel('Aguardando telemetria');self.lbl_status_sensor.hide()
         for alias,name in [('temp','die_temp'),('gain','ganho'),('integration','integracao'),('led','driver_led'),
@@ -62,14 +62,14 @@ class SensorDiagnosticsCard(QFrame):
 
 class ControllerDiagnosticsCard(QFrame):
     def __init__(self,parent=None):
-        super().__init__(parent);self.setObjectName('scadaPanel')
+        super().__init__(parent);self.setObjectName('scadaPanel');self.setProperty('priority','high')
         layout=QVBoxLayout(self);layout.setContentsMargins(18,14,18,14);layout.setSpacing(10)
         layout.addWidget(_title('ESP32 · Comunicação'))
         self.values={};grid=QGridLayout();grid.setHorizontalSpacing(18);grid.setVerticalSpacing(8);layout.addLayout(grid)
         for i,(key,title) in enumerate([('connection','Conexão'),('protocol','Protocolo'),('heartbeat','Heartbeat'),
                                        ('baud','Velocidade USB'),('resources','CPU / memória'),('temp','Temperatura ESP32')]):
-            row,col=divmod(i,2);label=QLabel(title);label.setStyleSheet('color: #9CA3AF; '+ty.qss('label'))
-            value=QLabel('—');value.setStyleSheet(ty.qss('body'));self.values[key]=value
+            row,col=divmod(i,2);label=QLabel(title);label.setStyleSheet('color: #9CA3AF; '+ty.qss('body'))
+            value=QLabel('—');value.setStyleSheet(ty.qss('button'));self.values[key]=value
             grid.addWidget(label,row,col*2);grid.addWidget(value,row,col*2+1)
         self.values['resources'].setText('Não enviados');self.values['temp'].setText('Não enviada')
 

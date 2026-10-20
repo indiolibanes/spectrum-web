@@ -4,7 +4,7 @@ Efeitos de botão do SPECTRUM-LAB PRO (dinâmica inspirada nos toques da Apple).
 O QSS não anima. O preenchimento, a borda e o tom por função ficam nas folhas de estilo (scada_ui,
 popup_design, glass.py); este módulo acrescenta, numa camada transparente por cima de cada botão:
 
-  - holofote: um reflexo de luz que segue o mouse ou o dedo e surge suavemente ao passar;
+  - realce suave ao passar o mouse (sem reflexos nem brilho: estilo plano da ISA-101);
   - pressão com mola: ao apertar, as bordas escurecem (como um botão que afunda) e, ao soltar, o
     botão "volta" com um leve vai e volta (física de mola, animation_math.spring);
   - onda de toque (ripple) a partir do ponto tocado e um anel de luz no instante do clique;
@@ -15,7 +15,7 @@ pode fazer o toque na borda cair fora do botão e perder o clique. O efeito é t
 
 Para desligar o efeito em um botão: button.setProperty("fx", False) antes de mostrá-lo.
 Botão de fundo forte (texto escuro/claro sobre cor cheia): setProperty("fxTone", "strong").
-Tom do botão (gold, sky, violet, rose, green, amber): setProperty("tone", ...), ver glass.TONES.
+Tom do botão (accent, secondary, sky, indigo, rose, green, slate, sand): setProperty("tone", ...), ver glass.TONES.
 """
 import time
 
@@ -191,8 +191,8 @@ class _Overlay(QWidget):
         clip.addRoundedRect(QRectF(0.5, 0.5, width - 1.0, height - 1.0), RADIUS, RADIUS)
         painter.setClipPath(clip)
 
-        if enabled:   # fio de luz no topo: dá volume de vidro sem mudar a cor do botão
-            edge_color, edge_alpha = glass.edge_highlight(pal)
+        edge_color, edge_alpha = glass.edge_highlight(pal)
+        if enabled and edge_alpha > 0:   # fio de luz no topo (desligado no estilo plano da ISA-101)
             top = QColor(edge_color)
             top.setAlphaF(edge_alpha * (0.55 if strong else 1.0))
             fade = QColor(edge_color)
@@ -207,17 +207,6 @@ class _Overlay(QWidget):
             tint = QColor(white if strong else accent)
             tint.setAlphaF((0.14 if strong else 0.16) * self.hover)
             painter.fillRect(self.rect(), tint)
-            # holofote: reflexo de luz que acompanha o ponteiro
-            if not motion.reduced() and 0 <= self.spot.x() <= width and 0 <= self.spot.y() <= height:
-                reach = max(70.0, height * 1.7)
-                light = QRadialGradient(self.spot, reach)
-                core = QColor(white)
-                core.setAlphaF((0.26 if not strong else 0.30) * self.hover)
-                none = QColor(white)
-                none.setAlpha(0)
-                light.setColorAt(0.0, core)
-                light.setColorAt(1.0, none)
-                painter.fillRect(self.rect(), light)
 
         if enabled and self.depth > 0.001:   # afundando: as bordas escurecem em direção ao centro
             shade = QColor(0, 0, 0)

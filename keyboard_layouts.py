@@ -99,35 +99,67 @@ def resolve_kind(property_value, inside_spin_box=False):
     return "numeric" if inside_spin_box else "full"
 
 
+MODES = ("auto", "always", "never")
+DEFAULT_MODE = "auto"
+
+
+def normalize_mode(value, legacy_enabled=None):
+    """Modo do teclado: 'auto', 'always' ou 'never'. Preferência antiga (sim/não): sim vira 'auto'."""
+    if value in MODES:
+        return value
+    if legacy_enabled is None:
+        return DEFAULT_MODE
+    return "auto" if legacy_enabled else "never"
+
+
+def keyboard_allowed(mode, touch_screen, mobile_platform=False, override=None):
+    """Se o teclado na tela pode abrir.
+
+    'never' nunca abre e 'always' sempre abre. Em 'auto' abre só em aparelho com tela de toque ou em
+    plataforma móvel (Android, iOS); o ambiente pode forçar com SPECTRUM_TOUCH=1 ou 0 (override True/False).
+    """
+    if mode == "never":
+        return False
+    if mode == "always":
+        return True
+    if override is not None:
+        return bool(override)
+    return bool(touch_screen or mobile_platform)
+
+
 def keyboard_size(kind, screen_width, screen_height):
-    """(largura, altura) do teclado em pixels, limitado à tela."""
+    """(largura, altura) do teclado em pixels, limitado à tela. Compacto: ocupa pouco do painel."""
     if kind in ("numeric", "digits"):
-        width, height = 440, 372
+        width, height = 300, 248
     else:
-        width, height = 1000, 396
-    return min(width, max(300, screen_width - 32)), min(height, max(240, screen_height // 2))
+        width, height = 660, 292
+    return min(width, max(260, screen_width - 32)), min(height, max(220, screen_height // 2))
 
 
 def compute_position(field, screen, size, margin=14):
     """
     Onde colocar o teclado sem cobrir o campo em edição.
     field, screen: (x, y, largura, altura). size: (largura, altura). Retorna (x, y).
-    Prefere a parte de baixo e centralizado na tela; sobe para o topo se cobrir o campo.
+    Fica no canto superior esquerdo. Se isso cobrir o campo, desce para logo abaixo dele; se não
+    couber, vai para a direita do campo; por último, para o canto inferior esquerdo.
     """
     fx, fy, fw, fh = field
     sx, sy, sw, sh = screen
     kw, kh = size
-    x = sx + (sw - kw) // 2
-    bottom_y = sy + sh - kh - margin
-    top_y = sy + margin
-    if fy + fh + margin <= bottom_y:           # o campo cabe acima do teclado embaixo
-        return x, bottom_y
-    if top_y + kh + margin <= fy:              # o campo está abaixo do teclado no topo
-        return x, top_y
-    # Sem espaço vertical livre: alinha ao lado oposto do campo na horizontal
-    field_center = fx + fw / 2
-    side_x = sx + margin if field_center > sx + sw / 2 else sx + sw - kw - margin
-    return max(sx, side_x), bottom_y if fy < sy + sh / 2 else top_y
+
+    def covers(x, y):
+        return not (x + kw + margin <= fx or fx + fw + margin <= x or y + kh + margin <= fy or fy + fh + margin <= y)
+
+    x, y = sx + margin, sy + margin
+    if not covers(x, y):
+        return x, y
+    below = fy + fh + margin
+    if below + kh + margin <= sy + sh:
+        return x, below
+    right = fx + fw + margin
+    if right + kw + margin <= sx + sw:
+        return right, y
+    return x, max(sy, sy + sh - kh - margin)
 
 
 def with_shift_applied(key, shift):

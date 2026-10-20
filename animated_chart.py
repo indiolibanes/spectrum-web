@@ -18,8 +18,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QEasingCurve, QRectF, QPointF, QPoint
 from PyQt5.QtGui import (
-    QPainter, QColor, QFont, QPen, QBrush, QLinearGradient,
-    QRadialGradient, QPainterPath
+    QPainter, QColor, QFont, QPen, QBrush,
+    QPainterPath
 )
 
 
@@ -111,24 +111,14 @@ class SingleBarWidget(QWidget):
         painter.setBrush(QBrush(QColor(theme_color("#1e1e1e","surface"))))
         painter.drawRoundedRect(track_rect, 6, 6)
 
-        # 2. Filled Bar with Fluent Gradient
+        # 2. Barra lisa na cor da banda (ISA-101: sem degradê nem brilho)
         if bar_h > 1.0:
             bar_rect = QRectF(x, y, bar_width, bar_h)
-            gradient = QLinearGradient(x, y + bar_h, x, y)
-            base_col = QColor(self.band_color())
-            light_col = base_col.lighter(120)
-            base_col.setAlpha(150)
-            light_col.setAlpha(225)
-            gradient.setColorAt(0.0, base_col)
-            gradient.setColorAt(1.0, light_col)
-
+            fill_col = QColor(self.band_color())
+            fill_col.setAlpha(235)
             painter.setPen(Qt.NoPen)
-            painter.setBrush(QBrush(gradient))
+            painter.setBrush(QBrush(fill_col))
             painter.drawRoundedRect(bar_rect, 6, 6)
-
-            # Glowing Cap Line
-            painter.setPen(QPen(light_col, 2))
-            painter.drawLine(int(x + 2), int(y), int(x + bar_width - 2), int(y))
 
         # 3. Numeric Value text on top
         if self.unit_str == "%":
@@ -196,23 +186,11 @@ class SplineOverlay(QWidget):
             pal = palette_for()
             line_color = QColor(pal["heading"])
 
-            area_grad = QLinearGradient(0, 32, 0, self.height() - 42)
-            top_fill = QColor(pal["accent"])
-            top_fill.setAlpha(70)
-            bottom_fill = QColor(pal["accent"])
-            bottom_fill.setAlpha(0)
-            area_grad.setColorAt(0.0, top_fill)
-            area_grad.setColorAt(1.0, bottom_fill)
+            area_fill = QColor(pal["accent"])
+            area_fill.setAlpha(34)   # preenchimento liso e discreto, sem degradê
             painter.setPen(Qt.NoPen)
-            painter.setBrush(QBrush(area_grad))
+            painter.setBrush(QBrush(area_fill))
             painter.drawPath(fill_path)
-
-            # Glow behind spline
-            glow = QColor(pal["accent"])
-            glow.setAlpha(60)
-            painter.setPen(QPen(glow, 7))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawPath(path)
 
             # Main Spline Curve line
             painter.setPen(QPen(line_color, 2.6))
@@ -591,14 +569,6 @@ class ScatterCanvas(QWidget):
         if self.parent_scatter.current_point:
             cx, cy, clbl = self.parent_scatter.current_point
             sx, sy = to_screen(cx, cy)
-
-            glow = QRadialGradient(sx, sy, 14)
-            glow.setColorAt(0.0, QColor(56, 189, 248, 220))
-            glow.setColorAt(0.5, QColor(8, 125, 123, 0))
-            glow.setColorAt(1.0, QColor(0, 0, 0, 0))
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QBrush(glow))
-            painter.drawEllipse(QPointF(sx, sy), 14, 14)
 
             painter.setPen(QPen(QColor(theme_color("#FFFFFF","text")), 2))
             painter.setBrush(QBrush(QColor(theme_color("#38BDF8","text"))))

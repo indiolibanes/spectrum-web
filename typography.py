@@ -1,14 +1,18 @@
 """
 Tipografia do SPECTRUM-LAB PRO: famílias, escala e normalização de folhas de estilo.
 
-Famílias (todas com licença SIL OFL, ver os arquivos LICENSE-* em assets/fonts/),
-embutidas no programa para que Windows, Linux e o executável tenham a mesma aparência:
+Hierarquia (embutida no programa para que Windows, Linux e o executável tenham a mesma aparência):
 
-    EB Garamond     títulos e cabeçalhos (voz editorial)
-    IBM Plex Sans   interface: rótulos, botões e texto corrido
-    IBM Plex Mono   valores de medição, tabelas e console
+    Arena           marca: só o nome "SpectrumLab Pro" no cabeçalho (não tem dígitos nem acentos)
+    Dropline        títulos e cabeçalhos de seção (tem acentos e dígitos; só existe em peso regular)
+    IBM Plex Sans   interface: rótulos, botões e texto corrido        (SIL OFL)
+    IBM Plex Mono   valores de medição, tabelas e console             (SIL OFL)
 
-Só existem os pesos 400 (regular) e 700 (negrito). É de propósito: os arquivos Medium e
+Arena e Dropline foram enviadas pelo autor do projeto; a licença de uso delas não está documentada
+nos arquivos (ver docs/IDENTIDADE_VISUAL.md). As Plex têm licença SIL OFL (LICENSE-IBM-Plex-OFL.txt).
+EB Garamond, usada antes nos títulos, deixou de ser carregada.
+
+Nas Plex só existem os pesos 400 (regular) e 700 (negrito). É de propósito: os arquivos Medium e
 SemiBold dessas famílias declaram nomes de família próprios, e o Windows os registraria como
 famílias separadas, quebrando o peso pedido no QSS. Regular e Bold formam par normal.
 
@@ -19,12 +23,15 @@ import sys
 from pathlib import Path
 
 FAMILY_UI = "IBM Plex Sans"
-FAMILY_DISPLAY = "EB Garamond"
+FAMILY_DISPLAY = "Dropline"
+FAMILY_BRAND = "Arena"
 FAMILY_DATA = "IBM Plex Mono"
 
 # Pilhas com alternativas, caso a fonte embutida não carregue.
 STACK_UI = f"'{FAMILY_UI}', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-STACK_DISPLAY = f"'{FAMILY_DISPLAY}', 'Georgia', 'Times New Roman', serif"
+# A Dropline não tem alguns sinais ("·", "…", "–"): o Qt os busca na Plex Sans, que vem em seguida.
+STACK_DISPLAY = f"'{FAMILY_DISPLAY}', '{FAMILY_UI}', 'Segoe UI', Arial, sans-serif"
+STACK_BRAND = f"'{FAMILY_BRAND}', '{FAMILY_DISPLAY}', '{FAMILY_UI}', Arial, sans-serif"
 STACK_DATA = f"'{FAMILY_DATA}', 'Consolas', 'Courier New', monospace"
 
 # Escala em pixels (tamanho lógico, a 100%). Nada fica abaixo de 12: abaixo disso o texto claro
@@ -33,14 +40,17 @@ SCALE = (12, 14, 16, 20, 24, 28, 40)
 (SIZE_CAPTION, SIZE_BODY, SIZE_BUTTON, SIZE_SECTION, SIZE_TITLE, SIZE_KPI, SIZE_HERO) = SCALE
 SIZE_DISPLAY = 44  # só para a abertura, desenhada à mão
 REGULAR, BOLD = 400, 700
+# Famílias que só têm o peso regular: pedir negrito faria o Qt "engrossar" o desenho (falso negrito).
+REGULAR_ONLY = ("display", "brand")
 
 # Papéis: (tamanho, família, peso)
 ROLES = {
-    "display": (SIZE_DISPLAY, "display", BOLD),
+    "display": (SIZE_DISPLAY, "display", REGULAR),
+    "brand": (SIZE_TITLE, "brand", REGULAR),
     "hero": (SIZE_HERO, "data", REGULAR),
     "kpi": (SIZE_KPI, "data", REGULAR),
-    "title": (SIZE_TITLE, "display", BOLD),
-    "section": (SIZE_SECTION, "display", BOLD),
+    "title": (SIZE_TITLE, "display", REGULAR),
+    "section": (SIZE_SECTION, "display", REGULAR),
     "button": (SIZE_BUTTON, "ui", BOLD),
     "body": (SIZE_BODY, "ui", REGULAR),
     "card": (SIZE_BODY, "ui", REGULAR),
@@ -48,12 +58,12 @@ ROLES = {
     "caption": (SIZE_CAPTION, "ui", REGULAR),
     "data": (SIZE_BODY, "data", REGULAR),
 }
-_STACKS = {"ui": STACK_UI, "display": STACK_DISPLAY, "data": STACK_DATA}
+_STACKS = {"ui": STACK_UI, "display": STACK_DISPLAY, "data": STACK_DATA, "brand": STACK_BRAND}
 
 FONT_FILES = (
     "IBMPlexSans-Regular.ttf", "IBMPlexSans-Bold.ttf",
-    "EBGaramond-Regular.ttf", "EBGaramond-Bold.ttf", "EBGaramond-Italic.ttf",
     "IBMPlexMono-Regular.ttf",
+    "DroplineRegular.otf", "Arena.ttf",
 )
 
 
@@ -99,8 +109,10 @@ _RE_LETTERSPACING = re.compile(r"\bletter-spacing\s*:\s*[^;{}]+;?\s*", re.I)
 
 def _map_family(value):
     low = value.lower()
-    if "ibm plex" in low or "eb garamond" in low:
+    if "ibm plex" in low or "dropline" in low or "arena" in low:
         return value.strip()
+    if "garamond" in low:
+        return STACK_DISPLAY
     if any(token in low for token in ("consolas", "courier", "mono", "menlo")):
         return STACK_DATA
     if any(token in low for token in ("bahnschrift", "georgia", "times", "serif")) and "sans" not in low:
@@ -145,6 +157,9 @@ def normalize_body(body):
         if family:
             glue = "" if body.rstrip().endswith(";") or not body.strip() else ";"
             body = f"{body.rstrip()}{glue} font-family: {family};"
+    if FAMILY_DISPLAY in body or FAMILY_BRAND in body:
+        # Dropline e Arena só têm o peso regular
+        body = _RE_WEIGHT.sub("font-weight: 400", body)
     return body
 
 
@@ -189,8 +204,11 @@ def install(app):
 def make_font(kind="ui", pixel_size=SIZE_BODY, weight=400):
     """QFont para pinturas manuais (gráficos, abertura). kind: 'ui', 'display' ou 'data'."""
     from PyQt5.QtGui import QFont
-    family = {"ui": FAMILY_UI, "display": FAMILY_DISPLAY, "data": FAMILY_DATA}[kind]
+    family = {"ui": FAMILY_UI, "display": FAMILY_DISPLAY, "data": FAMILY_DATA, "brand": FAMILY_BRAND}[kind]
     font = QFont(family)
+    if kind in ("display", "brand") and hasattr(font, "setFamilies"):
+        font.setFamilies([family, FAMILY_UI])   # sinais que faltam na Dropline/Arena vêm da Plex Sans
     font.setPixelSize(int(pixel_size))
-    font.setWeight(QFont.Bold if snap_weight(weight) == BOLD else QFont.Normal)
+    bold = snap_weight(weight) == BOLD and kind not in REGULAR_ONLY
+    font.setWeight(QFont.Bold if bold else QFont.Normal)
     return font

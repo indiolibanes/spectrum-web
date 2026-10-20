@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='SpectrumLabPro_4_16_1',
+    name='SpectrumLabPro_4_16_2',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

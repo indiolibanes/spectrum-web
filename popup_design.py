@@ -23,13 +23,12 @@ def popup_stylesheet(widget, palette, existing):
     p = palette
     foreground = p['on_strong']
     rim = glass.rim(p)
-    gradient = glass.vgrad
     controls = f"""QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:9px 14px;font-family:{STACK_UI};font-size:13px;font-weight:400;}}
 QPushButton:hover {{background:{glass.button_fill(p, 'hover')};border:1px solid {glass.rgba(p['accent'], .75)};}}
 QPushButton:pressed {{background:{glass.primary_fill(p, 'hot')};color:{p['on_strong']};border:1px solid {p['accent_strong']};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:disabled {{background:{glass.button_fill(p, 'disabled')};color:{p['disabled']};border-color:{glass.rim(p, .6)};}}
-QPushButton:checked {{background:{glass.tone_fill(p, 'gold')};color:{p['heading']};border:1px solid {p['accent']};}}
+QPushButton:checked {{background:{glass.tone_fill(p, 'accent')};color:{p['heading']};border:1px solid {p['accent']};}}
 QFrame#settingsSection {{background:{glass.field_fill(p)};border:1px solid {glass.rim(p)};border-radius:14px;}}
 QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:8px 12px;font-size:13px;}}
 QLineEdit:focus,QComboBox:focus {{border-color:{p['accent']};}}
@@ -39,7 +38,7 @@ QProgressBar {{background:{glass.rgba(p['text'], .10)};color:{p['muted']};border
 QProgressBar::chunk {{background:{p['accent']};border-radius:4px;}}
 """
     if isinstance(widget, QDialog) or widget.objectName() == "scaledDialogContent":
-        return f"QWidget {{font-family:{STACK_UI};}}\nQDialog,QWidget#scaledDialogContent {{background:{glass.vgrad(mix_hex(p['surface'], '#FFFFFF', .035) if glass.is_dark(p) else p['surface'], p['surface'])};color:{p['text']};}}\nQLabel {{color:{p['text']};}}\nQLabel[role=\"heading\"] {{color:{p['heading']};}}\n" + controls
+        return f"QWidget {{font-family:{STACK_UI};}}\nQDialog,QWidget#scaledDialogContent {{background:{p['surface']};color:{p['text']};}}\nQLabel {{color:{p['text']};}}\nQLabel[role=\"heading\"] {{color:{p['heading']};}}\n" + controls
     if isinstance(widget, QPushButton):
         name = widget.objectName().lower()
         text = widget.text().lower()
@@ -49,7 +48,7 @@ QProgressBar::chunk {{background:{p['accent']};border-radius:4px;}}
         widget.setProperty('fxTone', 'strong' if primary and not danger else 'soft')
         bg = glass.primary_fill(p) if primary and not danger else glass.button_fill(p)
         color = p['danger'] if danger else foreground if primary else p['text']
-        border = glass.rgba(p['danger'], .7) if danger else mix_hex(p['accent_strong'], '#FFFFFF', .35) if primary else rim
+        border = p['danger'] if danger else p['accent_strong'] if primary else rim
         return controls + f"QPushButton {{background:{bg};color:{color};border-color:{border};}}\nQPushButton:focus {{border-color:{border if danger else p['accent']};}}"
     if isinstance(widget, (QLineEdit, QComboBox, QProgressBar)):
         return controls

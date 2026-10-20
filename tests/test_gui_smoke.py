@@ -46,19 +46,24 @@ class GuiSmokeTests(unittest.TestCase):
     def pump(self):
         self.app.processEvents()
 
+    def tearDown(self):
+        os.environ.pop("SPECTRUM_TOUCH", None)
+        self.manager.keyboard._detect_cache = None
+
     def test_embedded_fonts_are_registered(self):
         families = set(QFontDatabase().families())
-        for family in ("IBM Plex Sans", "EB Garamond", "IBM Plex Mono"):
+        for family in ("IBM Plex Sans", "Dropline", "Arena", "IBM Plex Mono"):
             self.assertIn(family, families)
+        self.assertNotIn("EB Garamond", families, "a Garamond deixou de ser embutida")
 
     def test_font_styles_are_regular_and_bold_only(self):
-        """Diagnóstico: cada família deve ter só os estilos Regular/Bold (e Italic na Garamond).
+        """Diagnóstico: cada família deve ter só os estilos Regular/Bold .
 
         Se aparecer outro estilo (Medium, SemiBold), o Windows pode registrá-lo como família separada
         e a pilha de fontes deixa de se comportar como esperado."""
         db = QFontDatabase()
         allowed = {"Regular", "Bold", "Italic", "Normal", "Bold Italic"}
-        for family in ("IBM Plex Sans", "EB Garamond", "IBM Plex Mono"):
+        for family in ("IBM Plex Sans", "Dropline", "IBM Plex Mono"):
             styles = set(db.styles(family))
             self.assertTrue(styles, family)
             self.assertLessEqual(styles, allowed, f"{family}: estilos inesperados {sorted(styles - allowed)}")
@@ -82,53 +87,52 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_only_two_themes_exist(self):
         from appearance import PALETTES
-        self.assertEqual(set(PALETTES), {"umber", "light"})
+        self.assertEqual(set(PALETTES), {"noturno", "light"})
         with self.assertRaises(ValueError):
             self.manager.set_theme("dark", persist=False)
 
     def test_theme_switch_updates_the_application(self):
-        for theme in ("light", "umber"):
+        for theme in ("light", "noturno"):
             self.manager.set_theme(theme, persist=False)
             self.assertEqual(self.app.property("spectrum_theme"), theme)
 
-    def test_canvas_root_paints_the_cellulose_texture_only_in_light(self):
+    def test_canvas_root_is_flat_in_both_themes(self):
+        """ISA-101: fundo liso, sem textura nem brilho."""
         import scada_ui
         from appearance import TEXTURE_FILES
-        self.assertNotIn("umber", TEXTURE_FILES, "o Escuro é preto liso, sem textura")
-        self.manager.set_theme("light", persist=False)
-        root = scada_ui.CanvasRoot()
-        root.resize(420, 300)
-        self.assertGreater(len(distinct_pixels(root.grab(), 5, 5)), 1, "textura invisível no tema claro")
-        self.manager.set_theme("umber", persist=False)
-        root = scada_ui.CanvasRoot()
-        root.resize(420, 300)
-        self.assertEqual(len(distinct_pixels(root.grab(), 5, 5)), 1, "fundo do Escuro deve ser preto liso")
+        self.assertEqual(TEXTURE_FILES, {})
+        for theme in ("light", "noturno"):
+            self.manager.set_theme(theme, persist=False)
+            root = scada_ui.CanvasRoot()
+            root.resize(420, 300)
+            self.assertEqual(len(distinct_pixels(root.grab(), 5, 5)), 1, f"fundo do tema {theme} deve ser liso")
+        self.manager.set_theme("noturno", persist=False)
 
-    def test_legacy_theme_names_migrate_to_umber(self):
+    def test_legacy_theme_names_migrate_to_noturno(self):
         from appearance import LEGACY_THEMES
-        self.assertEqual(LEGACY_THEMES.get("dark"), "umber")
-        self.assertEqual(LEGACY_THEMES.get("gold"), "umber")
+        self.assertEqual(LEGACY_THEMES.get("dark"), "noturno")
+        self.assertEqual(LEGACY_THEMES.get("gold"), "noturno")
 
-    def test_glass_panels_show_the_texture_through(self):
-        """O cartão é translúcido: renderizado sobre a textura, não pode ser uma cor chapada."""
+    def test_panels_are_opaque_and_flat(self):
         import scada_ui
-        self.manager.set_theme("light", persist=False)
-        root = scada_ui.CanvasRoot()
-        layout = QVBoxLayout(root)
-        box = scada_ui.panel()
-        layout.addWidget(box)
-        root._scada_style_factory = scada_ui.dashboard_style
-        root.resize(420, 300)
-        root.show()
-        self.manager.apply_widget(root)
-        self.pump()
-        self.assertGreater(len(distinct_pixels(box.grab(), 5, 5)), 1, "painel opaco: a textura não aparece")
-        root.close()
-        self.manager.set_theme("umber", persist=False)
+        for theme in ("light", "noturno"):
+            self.manager.set_theme(theme, persist=False)
+            root = scada_ui.CanvasRoot()
+            layout = QVBoxLayout(root)
+            box = scada_ui.panel()
+            layout.addWidget(box)
+            root._scada_style_factory = scada_ui.dashboard_style
+            root.resize(420, 300)
+            root.show()
+            self.manager.apply_widget(root)
+            self.pump()
+            self.assertLessEqual(len(distinct_pixels(box.grab().copy(10, 10, max(1, box.width() - 20), max(1, box.height() - 20)), 20, 20)), 1, f"painel com degradê em {theme}")
+            root.close()
+        self.manager.set_theme("noturno", persist=False)
 
     def test_analysis_indicator_renders_every_state(self):
         from analysis_indicator import AnalysisIndicator
-        for theme in ("umber", "light"):
+        for theme in ("noturno", "light"):
             self.manager.set_theme(theme, persist=False)
             for state in messages.known_states():
                 indicator = AnalysisIndicator(lambda s=state: s)
@@ -179,6 +183,9 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertFalse(button._fx_overlay.busy_timer.isActive())
 
     def test_numeric_keyboard_types_an_ip_address(self):
+        os.environ["SPECTRUM_TOUCH"] = "1"
+        self.manager.set_keyboard_mode("auto")
+        self.manager.keyboard._detect_cache = None
         host = QWidget()
         layout = QVBoxLayout(host)
         field = QLineEdit()
@@ -220,11 +227,68 @@ class GuiSmokeTests(unittest.TestCase):
         keyboard.hide()
         host.close()
 
-    def test_keyboard_can_be_turned_off(self):
-        self.manager.set_touch_keyboard(False)
-        self.assertFalse(self.manager.keyboard.enabled)
-        self.manager.set_touch_keyboard(True)
-        self.assertTrue(self.manager.keyboard.enabled)
+    def test_keyboard_modes(self):
+        keyboard = self.manager.keyboard
+        os.environ.pop("SPECTRUM_TOUCH", None)
+        for mode, expected in (("never", False), ("always", True)):
+            self.manager.set_keyboard_mode(mode)
+            keyboard._detect_cache = None
+            self.assertEqual(keyboard.enabled, expected, mode)
+        # Automático: segue o aparelho (aqui, o override do ambiente simula com e sem toque)
+        self.manager.set_keyboard_mode("auto")
+        for value, expected in (("1", True), ("0", False)):
+            os.environ["SPECTRUM_TOUCH"] = value
+            keyboard._detect_cache = None
+            self.assertEqual(keyboard.enabled, expected, value)
+        os.environ.pop("SPECTRUM_TOUCH", None)
+        keyboard._detect_cache = None
+
+    def test_keyboard_does_not_open_at_startup_or_without_touch(self):
+        os.environ["SPECTRUM_TOUCH"] = "0"
+        self.manager.set_keyboard_mode("auto")
+        self.manager.keyboard._detect_cache = None
+        host = QWidget()
+        field = QLineEdit(host)
+        host.resize(300, 100)
+        host.show()
+        field.setFocus()
+        self.pump()
+        QTest.mouseClick(field, Qt.LeftButton)
+        self.pump()
+        keyboard = self.manager.keyboard
+        self.assertFalse(keyboard._visible(), "sem tela de toque o teclado não deve abrir")
+        os.environ["SPECTRUM_TOUCH"] = "1"
+        keyboard._detect_cache = None
+        QTest.mouseClick(field, Qt.LeftButton)
+        QTest.qWait(50)
+        self.assertTrue(keyboard._visible(), "com tela de toque o teclado abre ao tocar no campo")
+        keyboard.hide_keyboard()
+        os.environ.pop("SPECTRUM_TOUCH", None)
+        keyboard._detect_cache = None
+        host.close()
+
+    def test_keyboard_is_compact_and_in_the_top_left(self):
+        os.environ["SPECTRUM_TOUCH"] = "1"
+        self.manager.set_keyboard_mode("auto")
+        self.manager.keyboard._detect_cache = None
+        host = QWidget()
+        field = QLineEdit(host)
+        field.move(700, 400)
+        host.resize(1000, 600)
+        host.show()
+        self.pump()
+        keyboard = self.manager.keyboard._window()
+        keyboard.open_for(field)
+        self.pump()
+        self.assertLessEqual(keyboard.width(), 700)
+        self.assertLessEqual(keyboard.height(), 300)
+        area = QApplication.desktop().availableGeometry()
+        self.assertLessEqual(keyboard.x() - area.x(), 40)
+        self.assertLessEqual(keyboard.y() - area.y(), 40)
+        keyboard.hide()
+        os.environ.pop("SPECTRUM_TOUCH", None)
+        self.manager.keyboard._detect_cache = None
+        host.close()
 
 
     # ---- Configurações: aparência e acessibilidade em seções separadas
@@ -256,9 +320,9 @@ class GuiSmokeTests(unittest.TestCase):
         dialog.theme_buttons["light"].click()
         self.assertEqual(self.manager.theme, "light")
         self.assertTrue(dialog.theme_buttons["light"].isChecked())
-        self.assertFalse(dialog.theme_buttons["umber"].isChecked())
-        dialog.theme_buttons["umber"].click()
-        self.assertEqual(self.manager.theme, "umber")
+        self.assertFalse(dialog.theme_buttons["noturno"].isChecked())
+        dialog.theme_buttons["noturno"].click()
+        self.assertEqual(self.manager.theme, "noturno")
         dialog.close()
 
     def test_reduce_motion_option(self):
@@ -280,7 +344,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.pump()
         before = len(host.findChildren(QWidget))
         self.manager.set_theme("light", persist=False)
-        self.manager.set_theme("umber", persist=False)
+        self.manager.set_theme("noturno", persist=False)
         QTest.qWait(700)
         self.assertEqual(len(host.findChildren(QWidget)), before)
         host.close()
@@ -303,20 +367,20 @@ class GuiSmokeTests(unittest.TestCase):
     # ---- Legibilidade e vetores coloridos
     def test_colored_faces_and_glyphs_paint_in_both_themes(self):
         import emoji_icons
-        for theme in ("umber", "light"):
+        for theme in ("noturno", "light"):
             self.manager.set_theme(theme, persist=False)
             for kind in ("bolt", "trend", "leaf", "drop"):
                 icon = emoji_icons.GlyphIcon(kind, 28)
                 icon.show()
                 self.assertGreater(len(distinct_pixels(icon.grab(), 3, 3)), 3, (theme, kind))
-        self.manager.set_theme("umber", persist=False)
+        self.manager.set_theme("noturno", persist=False)
 
     def test_calibration_card_has_no_compressed_text(self):
         try:
             from main import CardKpiCalibracao
         except Exception as error:   # importar o main exige as dependências do equipamento
             self.skipTest(f"main não importável aqui: {error}")
-        for theme in ("umber", "light"):
+        for theme in ("noturno", "light"):
             self.manager.set_theme(theme, persist=False)
             card = CardKpiCalibracao()
             card.resize(330, 220)
@@ -327,13 +391,15 @@ class GuiSmokeTests(unittest.TestCase):
                 self.assertGreaterEqual(QFontInfo(label.font()).pixelSize(), 12, (theme, label.text()))
                 self.assertLessEqual(label.sizeHint().width(), label.width() + 1, (theme, label.text()))
             card.close()
-        self.manager.set_theme("umber", persist=False)
+        self.manager.set_theme("noturno", persist=False)
 
     def test_credits_link_to_the_authors_github(self):
         import version
-        html = version.credits_html("#D4A84B")
+        html = version.credits_html()
+        self.assertIn("github.com/DaviBaracat", html)
         self.assertIn("github.com/indiolibanes", html)
         self.assertIn("github.com/yosemate", html)
+        self.assertIn("Davi Baracat", html)
         self.assertIn("Kauê Carvalho", html)
         self.assertIn("Mateus Ferreira", html)
 
