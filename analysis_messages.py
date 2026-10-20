@@ -177,3 +177,26 @@ def known_states():
     for mode in ("AUTO", "REP", "CALIB_ETAPA1", "CALIB_ETAPA2"):
         states.extend(f"{mode}_{action}" for action in ACTIONS)
     return states
+
+
+def scan_blocker(*, connected, protocol_ready, sensor_ready, equipment_ready, equipment_known, busy,
+                 calibration_valid, calibration_error=""):
+    """Primeiro motivo que impede "Realizar leitura" (None quando a leitura pode começar).
+
+    Função pura: o botão mostra o texto retornado, para que o operador saiba o que falta fazer.
+    """
+    if not connected:
+        return "Conecte o analisador: escolha o modo e clique em Conectar ESP32. Para simular, use 127.0.0.1."
+    if not protocol_ready:
+        return "Aguardando a confirmação do protocolo do ESP32."
+    if not sensor_ready:
+        return "O ESP32 não confirmou o sensor GY-AS7263. Verifique a ligação I2C."
+    if not equipment_ready:
+        return "O firmware ainda não confirmou porta e carrinho. Atualize o firmware (4.16.2 ou superior)."
+    if not equipment_known:
+        return "Aguardando a telemetria dos fins de curso da porta e do carrinho."
+    if busy:
+        return "O equipamento está em movimento. Aguarde a conclusão."
+    if not calibration_valid:
+        return calibration_error or "Calibração necessária: use Calibrar · Branco e escuro antes da leitura."
+    return None

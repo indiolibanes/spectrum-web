@@ -65,6 +65,7 @@ from splash_screen import AnimatedSplashScreen
 from animated_chart import SpectralSplineChartWidget, ScatterPlotWidget
 from database_manager import DatabaseManagerDialog
 from chemometrics import classify_experimental_kappa
+from analysis_messages import scan_blocker
 from pdf_generator import generate_pdf_report
 from connection_worker import ConnectionWorker
 from serial_worker import SerialWorker
@@ -2216,6 +2217,12 @@ class SpectrumLabMainWindow(QMainWindow):
         wifi_layout.addWidget(self.txt_ip)
         wifi_layout.addWidget(lbl_tcp_port)
         wifi_layout.addWidget(self.txt_tcp_port)
+        self.lbl_sim_mode = QLabel("SIMULAÇÃO")
+        self.lbl_sim_mode.setStyleSheet("color: #F59E0B; font-size: 11px; font-weight: bold; padding: 4px 8px; border: 1px solid #F59E0B; border-radius: 8px;")
+        self.lbl_sim_mode.setToolTip("Endereço local: o supervisório conversa com o simulador run/fake_esp32.py, não com a bancada.")
+        self.lbl_sim_mode.hide()
+        wifi_layout.addWidget(self.lbl_sim_mode)
+        self.txt_ip.textChanged.connect(self._update_sim_indicator)
         self.widget_wifi.setVisible(False)
 
         # Botão [ Conectar / Desconectar ]
@@ -2380,6 +2387,9 @@ class SpectrumLabMainWindow(QMainWindow):
         """)
         self.btn_start_scan.setMinimumHeight(34)
         self.btn_start_scan.clicked.connect(self.start_simple_auto_cycle)
+        self.lbl_scan_hint = QLabel("")
+        self.lbl_scan_hint.setWordWrap(True)
+        self.lbl_scan_hint.setStyleSheet("color: #9CA3AF; font-size: 11px;")
 
         self.btn_repeatability = QPushButton("🔁 Ensaio Repetibilidade (5x Estático)")
         self.btn_repeatability.setStyleSheet("""
@@ -2424,6 +2434,7 @@ class SpectrumLabMainWindow(QMainWindow):
         auto_layout.addWidget(self.btn_start_scan)
         auto_layout.addWidget(self.btn_repeatability)
         auto_layout.addWidget(self.btn_calibrate)
+        auto_layout.addWidget(self.lbl_scan_hint)
         auto_layout.addWidget(self.btn_emergency_auto)
         auto_layout.addStretch()
 
@@ -2727,6 +2738,18 @@ class SpectrumLabMainWindow(QMainWindow):
             self.log_message("[CONEXÃO] Encerrando conexão com o ESP32...")
             self.serial_worker.disconnect_connection()
 
+    SIMULATION_HOSTS = ("127.0.0.1", "localhost", "::1")
+
+    def is_simulation_target(self) -> bool:
+        """True quando a conexão Wi-Fi aponta para este computador (simulador run/fake_esp32.py)."""
+        if not hasattr(self, "txt_ip") or not hasattr(self, "combo_conn_mode"):
+            return False
+        return self.combo_conn_mode.currentData() == "WIFI" and self.txt_ip.text().strip().lower() in self.SIMULATION_HOSTS
+
+    def _update_sim_indicator(self, *_):
+        if hasattr(self, "lbl_sim_mode"):
+            self.lbl_sim_mode.setVisible(self.is_simulation_target())
+
     def toggle_com_connect(self):
         if self.serial_worker.is_connected():
             self.disconnect_hardware()
@@ -2764,6 +2787,8 @@ class SpectrumLabMainWindow(QMainWindow):
             except ValueError:
                 QMessageBox.warning(self, "Porta Inválida", "A porta TCP deve ser um número inteiro (ex: 8080).")
                 return
+            if self.is_simulation_target():
+                self.log_message(f"[SIMULAÇÃO] Conectando ao simulador em {ip}:{port}. Os dados são de teste, não da bancada.")
             self.serial_worker.connect_tcp(ip, port)
 
     def _explain_connection_failure(self, message):
@@ -4838,6 +4863,30 @@ class SpectrumLabMainWindow(QMainWindow):
         self._last_expired_alert_shown=False
         self._check_calibration_validity()
         return True
+
+    def _update_scan_hint(self):
+        """Mostra ao operador o que falta para 'Realizar leitura' (atualizado pelo cronômetro da tela)."""
+        if not hasattr(self, "lbl_scan_hint"):
+            return
+        running = (self.fsm_state != "IDLE" or self._batch is not None or self._manual_pending
+                   or self._emergency_lock_active or self.auto_cycle_active or self.modo_repetibilidade
+                   or self.is_calibrating_white)
+        if running:
+            text = "Ensaio em andamento: acompanhe o status e a barra de progresso."
+        else:
+            text = scan_blocker(
+                connected=self.is_serial_connected(),
+                protocol_ready=bool(self._protocol_ready),
+                sensor_ready=bool(self._sensor_ready),
+                equipment_ready=bool(self.equipment.capable and self.equipment.carriage_capable),
+                equipment_known=self.equipment.housing_closed is not None and self.equipment.carriage_retracted is not None,
+                busy=bool(self.equipment.pending),
+                calibration_valid=self.chem_engine.calibration_valid(),
+                calibration_error=self.chem_engine.last_error or "",
+            )
+            text = text or "Pronto para leitura. Coloque a amostra no berço e clique em Realizar leitura."
+        self.lbl_scan_hint.setText(text)
+        self.btn_start_scan.setToolTip(text)
 
     def _refresh_controls(self):
         if not hasattr(self,"btn_start_scan"):

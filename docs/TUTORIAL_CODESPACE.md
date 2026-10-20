@@ -43,7 +43,7 @@ python3 -I tests/test_responsive_math.py
 QT_QPA_PLATFORM=offscreen python3 -m unittest tests.test_gui_smoke -v
 ```
 
-Esperado: os seis primeiros terminam com `OK` (há também `python3 -I tests/test_glass.py`, que confere a translucidez, os botões neutros e os contrastes). O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões (e que ele respeita *Reduzir animações*), brilho em botão desabilitado, o teclado numérico digitando `192.168.4.1`, as **duas seções separadas das Configurações** (tema em uma; teclado e animações na outra), ícones e rostos coloridos, uma cor por barra do gráfico, os links do rodapé, o cartão de calibração sem texto comprimido e o canvas adaptativo sem cortar o layout.
+Esperado: os seis primeiros terminam com `OK` (há também `python3 -I tests/test_glass.py`, que confere a translucidez, os botões neutros e os contrastes). O último abre widgets de verdade em modo invisível e confere: fontes registradas (e só nos estilos Regular/Bold), os cursores de fibra, só dois temas, textura pintada em ambos, painéis de vidro realmente translúcidos, indicador desenhado em todos os estados, efeito nos botões (e que ele respeita *Reduzir animações*), brilho em botão desabilitado, o teclado numérico digitando `192.168.4.1`, as **Configurações** só com a seção de tema, ícones e rostos coloridos, uma cor por barra do gráfico, os links do rodapé, o cartão de calibração sem texto comprimido e o canvas adaptativo sem cortar o layout.
 
 | Se falhar… | Significa |
 |---|---|
@@ -52,7 +52,7 @@ Esperado: os seis primeiros terminam com `OK` (há também `python3 -I tests/tes
 | `test_cursor_images_load` ou `test_buttons_and_windows_get_the_cellulose_cursor` | os PNG de `assets/cursors/` não carregaram ou o cursor não foi instalado |
 | `test_panels_are_translucent_over_the_background` | o painel está opaco: o fundo não aparece por trás dele |
 | `test_canvas_has_no_texture_in_both_themes` | a textura de celulose voltou a aparecer |
-| `test_keyboard_does_not_open_at_startup_or_without_touch` | o teclado abriu sem tela de toque: veja a detecção (`SPECTRUM_TOUCH`) |
+| `test_double_click_opens_and_outside_click_closes` | o teclado não abriu com duplo clique ou não recolheu com clique fora |
 | `test_numeric_keyboard_types_an_ip_address` | o teclado não está entregando as teclas ao campo |
 | Qualquer outro | copie a saída completa e envie |
 
@@ -99,7 +99,7 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 
 | # | Passo | Esperado | |
 |---|---|---|---|
-| S1 | Abra **Configurações** | Duas seções em cartões: **Aparência** (dois botões, Noturno e Claro) e **Acessibilidade** (Teclado na tela e Animações). O tema claro/escuro **não** aparece junto do teclado | ☐ |
+| S1 | Abra **Configurações** | Uma seção, **Aparência**, com dois botões (Noturno e Claro). Não há opções de teclado nem de animações | ☐ |
 | S2 | Em **Animações**, escolha **Reduzidas** | Daqui em diante: sem entrada escalonada, sem fusão na troca de tema, botões só trocam de estado. Volte para **Completas** | ☐ |
 | L1 | No tema Noturno, leia rótulos, valores, legendas do gráfico e o cartão **Calibração** | Texto claro e nítido, nada comprimido; R², RMSE e N em linhas (rótulo à esquerda, valor à direita); nenhum texto menor que 12 px | ☐ |
 | L2 | Role a **coluna da esquerda** (método, ensaios, calibração, resultado) | Rola inteira; os cartões não encolhem para caber | ☐ |
@@ -136,13 +136,13 @@ No noVNC, se aparecer só um ponto em vez da seta, abra o painel lateral do noVN
 
 Escolha **Conexão → Wi-Fi** no cabeçalho para mostrar os campos de IP e porta.
 
-**Antes de tudo, o teclado não deve abrir sozinho.** O Codespace/noVNC é um computador sem tela de toque, então no modo **Automático** ele não abre; para testar o teclado ali, use o modo **Sempre** (ou `SPECTRUM_TOUCH=1 bash run/start_app.sh`).
+**Antes de tudo, o teclado não abre sozinho.** Ele só aparece com duplo clique em um campo de texto, em qualquer computador ou celular.
 
 | # | Passo | Esperado | |
 |---|---|---|---|
 | C0 | Inicie o programa e rode **Realizar leitura** com o teclado em **Automático** | O teclado **não** abre em nenhum momento (nem ao iniciar a análise) | ☐ |
 | C0b | **Configurações** → Teclado na tela | Três opções: Automático, Sempre, Nunca. Embaixo: "Neste aparelho: nenhuma tela de toque detectada" (no Codespace) | ☐ |
-| C0c | Reinicie com `SPECTRUM_TOUCH=1 bash run/start_app.sh` e clique em um campo | Com **Automático**, o teclado abre (o programa passou a ver um aparelho de toque) | ☐ |
+| C0c | Dê **duplo clique** em um campo de texto | O teclado abre perto do campo; um clique fora dele o recolhe; arrastar pelo título o move | ☐ |
 | C1 | Modo **Sempre**; clique no campo **IP ESP32** | Teclado numérico **menor**, no **canto superior esquerdo** da janela; o cursor continua piscando no campo | ☐ |
 | C2 | Digite `127.0.0.1` | Aparece no campo; a tecla pressionada fica em destaque | ☐ |
 | C3 | Teste **Apagar** (segure), **‹ ›** e **Limpar** | Apaga repetindo, move o cursor e esvazia o campo | ☐ |
@@ -215,7 +215,7 @@ bash run/stop.sh
 | Sintoma | O que fazer |
 |---|---|
 | Fonte parecendo a padrão do sistema | Rode os testes de fontes do passo 4. Se passarem, o problema é só visual do noVNC |
-| O teclado não abre | Em computador sem tela de toque ele não abre no modo **Automático**: use **Sempre** em Configurações ou `SPECTRUM_TOUCH=1`. O campo não pode ser somente leitura |
+| O teclado não abre | Use **duplo clique** no campo (um clique só posiciona o cursor). O campo não pode ser somente leitura |
 | O teclado abre mas o cursor some do campo | Anote o gerenciador de janelas em uso (`start_display.sh` usa o fluxbox) e envie |
 | O teclado cobre o campo | Envie um print com a resolução usada |
 | Faixa do botão "Analisando…" não aparece | Pode ser limite de desempenho do display virtual; compare no Windows |

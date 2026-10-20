@@ -47,11 +47,12 @@ def responder(bancada, comando, enviar):
         comando = comando[len("MANUAL:"):]
 
     if comando == "PING":
-        enviar("STATUS:PONG")
-        enviar("STATUS:PROTOCOLO_2")
-        enviar("STATUS:ADMIN_PROTOCOLO_1")
-        enviar("STATUS:SENSOR_OK")
+        # Mesma sequência do firmware 4.16.2: sem os *_PROTOCOLO_1 a interface nunca libera a leitura.
+        for status in ("PROTOCOLO_2", "PORTA_PROTOCOLO_1", "MANUAL_PROTOCOLO_1",
+                       "CARRINHO_PROTOCOLO_1", "ADMIN_PROTOCOLO_1", "SENSOR_OK"):
+            enviar("STATUS:" + status)
         enviar(bancada.estado_linha())
+        enviar("STATUS:PONG")
         return True
     if comando == "ESTADO_PORTA":
         enviar(bancada.estado_linha())

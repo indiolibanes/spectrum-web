@@ -262,6 +262,7 @@ def build_dashboard(w):
     w.btn_calibrate.setText('Calibrar · Branco e escuro')
     tone(w.btn_repeatability,'secondary');tone(w.btn_calibrate,'rose')
     for button in (w.btn_start_scan,w.btn_repeatability,w.btn_calibrate):cl.addWidget(button)
+    cl.addWidget(w.lbl_scan_hint)
     ll.addWidget(controls)
     w.card_housing.setObjectName('scadaPanel')
     housing=w.card_housing.layout();housing.setContentsMargins(PAD,14,PAD,14);housing.setSpacing(6)
@@ -320,6 +321,8 @@ def build_dashboard(w):
     def refresh():
         w.card_esp32.refresh(w)
         w.card_telemetria.refresh_freshness(busy=w.equipment.busy())
+        w._update_scan_hint()
+        w._update_sim_indicator()
         w.btn_login.setText('Sair · '+w.authenticated_user.get('username','Operador') if w.authenticated_user else 'Login')
     w._scada_refresh_timer.timeout.connect(refresh);w._scada_refresh_timer.start(1000);refresh()
     w._responsive_ready=True
