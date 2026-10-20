@@ -7,7 +7,7 @@ Roteiro para rodar o supervisório num navegador, com display virtual e uma banc
 
 ## 1. Criar o Codespace
 
-1. No GitHub, abra o repositório `yosemate/spectrum`.
+1. No GitHub, abra o repositório `indiolibanes/spectrum-web` (ou o `yosemate/spectrum`, depois do merge desta branch).
 2. Troque a branch para `feat/ux-acessibilidade-animacoes` (interface desta fase, já com os scripts de `run/`).
 3. Clique em **Code → Codespaces → Create codespace on** a branch escolhida.
 4. Aguarde o VS Code (web) abrir.

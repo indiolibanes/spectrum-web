@@ -6,8 +6,8 @@ Roteiro para validar a interface nova: tema Escuro (preto quase AMOLED, umber e 
 
 ## 1. Criar o Codespace
 
-1. No GitHub, abra o repositório **`yosemate/spectrum`**.
-2. Troque a branch para **`feat/ux-acessibilidade-animacoes`** (a interface desta fase: Configurações separadas, contraste maior no escuro, layout responsivo, botões e animações novos). Se a branch ainda não estiver no repositório, aplique o patch enviado junto (veja o fim deste arquivo).
+1. No GitHub, abra o repositório **`indiolibanes/spectrum-web`** (onde a branch desta fase está publicada; depois do merge no `yosemate/spectrum`, use ele).
+2. Troque a branch para **`feat/ux-acessibilidade-animacoes`** (a interface desta fase: Configurações separadas, contraste maior no escuro, layout responsivo, botões e animações novos).
 3. **Code → Codespaces → Create codespace on feat/ux-acessibilidade-animacoes**.
 4. Aguarde o VS Code (web) abrir. Confira, no canto inferior esquerdo, que a branch é a certa.
 
