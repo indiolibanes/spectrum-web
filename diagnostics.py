@@ -28,6 +28,15 @@ class SensorDiagnosticsCard(QFrame):
             setattr(self,'lbl_val_'+alias,getattr(self,'lbl_'+name))
         self.reset()
 
+    def refresh_freshness(self,busy=False):
+        if self.last_received is None:return
+        age=max(0,time.monotonic()-self.last_received)
+        if busy:message=f'Atualização pausada · último diagnóstico há {age:.0f} s'
+        elif age>10:message=f'Telemetria desatualizada · último diagnóstico há {age:.0f} s'
+        else:message=f'Diagnóstico recebido há {age:.0f} s'
+        self.lbl_status_badge.setText(message)
+        self.setToolTip(message+'; os valores de diagnóstico são os últimos recebidos.')
+
     def reset(self,message='Aguardando telemetria'):
         self.last_received=None
         for name in ('die_temp','ganho','integracao','driver_led','led_state','hardware','sat'):
@@ -75,6 +84,9 @@ class ControllerDiagnosticsCard(QFrame):
 
     def refresh(self,window):
         connected=window.is_serial_connected()
+        if not connected:
+            self.values['resources'].setText('Não enviados')
+            self.values['temp'].setText('Não enviada')
         mode=window.combo_conn_mode.currentData()
         target=window.txt_ip.text() if mode=='WIFI' else window.combo_com.currentText()
         self.values['connection'].setText(f'{mode} · {target}' if connected else 'Desconectado')
@@ -82,3 +94,17 @@ class ControllerDiagnosticsCard(QFrame):
         age=max(0,time.monotonic()-window._last_pong)
         self.values['heartbeat'].setText(f'Última resposta: {age:.1f} s' if connected and window._protocol_ready else 'Sem confirmação')
         self.values['baud'].setText('115.200 baud' if mode in ('USB','BLUETOOTH') else 'TCP/IP')
+
+    def update_telemetry(self,fields):
+        """Recebe ESPDIAG:TEMP|CPU_MHZ|HEAP_FREE|HEAP_TOTAL do firmware 4.16.2 e atualiza os valores."""
+        try:
+            mhz=int(fields['CPU_MHZ']);free=int(fields['HEAP_FREE']);total=int(fields['HEAP_TOTAL'])
+            if mhz>0 and 0<=free<=total and total>0:
+                self.values['resources'].setText(f'{mhz} MHz / {free/1024:.0f} de {total/1024:.0f} KiB')
+        except (KeyError,ValueError,TypeError):
+            pass
+        try:
+            temp=float(fields['TEMP'])
+            self.values['temp'].setText(f'{temp:.1f} °C' if math.isfinite(temp) and -40<=temp<=125 else 'Indisponível')
+        except (KeyError,ValueError,TypeError):
+            pass

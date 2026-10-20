@@ -424,6 +424,21 @@ def calculate_hybrid_similarity(
     return match_percent, penalized
 
 
+def classify_experimental_kappa(value):
+    """Numeric bands describe only the experimental model, without process inference."""
+    value=float(value)
+    if not math.isfinite(value) or value<0:
+        return "Faixa não disponível", "#94A3B8"
+    for upper,label,color in (
+        (2,"Faixa 1 — até 2","#10B981"),
+        (6,"Faixa 2 — acima de 2 até 6","#34D399"),
+        (12,"Faixa 3 — acima de 6 até 12","#38BDF8"),
+        (22,"Faixa 4 — acima de 12 até 22","#F59E0B"),
+        (55,"Faixa 5 — acima de 22 até 55","#FB923C")):
+        if value<=upper:return label,color
+    return "Faixa 6 — acima de 55", "#EF4444"
+
+
 def calculate_kappa_number(spectral_values: List[float], mode: str = "umido") -> Tuple[float, str, str]:
     """
     Estimativa demonstrativa com coeficientes fixos, sem validação analítica.
@@ -475,24 +490,7 @@ def calculate_kappa_number(spectral_values: List[float], mode: str = "umido") ->
     # Garante ausência de travas de teto (sem min(..., 50.0)), mantendo apenas proteção contra negativos
     kappa_exibido = max(0.0, float(kappa_predito))
 
-    if kappa_exibido <= 2.0:
-        classificacao = "Polpa Branqueada de Mercado"
-        color = "#10B981"  # Emerald
-    elif kappa_exibido <= 6.0:
-        classificacao = "Polpa em Branqueamento (Intermediária)"
-        color = "#34D399"  # Mint Green
-    elif kappa_exibido <= 12.0:
-        classificacao = "Polpa Deslignificada (Pós-O₂)"
-        color = "#38BDF8"  # Sky Blue
-    elif kappa_exibido <= 22.0:
-        classificacao = "Celulose Kraft Não Branqueada"
-        color = "#F59E0B"  # Amber
-    elif kappa_exibido <= 55.0:
-        classificacao = "Polpa de Alto Rendimento / Embalagem"
-        color = "#FB923C"  # Orange
-    else:
-        classificacao = "Papelão / Fibras Recicladas"
-        color = "#EF4444"  # Red
+    classificacao, color = classify_experimental_kappa(kappa_exibido)
 
     return round(kappa_exibido, 2), classificacao, color
 

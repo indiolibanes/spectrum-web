@@ -64,6 +64,7 @@ from popup_design import WarningSymbol, AnimatedOperationBar, OperatingAlertDial
 from splash_screen import AnimatedSplashScreen
 from animated_chart import SpectralSplineChartWidget, ScatterPlotWidget
 from database_manager import DatabaseManagerDialog
+from chemometrics import classify_experimental_kappa
 from pdf_generator import generate_pdf_report
 from connection_worker import ConnectionWorker
 from serial_worker import SerialWorker
@@ -273,7 +274,7 @@ class HistoryDialog(QDialog):
         title_box = QVBoxLayout()
         dlg_title = QLabel("HISTÓRICO DE ENSAIOS ESPECTRAIS")
         dlg_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 0.5px;")
-        dlg_sub = QLabel("Consulta metrológica, emissão de laudos técnicos PDF e auditoria de leituras")
+        dlg_sub = QLabel("Consulta metrológica, emissão de relatórios experimentais PDF e auditoria de leituras")
         dlg_sub.setStyleSheet("color: #9CA3AF; font-size: 11px;")
         title_box.addWidget(dlg_title)
         title_box.addWidget(dlg_sub)
@@ -353,7 +354,7 @@ class HistoryDialog(QDialog):
         kpi_k_layout = QVBoxLayout(self.card_kpi_kappa)
         kpi_k_layout.setContentsMargins(8, 6, 8, 6)
         kpi_k_layout.setSpacing(2)
-        lbl_k_head = QLabel("NÚMERO KAPPA (NIR)")
+        lbl_k_head = QLabel("KAPPA DEMONSTRATIVO")
         lbl_k_head.setStyleSheet("color: #A1A1AA; font-size: 9px; font-weight: bold;")
         self.lbl_k_val = QLabel("--")
         self.lbl_k_val.setStyleSheet("color: #C084FC; font-size: 16px; font-weight: 900;")
@@ -419,12 +420,12 @@ class HistoryDialog(QDialog):
         actions_box = QHBoxLayout()
         actions_box.setSpacing(8)
 
-        self.btn_view_pdf = QPushButton("📄 Visualizar Laudo PDF")
+        self.btn_view_pdf = QPushButton("📄 Visualizar Relatório PDF")
         self.btn_view_pdf.setStyleSheet("background-color: #0284C7; color: #FFFFFF; border: none;")
         self.btn_view_pdf.clicked.connect(self._on_visualizar_pdf)
         self.btn_view_pdf.setEnabled(False)
 
-        self.btn_save_pdf = QPushButton("💾 Salvar Laudo Como...")
+        self.btn_save_pdf = QPushButton("💾 Salvar Relatório Como...")
         self.btn_save_pdf.clicked.connect(self._on_salvar_pdf)
         self.btn_save_pdf.setEnabled(False)
 
@@ -515,19 +516,10 @@ class HistoryDialog(QDialog):
         # KPI 1: Kappa
         kappa_val = item.get("kappa_estimado", 0.0)
         self.lbl_k_val.setText(f"{kappa_val:.2f}")
-        status_txt = item.get("kappa_classificacao", "Indeterminado")
+        status_txt = classify_experimental_kappa(kappa_val)[0]
         self.lbl_k_badge.setText(status_txt)
 
-        if "Alta Alvura" in status_txt or kappa_val < 1.5:
-            badge_col = "#10B981"
-        elif "Padrão" in status_txt or kappa_val < 12.0:
-            badge_col = "#34D399"
-        elif "Semi" in status_txt or kappa_val < 25.0:
-            badge_col = "#38BDF8"
-        elif "Kraft" in status_txt or kappa_val < 35.0:
-            badge_col = "#F59E0B"
-        else:
-            badge_col = "#EF4444"
+        badge_col = classify_experimental_kappa(kappa_val)[1]
 
         self.lbl_k_badge.setStyleSheet(f"color: {badge_col}; font-size: 9px; font-weight: bold;")
 
@@ -572,7 +564,7 @@ class HistoryDialog(QDialog):
             item = self.current_selected
             unique_id = f"{item.get('id', 0)}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
             temp_dir = tempfile.gettempdir()
-            pdf_path = os.path.join(temp_dir, f"Laudo_Preview_{item.get('codigo_amostra', 'AM')}_{unique_id}.pdf")
+            pdf_path = os.path.join(temp_dir, f"Relatorio_Preview_{item.get('codigo_amostra', 'AM')}_{unique_id}.pdf")
 
             generate_pdf_report(
                 filename=pdf_path,
@@ -604,19 +596,19 @@ class HistoryDialog(QDialog):
             except Exception as start_err:
                 QMessageBox.warning(
                     self, "Aviso de Visualização",
-                    f"O Laudo Técnico PDF foi gerado com sucesso em:\n{pdf_path}\n\n"
+                    f"O Relatório Experimental PDF foi gerado com sucesso em:\n{pdf_path}\n\n"
                     f"Porém não foi possível abrir o leitor padrão do Windows: {start_err}"
                 )
         except Exception as e:
             traceback.print_exc()
-            QMessageBox.critical(self, "Erro ao Gerar PDF", f"Não foi possível gerar o Laudo Técnico PDF:\n{e}")
+            QMessageBox.critical(self, "Erro ao Gerar PDF", f"Não foi possível gerar o Relatório Experimental PDF:\n{e}")
 
     def _on_salvar_pdf(self):
         if not self.current_selected:
             return
         item = self.current_selected
-        def_name = f"Laudo_{item.get('codigo_amostra', 'AM')}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Laudo Técnico PDF", def_name, "Arquivos PDF (*.pdf)")
+        def_name = f"Relatorio_{item.get('codigo_amostra', 'AM')}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Relatório Experimental PDF", def_name, "Arquivos PDF (*.pdf)")
         if file_path:
             try:
                 generate_pdf_report(
@@ -644,11 +636,11 @@ class HistoryDialog(QDialog):
                     peak_intensity_adc=item.get("pico_espectral_adc"),
                     timestamp=item.get("timestamp")
                 )
-                QMessageBox.information(self, "Sucesso", f"Laudo salvo com sucesso em:\n{file_path}")
+                QMessageBox.information(self, "Sucesso", f"Relatório salvo com sucesso em:\n{file_path}")
             except PermissionError:
                 QMessageBox.warning(
                     self, "Arquivo Bloqueado",
-                    f"Não foi possível salvar o laudo em:\n{file_path}\n\n"
+                    f"Não foi possível salvar o relatório em:\n{file_path}\n\n"
                     "O arquivo está aberto e bloqueado por outro aplicativo.\n"
                     "Feche o visualizador de PDF ou escolha outro nome de arquivo."
                 )
@@ -686,7 +678,7 @@ class HistoryDialog(QDialog):
                     writer = csv.writer(f, delimiter=";")
                     writer.writerow([
                         "ID", "Data_Hora", "Amostra", "Operador", "Metodo",
-                        "Kappa_Estimado", "Kappa_Classificacao",
+                        "Kappa_Demonstrativo", "Faixa_Modelo_Experimental",
                         "Intensidade_Global_ADC", "Pico_NM", "Pico_ADC",
                         "Razao_Celulose", "Razao_Agua",
                         "ADC_610", "ADC_680", "ADC_730", "ADC_760", "ADC_810", "ADC_860",
@@ -2544,7 +2536,8 @@ class SpectrumLabMainWindow(QMainWindow):
         res_layout.setContentsMargins(10, 8, 10, 8)
         res_layout.setSpacing(3)
 
-        lbl_res_header = QLabel("📊 NÚMERO KAPPA ESTIMADO (NIR)")
+        lbl_res_header = QLabel("KAPPA DEMONSTRATIVO — MODELO EXPERIMENTAL")
+        lbl_res_header.setWordWrap(True)
         lbl_res_header.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: bold; letter-spacing: 0.5px;")
 
         self.lbl_kappa_valor = QLabel("--")
@@ -2572,7 +2565,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.btn_history.clicked.connect(self.open_history_dialog)
         self.btn_db = self.btn_history  # alias para retrocompatibilidade
 
-        self.btn_pdf = QPushButton("📄 Laudo PDF")
+        self.btn_pdf = QPushButton("📄 Relatório PDF")
         self.btn_pdf.setMinimumHeight(34)
         self.btn_pdf.clicked.connect(self.export_pdf_report)
 
@@ -2847,6 +2840,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.equipment.reset()
         self.equipment.refresh_indicator()
         self._last_pong=time.monotonic()
+        self._last_diag_request=0.0
         self._protocol_ready=False
         self._sensor_ready=False
         self._result_valid=False
@@ -2895,6 +2889,10 @@ class SpectrumLabMainWindow(QMainWindow):
         card=getattr(self,"card_telemetria",None)
         if card is None:return
         text=line.strip();data={}
+        if text.startswith("ESPDIAG:"):
+            fields=dict(part.split(":",1) for part in text[8:].split("|") if ":" in part)
+            self.card_esp32.update_telemetry(fields)
+            return
         if text.startswith("DIAG:"):
             for i,part in enumerate(text[5:].split("|")):
                 if ":" in part:
@@ -3646,11 +3644,11 @@ class SpectrumLabMainWindow(QMainWindow):
         k_l = QVBoxLayout(kappa_card)
         k_l.setContentsMargins(12, 8, 12, 8)
         k_l.setSpacing(2)
-        k_sub = QLabel("NÚMERO KAPPA MÉDIO (5 LEITURAS)")
+        k_sub = QLabel("KAPPA DEMONSTRATIVO MÉDIO (5 LEITURAS)")
         k_sub.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: bold;")
         k_val_lbl = QLabel(f"Kappa: {kappa_mean:.2f} ± {kappa_std:.2f}")
         k_val_lbl.setStyleSheet(f"color: {kappa_color}; font-size: 18px; font-weight: 900;")
-        k_stat_lbl = QLabel(f"Classificação: {kappa_status}")
+        k_stat_lbl = QLabel(f"Faixa do modelo: {kappa_status}")
         k_stat_lbl.setStyleSheet(f"color: {kappa_color}; font-size: 10px; font-weight: bold;")
         k_l.addWidget(k_sub)
         k_l.addWidget(k_val_lbl)
@@ -3803,10 +3801,10 @@ class SpectrumLabMainWindow(QMainWindow):
                     cw.writerow(["Calibracao", self.chem_engine.calibration_id])
                     cw.writerow(["CV% Medio Global", f"{global_cv:.2f}%"])
                     cw.writerow(["Kappa Medio", f"{kappa_mean:.2f} +- {kappa_std:.2f}"])
-                    cw.writerow(["Classificacao", kappa_status])
+                    cw.writerow(["Faixa do modelo experimental", kappa_status])
                     cw.writerow([])
                     cw.writerow(["--- RESPOSTAS OPTICAS RELATIVAS (5 DISPAROS) ---"])
-                    cw.writerow(["Disparo"] + CHANNEL_NAMES + ["Razao Celulose (R680/R730)", "Razao Agua (R860/R760)", "Kappa Estimado"])
+                    cw.writerow(["Disparo"] + CHANNEL_NAMES + ["Razao Celulose (R680/R730)", "Razao Agua (R860/R760)", "Kappa Demonstrativo"])
                     for idx, (run_vals, rc, rw, kv) in enumerate(zip(self.leituras_rep, ratio_cels, ratio_waters, kappas), 1):
                         row = [f"Disparo #{idx}"] + [f"{v:.4f}" for v in run_vals] + [f"{rc:.4f}", f"{rw:.4f}", f"{kv:.2f}"]
                         cw.writerow(row)
@@ -4153,7 +4151,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self._emergency_sent = sent
         self._hardware_watchdog.start(10000)
 
-        # Bloqueia UI e sinaliza o estado REAL do envio. "Em repouso" só aparece após STATUS do ESP32.
+        # Bloqueia UI e sinaliza o status exato solicitado
         self._disable_controls()
         self.cycle_progress.setValue(0)
         if sent:
@@ -4180,7 +4178,6 @@ class SpectrumLabMainWindow(QMainWindow):
             self.lbl_cycle_status.setText("Repouso confirmado pelo hardware.")
         elif getattr(self, "_emergency_sent", True):
             self.lbl_cycle_status.setText("Aguardando confirmação de emergência do ESP32.")
-        # Se o comando não foi enviado, o aviso vermelho de "PARADA NÃO ENVIADA" permanece.
 
     def _handle_emergency_confirmed(self):
         self.equipment.cancel()
@@ -4585,12 +4582,12 @@ class SpectrumLabMainWindow(QMainWindow):
 
     def export_pdf_report(self):
         if not self._result_valid or not self.current_scan_data or sum(self.current_scan_data) == 0:
-            QMessageBox.warning(self, "Aviso", "Realize uma análise espectral antes de gerar o laudo técnico.")
+            QMessageBox.warning(self, "Aviso", "Realize uma análise espectral antes de gerar o relatório experimental.")
             return
 
-        default_filename = f"Laudo_Espectral_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        default_filename = f"Relatorio_Espectral_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Salvar Laudo Técnico PDF", default_filename, "Arquivos PDF (*.pdf)"
+            self, "Salvar Relatório Experimental PDF", default_filename, "Arquivos PDF (*.pdf)"
         )
         if file_path:
             try:
@@ -4633,10 +4630,10 @@ class SpectrumLabMainWindow(QMainWindow):
                     raw_scans=self._last_acquisition_scans,
                     timestamp=self._current_reading_timestamp
                 )
-                self.log_message(f"Laudo Técnico PDF emitido com sucesso: {out_pdf}")
+                self.log_message(f"Relatório Experimental PDF emitido com sucesso: {out_pdf}")
                 reply = QMessageBox.question(
-                    self, "Laudo Gerado",
-                    f"Laudo Técnico emitido com sucesso!\nArquivo: {os.path.basename(out_pdf)}\n\nDeseja visualizar o PDF agora?",
+                    self, "Relatório Gerado",
+                    f"Relatório Experimental emitido com sucesso!\nArquivo: {os.path.basename(out_pdf)}\n\nDeseja visualizar o PDF agora?",
                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
                 )
                 if reply == QMessageBox.Yes:
@@ -4645,18 +4642,18 @@ class SpectrumLabMainWindow(QMainWindow):
                     except Exception as start_err:
                         QMessageBox.warning(
                             self, "Aviso de Visualização",
-                            f"O Laudo foi salvo com sucesso em:\n{out_pdf}\n\n"
+                            f"O relatório foi salvo com sucesso em:\n{out_pdf}\n\n"
                             f"Porém não foi possível acionar o leitor padrão do Windows: {start_err}"
                         )
             except PermissionError:
                 QMessageBox.warning(
                     self, "Arquivo em Uso",
-                    f"Não foi possível salvar o Laudo Técnico em:\n{file_path}\n\n"
+                    f"Não foi possível salvar o Relatório Experimental em:\n{file_path}\n\n"
                     "O arquivo está aberto e bloqueado por outro aplicativo (Adobe Reader, navegador, etc.).\n"
                     "Por favor, feche o visualizador de PDF ou escolha outro nome de arquivo."
                 )
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao gerar Laudo PDF: {e}")
+                QMessageBox.critical(self, "Erro", f"Erro ao gerar Relatório PDF: {e}")
 
     def export_csv_log(self):
         if not self._result_valid or not self.current_scan_data or self.current_kappa_value is None:
@@ -4673,7 +4670,7 @@ class SpectrumLabMainWindow(QMainWindow):
                     temporary = f.name
                     writer = csv.writer(f)
                     writer.writerow([
-                        "DataHora_Medicao", "Codigo_Amostra", "Operador", "Modo", "Calibracao_ID", "Aquisoes", "Kappa_Estimado",
+                        "DataHora_Medicao", "Codigo_Amostra", "Operador", "Modo", "Calibracao_ID", "Aquisoes", "Kappa_Demonstrativo",
                         "610nm_ADC", "680nm_ADC", "730nm_ADC", "760nm_ADC", "810nm_ADC", "860nm_ADC",
                         "610nm_Resposta_Percent", "680nm_Resposta_Percent", "730nm_Resposta_Percent",
                         "760nm_Resposta_Percent", "810nm_Resposta_Percent", "860nm_Resposta_Percent",
@@ -4862,22 +4859,15 @@ class SpectrumLabMainWindow(QMainWindow):
         self.btn_man_fwd_sensor.setEnabled(idle and mechanical_ready and self.is_manual_mode_unlocked)
         self.btn_man_read.setEnabled(idle and ready and valid and self.is_manual_mode_unlocked and bool(chamber_closed)
                                     and bool(self.equipment.carriage_advanced) and not self.equipment.carriage_retracted)
-        if idle:
+        if idle and not self.equipment.admin_session():
             self.equipment.revoke()
         if self._manual_dialog:
             self._manual_dialog.update_interlocks_and_leds()
 
     @staticmethod
     def _classify_kappa(value):
-        limits=[(2,"Polpa Branqueada de Mercado","#10B981"),
-                (6,"Polpa em Branqueamento (Intermediária)","#34D399"),
-                (12,"Polpa Deslignificada (Pós-O2)","#38BDF8"),
-                (22,"Celulose Kraft Não Branqueada","#F59E0B"),
-                (55,"Polpa de Alto Rendimento / Embalagem","#FB923C")]
-        for limit,label,color in limits:
-            if value<=limit:
-                return label,color
-        return "Papelão / Fibras Recicladas","#EF4444"
+        return classify_experimental_kappa(value)
+
     def _heartbeat_tick(self):
         if not self.is_serial_connected():
             return
@@ -4887,9 +4877,25 @@ class SpectrumLabMainWindow(QMainWindow):
             self._protocol_ready=False
             self._sensor_ready=False
             return
-        if self.equipment.authorized and self.equipment.busy():
+        if self.equipment.admin_session() and not self._emergency_lock_active:
+            if self.equipment.authorized:
+                self.serial_worker.send_command("CMD:RENOVAR_CARCACA")
+            elif self.equipment.admin_capable and not self.equipment.busy():
+                self.serial_worker.send_command("CMD:ADMIN_CARCACA")
+        elif self.equipment.authorized and self.equipment.busy():
             self.serial_worker.send_command("CMD:RENOVAR_CARCACA")
         self.serial_worker.send_command("CMD:PING")
+        self._request_sensor_diagnostics()
+
+    def _request_sensor_diagnostics(self):
+        now=time.monotonic()
+        if (not self.is_serial_connected() or not self._protocol_ready or not self._sensor_ready
+                or self.fsm_state!="IDLE" or self._batch or self._manual_pending
+                or self.equipment.pending or self.equipment.busy() or self._emergency_lock_active
+                or now-getattr(self,"_last_diag_request",0.0)<5):
+            return
+        if self.serial_worker.send_command("CMD:DIAG_SENSOR"):
+            self._last_diag_request=now
 
 
 def global_exception_handler(exc_type, exc_value, exc_traceback):
