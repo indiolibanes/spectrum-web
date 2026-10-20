@@ -29,7 +29,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Indicador de análise:** abaixo do gráfico, um rosto colorido e mensagens em português acompanham cada etapa do ensaio.
 - **Responsivo:** a janela se adapta a qualquer tela (cabeçalho em duas linhas, indicadores em grade, painéis empilhados) sem comprimir o texto.
 - **Animações** inspiradas no movimento da Apple (molas, entrada escalonada, fusão na troca de tema), com opção de reduzi-las.
-- **Configurações** em duas seções: *Aparência* (tema noturno ou claro) e *Acessibilidade* (teclado na tela em modo automático, sempre ou nunca; numérico no campo de IP e completo nos demais; e redução de animações). O teclado só abre em aparelhos de toque, é compacto e fica no canto superior esquerdo.
+- **Configurações** têm só o tema (*Noturno* ou *Claro*). O **teclado na tela** não tem opção: dê **duplo clique** em um campo para abrir (numérico no campo de IP, completo nos demais); um clique fora dele o recolhe; ele pode ser arrastado pelo título. As animações são sempre completas.
 
 ## Estrutura do repositório
 

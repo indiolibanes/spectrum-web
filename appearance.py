@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (QApplication,QWidget,QLabel,QPushButton,QComboBox,Q
                              QVBoxLayout,QHBoxLayout,QFrame,QTabWidget,QMenu)
 from popup_design import popup_owner, popup_stylesheet
 from typography import normalize_qss, install as install_typography
-import keyboard_layouts as kl
 PALETTES={
  # Noturno: roxo profundo com ouro como destaque. Os painéis são translúcidos sobre um fundo com
  # brilhos roxos e dourados. Ouro é a cor de foco e de identidade; os botões são neutros.
@@ -124,9 +123,7 @@ def read_preferences(path):
     theme=data.get("theme")
     theme=LEGACY_THEMES.get(theme,theme)
     if theme not in PALETTES:theme=DEFAULT_THEME
-    mode=kl.normalize_mode(data.get("keyboard_mode"),bool(data.get("touch_keyboard",True)))
-    # touch_keyboard (sim/não) continua gravado para versões antigas; o que vale é keyboard_mode.
-    return {"theme":theme,"keyboard_mode":mode,"touch_keyboard":mode!="never","reduce_motion":bool(data.get("reduce_motion",False))}
+    return {"theme":theme}
 def read_preference(path):return read_preferences(path)["theme"]
 def save_preferences(path,prefs):
     temporary=None
@@ -157,34 +154,13 @@ class ThemeManager(QObject):
         from cursors import CursorController
         self.cursor_fx=CursorController(app)
         import motion
-        motion.set_reduced(motion.reduced() or self.prefs["reduce_motion"])
         self.motion_fx=motion.MotionController(app)
         self.keyboard=TouchKeyboardController(app,self)
-        self.keyboard.mode=self.prefs["keyboard_mode"]
         self.set_theme(self.theme,False)
-    @property
-    def touch_keyboard(self):return self.keyboard.enabled
-    @property
-    def keyboard_mode(self):return self.keyboard.mode
-    def set_keyboard_mode(self,mode):
-        mode=kl.normalize_mode(mode)
-        self.keyboard.mode=mode;self.prefs["keyboard_mode"]=mode;self.prefs["touch_keyboard"]=mode!="never"
-        if not self.keyboard.enabled:self.keyboard.hide_keyboard()
-        ok,self.last_error=save_preferences(self.path,self.prefs);return ok
-    def set_touch_keyboard(self,enabled):
-        """Compatível com a preferência antiga (sim/não): sim é o modo Automático."""
-        return self.set_keyboard_mode("auto" if enabled else "never")
-    @property
-    def reduce_motion(self):return bool(self.prefs.get("reduce_motion",False))
-    def set_reduce_motion(self,enabled):
-        import motion
-        self.prefs["reduce_motion"]=bool(enabled);motion.set_reduced(bool(enabled))
-        ok,self.last_error=save_preferences(self.path,self.prefs);return ok
     def refresh_preferences_path(self):
         path=preferences_path()
         if path!=self.path:
             self.path=path;self.prefs=read_preferences(path)
-            self.keyboard.mode=self.prefs["keyboard_mode"]
             self.set_theme(self.prefs["theme"],False)
     def eventFilter(self,obj,event):
         if isinstance(obj,QWidget) and not self.applying and event.type() in (QEvent.StyleChange,QEvent.Show):
@@ -282,7 +258,7 @@ def ensure_theme_manager():
     return manager
 
 class AppearanceDialog(QDialog):
-    """Configurações, em duas seções separadas: Aparência (tema) e Acessibilidade (teclado na tela)."""
+    """Configurações: tema claro ou escuro. Teclado e animações não têm opção: o teclado abre com duplo clique."""
     def __init__(self,manager,parent=None):
         super().__init__(parent)
         self.manager=manager
@@ -305,31 +281,6 @@ class AppearanceDialog(QDialog):
         theme_box=QWidget();theme_box.setLayout(pickers);pickers.setContentsMargins(0,0,0,0)
         layout.addWidget(self._section("Aparência","Tema da interface. A mudança é aplicada na hora e a escolha fica salva.",theme_box))
 
-        # ---- Acessibilidade: teclado na tela para touchscreen
-        access=QVBoxLayout();access.setSpacing(8);access.setContentsMargins(0,0,0,0)
-        caption=QLabel("Teclado na tela (touchscreen)");caption.setStyleSheet("color: #9CA3AF; font-size: 12px;")
-        access.addWidget(caption)
-        self.keyboard_selector=QComboBox()
-        self.keyboard_selector.addItem("Automático: abre só em aparelho com tela de toque","auto")
-        self.keyboard_selector.addItem("Sempre: abre ao tocar em um campo","always")
-        self.keyboard_selector.addItem("Desligado: usar o teclado do computador","never")
-        self.keyboard_selector.setCurrentIndex(max(0,self.keyboard_selector.findData(manager.keyboard_mode)))
-        self.keyboard_selector.setMinimumHeight(42)
-        self.keyboard_selector.currentIndexChanged.connect(self.change_keyboard)
-        access.addWidget(self.keyboard_selector)
-        detected="Neste aparelho: tela de toque detectada." if manager.keyboard.touch_detected() else "Neste aparelho: nenhuma tela de toque detectada."
-        hint=QLabel("O campo de IP abre um teclado numérico e a porta, só de dígitos; os demais, o completo, com acentos. "+detected)
-        hint.setWordWrap(True);hint.setStyleSheet("color: #9CA3AF; font-size: 12px;");access.addWidget(hint)
-        motion_caption=QLabel("Animações");motion_caption.setStyleSheet("color: #9CA3AF; font-size: 12px;");access.addWidget(motion_caption)
-        self.motion_selector=QComboBox()
-        self.motion_selector.addItem("Completas: molas, entradas e transições",False)
-        self.motion_selector.addItem("Reduzidas: só a troca de estado dos botões",True)
-        self.motion_selector.setCurrentIndex(1 if manager.reduce_motion else 0)
-        self.motion_selector.setMinimumHeight(42)
-        self.motion_selector.currentIndexChanged.connect(self.change_motion)
-        access.addWidget(self.motion_selector)
-        access_box=QWidget();access_box.setLayout(access)
-        layout.addWidget(self._section("Acessibilidade","Recursos para uso com o dedo, em telas pequenas e para quem prefere menos movimento.",access_box))
 
         self.feedback=QLabel("As alterações são aplicadas imediatamente.")
         self.feedback.setWordWrap(True);self.feedback.setStyleSheet("color: #9CA3AF; font-size: 12px;")
@@ -348,12 +299,6 @@ class AppearanceDialog(QDialog):
         note=QLabel(description);note.setWordWrap(True);note.setStyleSheet("color: #9CA3AF; font-size: 14px;")
         box.addWidget(head);box.addWidget(note);box.addWidget(content)
         return frame
-    def change_keyboard(self):
-        ok=self.manager.set_keyboard_mode(self.keyboard_selector.currentData())
-        self.feedback.setText("Preferência salva." if ok else "Aplicado nesta sessão. Não foi possível salvar a preferência.")
-    def change_motion(self):
-        ok=self.manager.set_reduce_motion(self.motion_selector.currentData())
-        self.feedback.setText("Preferência salva." if ok else "Aplicado nesta sessão. Não foi possível salvar a preferência.")
     def change_theme(self,key=None):
         key=key or next((k for k,b in self.theme_buttons.items() if b.isChecked()),self.manager.theme)
         ok=self.manager.set_theme(key)

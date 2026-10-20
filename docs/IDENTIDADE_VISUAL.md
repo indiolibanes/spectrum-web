@@ -50,7 +50,7 @@ Aparece na abertura (canto inferior direito) e no **rodapé da janela principal*
 
 ## Temas
 
-Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva e a troca acontece em uma fusão suave de cerca de 360 ms (sem ela, com *Reduzir animações*). *Acessibilidade* é uma seção à parte, com o teclado na tela e as animações. Preferências antigas (`dark`, `gold`, `umber`) migram sozinhas para o tema Noturno.
+Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva e a troca acontece em uma fusão suave de cerca de 360 ms. As *Configurações* não têm mais seção de acessibilidade: o teclado abre com duplo clique e as animações são sempre completas. Preferências antigas (`dark`, `gold`, `umber`) migram sozinhas para o tema Noturno.
 
 ### Noturno · roxo e dourado (padrão)
 
@@ -194,7 +194,7 @@ Inspiração: movimento da Apple (molas com amortecimento, entradas escalonadas,
 
 O efeito de pressão é **só pintura**: não muda o tamanho do botão. Escalar a geometria foi descartado porque faz o layout se mexer e perde toques na borda.
 
-**Reduzir animações.** Em *Configurações → Acessibilidade → Animações* (ou `SPECTRUM_REDUCE_MOTION=1`) ficam só a troca de estado dos botões; molas, entradas, fusões e a subida das barras são desligadas.
+**Animações reduzidas (uso técnico).** Não há opção na tela. A variável `SPECTRUM_REDUCE_MOTION=1` deixa só a troca de estado dos botões; molas, entradas, fusões e a subida das barras são desligadas.
 
 ## Indicador de análise
 
@@ -209,7 +209,7 @@ Abaixo do gráfico, o `AnalysisIndicator` mostra o que o equipamento faz, em lin
 
 Para touchscreen, ao tocar em um campo de texto abre um teclado próprio (`touch_keyboard.py`), com o mesmo estilo plano dos botões:
 
-- **Quando abre.** Só em aparelhos de toque. O programa reconhece sozinho se o aparelho tem tela de toque (`QTouchDevice`) ou se é uma plataforma móvel (Android/iOS). Em computador com mouse, o teclado **não abre**, nem ao iniciar um teste. Em *Configurações → Acessibilidade → Teclado na tela* há três modos: **Automático** (padrão), **Sempre** e **Nunca**; a tela mostra o que foi detectado neste aparelho. A variável `SPECTRUM_TOUCH=1` (ou `0`) força o resultado, útil em testes.
+- **Quando abre.** Com **duplo clique** em um campo de texto. Um clique simples só posiciona o cursor. Um clique fora do teclado e fora do campo o recolhe. O teclado é uma janela própria, sem modos nem detecção de aparelho, e pode ser arrastado pela faixa do título; ao abrir de novo, volta para perto do campo.
 - **Tamanho e lugar.** Menor que antes (numérico 300 × 248 px; completo até 660 × 292 px) e no **canto superior esquerdo** da janela. Só sai de lá se cobrir o campo em edição; nesse caso vai para baixo ou ao lado do campo.
 - **Numérico** (dígitos e ponto) no campo de IP; **só dígitos** na porta. **Completo** (letras, símbolos e acentos do português) nos demais campos, como login e nomes de amostra.
 - Não rouba o foco: o cursor continua no campo e as teclas chegam como as do teclado físico. Funciona dentro de diálogos modais.

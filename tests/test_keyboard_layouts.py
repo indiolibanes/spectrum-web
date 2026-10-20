@@ -143,27 +143,5 @@ class PlacementTests(unittest.TestCase):
         self.assertLessEqual(kl.keyboard_size("full", 1920, 1080)[0], 700)
 
 
-class ModeTests(unittest.TestCase):
-    def test_auto_opens_only_on_touch_or_mobile(self):
-        self.assertFalse(kl.keyboard_allowed("auto", touch_screen=False))
-        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=True))
-        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=False, mobile_platform=True))
-
-    def test_always_and_never_ignore_detection(self):
-        self.assertTrue(kl.keyboard_allowed("always", touch_screen=False))
-        self.assertFalse(kl.keyboard_allowed("never", touch_screen=True, mobile_platform=True))
-
-    def test_environment_override_applies_in_auto(self):
-        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=False, override=True))
-        self.assertFalse(kl.keyboard_allowed("auto", touch_screen=True, override=False))
-
-    def test_legacy_preference_migrates_without_forcing_the_keyboard_on(self):
-        self.assertEqual(kl.normalize_mode(None, True), "auto")
-        self.assertEqual(kl.normalize_mode(None, False), "never")
-        self.assertEqual(kl.normalize_mode(None), "auto")
-        self.assertEqual(kl.normalize_mode("always", False), "always")
-        self.assertEqual(kl.normalize_mode("lixo", True), "auto")
-
-
 if __name__ == "__main__":
     unittest.main()

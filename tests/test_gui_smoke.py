@@ -47,8 +47,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.app.processEvents()
 
     def tearDown(self):
-        os.environ.pop("SPECTRUM_TOUCH", None)
-        self.manager.keyboard._detect_cache = None
+        self.manager.keyboard.hide_keyboard()
 
     def test_embedded_fonts_are_registered(self):
         families = set(QFontDatabase().families())
@@ -185,9 +184,6 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertFalse(button._fx_overlay.busy_timer.isActive())
 
     def test_numeric_keyboard_types_an_ip_address(self):
-        os.environ["SPECTRUM_TOUCH"] = "1"
-        self.manager.set_keyboard_mode("auto")
-        self.manager.keyboard._detect_cache = None
         host = QWidget()
         layout = QVBoxLayout(host)
         field = QLineEdit()
@@ -229,50 +225,30 @@ class GuiSmokeTests(unittest.TestCase):
         keyboard.hide()
         host.close()
 
-    def test_keyboard_modes(self):
-        keyboard = self.manager.keyboard
-        os.environ.pop("SPECTRUM_TOUCH", None)
-        for mode, expected in (("never", False), ("always", True)):
-            self.manager.set_keyboard_mode(mode)
-            keyboard._detect_cache = None
-            self.assertEqual(keyboard.enabled, expected, mode)
-        # Automático: segue o aparelho (aqui, o override do ambiente simula com e sem toque)
-        self.manager.set_keyboard_mode("auto")
-        for value, expected in (("1", True), ("0", False)):
-            os.environ["SPECTRUM_TOUCH"] = value
-            keyboard._detect_cache = None
-            self.assertEqual(keyboard.enabled, expected, value)
-        os.environ.pop("SPECTRUM_TOUCH", None)
-        keyboard._detect_cache = None
-
-    def test_keyboard_does_not_open_at_startup_or_without_touch(self):
-        os.environ["SPECTRUM_TOUCH"] = "0"
-        self.manager.set_keyboard_mode("auto")
-        self.manager.keyboard._detect_cache = None
+    def test_double_click_opens_and_outside_click_closes(self):
         host = QWidget()
         field = QLineEdit(host)
-        host.resize(300, 100)
+        other = QPushButton("fora", host)
+        other.move(200, 60)
+        host.resize(400, 200)
         host.show()
-        field.setFocus()
-        self.pump()
-        QTest.mouseClick(field, Qt.LeftButton)
         self.pump()
         keyboard = self.manager.keyboard
-        self.assertFalse(keyboard._visible(), "sem tela de toque o teclado não deve abrir")
-        os.environ["SPECTRUM_TOUCH"] = "1"
-        keyboard._detect_cache = None
-        QTest.mouseClick(field, Qt.LeftButton)
+        QTest.mouseClick(field, Qt.LeftButton)          # clique simples não abre o teclado
+        self.pump()
+        self.assertFalse(keyboard._visible())
+        QTest.mouseDClick(field, Qt.LeftButton)         # duplo clique abre
         QTest.qWait(50)
-        self.assertTrue(keyboard._visible(), "com tela de toque o teclado abre ao tocar no campo")
-        keyboard.hide_keyboard()
-        os.environ.pop("SPECTRUM_TOUCH", None)
-        keyboard._detect_cache = None
+        self.assertTrue(keyboard._visible())
+        QTest.mouseClick(field, Qt.LeftButton)          # tocar no próprio campo mantém aberto
+        self.pump()
+        self.assertTrue(keyboard._visible())
+        QTest.mouseClick(other, Qt.LeftButton)          # clique fora recolhe
+        self.pump()
+        self.assertFalse(keyboard._visible())
         host.close()
 
     def test_keyboard_is_compact_and_in_the_top_left(self):
-        os.environ["SPECTRUM_TOUCH"] = "1"
-        self.manager.set_keyboard_mode("auto")
-        self.manager.keyboard._detect_cache = None
         host = QWidget()
         field = QLineEdit(host)
         field.move(700, 400)
@@ -288,8 +264,6 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertLessEqual(keyboard.x() - area.x(), 40)
         self.assertLessEqual(keyboard.y() - area.y(), 40)
         keyboard.hide()
-        os.environ.pop("SPECTRUM_TOUCH", None)
-        self.manager.keyboard._detect_cache = None
         host.close()
 
 
@@ -301,20 +275,13 @@ class GuiSmokeTests(unittest.TestCase):
         self.pump()
         return dialog
 
-    def test_settings_separates_appearance_from_accessibility(self):
-        from PyQt5.QtWidgets import QComboBox, QFrame
+    def test_settings_has_only_the_appearance_section(self):
+        from PyQt5.QtWidgets import QFrame
         dialog = self._dialog()
         sections = [f for f in dialog.findChildren(QFrame) if f.objectName() == "settingsSection"]
-        self.assertEqual(len(sections), 2)
-        appearance_section, access_section = sections
-        # o tema fica só na primeira seção; teclado e animações só na segunda
-        for button in dialog.theme_buttons.values():
-            self.assertTrue(appearance_section.isAncestorOf(button))
-            self.assertFalse(access_section.isAncestorOf(button))
-        for combo in (dialog.keyboard_selector, dialog.motion_selector):
-            self.assertIsInstance(combo, QComboBox)
-            self.assertTrue(access_section.isAncestorOf(combo))
-            self.assertFalse(appearance_section.isAncestorOf(combo))
+        self.assertEqual(len(sections), 1)
+        self.assertFalse(hasattr(dialog, "keyboard_selector"))
+        self.assertFalse(hasattr(dialog, "motion_selector"))
         dialog.close()
 
     def test_settings_theme_buttons_switch_theme(self):
@@ -325,17 +292,6 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertFalse(dialog.theme_buttons["noturno"].isChecked())
         dialog.theme_buttons["noturno"].click()
         self.assertEqual(self.manager.theme, "noturno")
-        dialog.close()
-
-    def test_reduce_motion_option(self):
-        import motion
-        dialog = self._dialog()
-        dialog.motion_selector.setCurrentIndex(1)
-        self.assertTrue(self.manager.reduce_motion)
-        self.assertTrue(motion.reduced())
-        dialog.motion_selector.setCurrentIndex(0)
-        self.assertFalse(self.manager.reduce_motion)
-        self.assertFalse(motion.reduced())
         dialog.close()
 
     def test_theme_switch_with_crossfade_leaves_no_overlay_behind(self):

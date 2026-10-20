@@ -99,34 +99,6 @@ def resolve_kind(property_value, inside_spin_box=False):
     return "numeric" if inside_spin_box else "full"
 
 
-MODES = ("auto", "always", "never")
-DEFAULT_MODE = "auto"
-
-
-def normalize_mode(value, legacy_enabled=None):
-    """Modo do teclado: 'auto', 'always' ou 'never'. Preferência antiga (sim/não): sim vira 'auto'."""
-    if value in MODES:
-        return value
-    if legacy_enabled is None:
-        return DEFAULT_MODE
-    return "auto" if legacy_enabled else "never"
-
-
-def keyboard_allowed(mode, touch_screen, mobile_platform=False, override=None):
-    """Se o teclado na tela pode abrir.
-
-    'never' nunca abre e 'always' sempre abre. Em 'auto' abre só em aparelho com tela de toque ou em
-    plataforma móvel (Android, iOS); o ambiente pode forçar com SPECTRUM_TOUCH=1 ou 0 (override True/False).
-    """
-    if mode == "never":
-        return False
-    if mode == "always":
-        return True
-    if override is not None:
-        return bool(override)
-    return bool(touch_screen or mobile_platform)
-
-
 def keyboard_size(kind, screen_width, screen_height):
     """(largura, altura) do teclado em pixels, limitado à tela. Compacto: ocupa pouco do painel."""
     if kind in ("numeric", "digits"):

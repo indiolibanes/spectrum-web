@@ -119,4 +119,4 @@ bash run/stop.sh
 
 ## O que o simulador responde
 
-`run/fake_esp32.py` atende os comandos do firmware real: `CMD:PING`, `CMD:ESTADO_PORTA`, movimentos de gaveta, porta e sensor, `CMD:LER_ESPECTRO` (6 canais, 610 a 860 nm), `CMD:LER_ESCURO`, `CMD:EMERGENCIA` e `CMD:MANUAL:<cmd>`. Ele não simula ruído, falhas nem tempos reais de motor.
+`run/fake_esp32.py` atende os comandos do firmware real: `CMD:PING` (com os protocolos de porta, carrinho, manual e admin, sem os quais a leitura fica bloqueada), `CMD:ESTADO_PORTA`, `CMD:DIAG_SENSOR` (ESPDIAG), `CMD:ADMIN_CARCACA`, movimentos de gaveta, porta e sensor, `CMD:LER_ESPECTRO` (6 canais, 610 a 860 nm), `CMD:LER_ESCURO`, `CMD:EMERGENCIA` e `CMD:MANUAL:<cmd>`. Quando o IP é `127.0.0.1`, o supervisório mostra o selo **SIMULAÇÃO**: os dados são de teste. Ele não simula ruído, falhas nem tempos reais de motor.

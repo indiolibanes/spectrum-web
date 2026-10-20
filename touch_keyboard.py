@@ -1,34 +1,25 @@
 """
-Teclado na tela para uso com touchscreen.
+Teclado na tela para uso com touchscreen (e com mouse, se preferir).
 
 Como funciona
-  - O controlador observa a aplicação inteira. Ao tocar em um campo de texto, abre o teclado
-    flutuante; ao terminar (Concluir) ou tocar em Fechar, ele some.
+  - Abre sob demanda: um DUPLO CLIQUE (ou toque duplo) em um campo de texto mostra o teclado. Um
+    clique simples só posiciona o cursor, como em qualquer campo.
+  - Um clique fora do teclado e fora do campo em edição o recolhe. Concluir ou Fechar também o recolhem.
+  - Pode ser arrastado pela faixa do título. Ao abrir de novo, volta para perto do campo.
   - É uma janela própria que NÃO rouba o foco, então o cursor continua no campo e as teclas
     chegam a ele como se fossem as do teclado físico (QKeyEvent). Funciona com QLineEdit,
-    QSpinBox, QTextEdit e QPlainTextEdit, inclusive dentro de diálogos modais (a janela do
-    teclado é filha do diálogo, por isso a modalidade não a bloqueia).
+    QSpinBox, QTextEdit e QPlainTextEdit, inclusive dentro de diálogos modais.
   - Campos com a propriedade touchKeyboard = "numeric" (dígitos e ponto), "digits" (só dígitos)
     ou "off" escolhem o teclado. Sem a propriedade, usa o teclado completo (ou numérico em
     caixas de número).
-  - Modo em Configurações > Acessibilidade: Automático (padrão; só abre em aparelho com tela de
-    toque), Sempre ou Desligado. SPECTRUM_TOUCH=1 ou 0 força a detecção no modo Automático.
-  - Fica compacto no canto superior esquerdo, sem cobrir o campo em edição.
 
 As regras de teclas e de posicionamento ficam em keyboard_layouts.py (testado sem Qt).
 """
-import os
-import sys
-import time
 from functools import partial
 
 from PyQt5 import sip
 from PyQt5.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QTimer
 from PyQt5.QtGui import QKeyEvent
-try:
-    from PyQt5.QtGui import QTouchDevice
-except ImportError:   # pragma: no cover
-    QTouchDevice = None
 from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit,
                              QPushButton, QSizePolicy, QTextEdit, QVBoxLayout, QWidget)
 
@@ -39,7 +30,7 @@ from animation_math import mix_hex as _mix
 
 INPUT_TYPES = (QLineEdit, QTextEdit, QPlainTextEdit)
 KEYBOARD_FLAGS = Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
-HIDE_DELAY_MS = 220
+HEADER_GRAB_PX = 44   # faixa do título onde um arraste move o teclado
 
 
 def is_input(widget):
@@ -108,6 +99,26 @@ class TouchKeyboard(QWidget):
         self.rows = QVBoxLayout()
         self.rows.setSpacing(6)
         root.addLayout(self.rows, 1)
+
+    # -- arrastar pelo título --------------------------------------------------------------
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and event.pos().y() <= HEADER_GRAB_PX:
+            self._drag_offset = event.globalPos() - self.pos()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        offset = getattr(self, "_drag_offset", None)
+        if offset is not None and event.buttons() & Qt.LeftButton:
+            self.move(event.globalPos() - offset)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_offset = None
+        super().mouseReleaseEvent(event)
 
     # -- aparência ------------------------------------------------------------------------
     def style_for(self, p):
@@ -254,59 +265,13 @@ QPushButton#kbEnter:pressed {{background:{hot};}}"""
 
 
 class TouchKeyboardController(QObject):
+    """Abre o teclado com duplo clique em um campo de texto e o recolhe com um clique fora dele."""
     def __init__(self, app, manager):
         super().__init__(app)
         self.app = app
         self.manager = manager
-        self.mode = kl.DEFAULT_MODE
         self.keyboard = None
-        self._hide_timer = QTimer(self)
-        self._hide_timer.setSingleShot(True)
-        self._hide_timer.setInterval(HIDE_DELAY_MS)
-        self._hide_timer.timeout.connect(self._maybe_hide)
         app.installEventFilter(self)
-
-    # -- dispositivo e modo ---------------------------------------------------------------
-    @staticmethod
-    def touch_detected():
-        """True se o aparelho tem tela de toque (celular, tablet, notebook com toque)."""
-        if QTouchDevice is None:
-            return False
-        try:
-            return any(device.type() == QTouchDevice.TouchScreen for device in QTouchDevice.devices())
-        except Exception:
-            return False
-
-    @staticmethod
-    def mobile_platform():
-        try:
-            name = QApplication.platformName().lower()
-        except Exception:
-            name = ""
-        return sys.platform == "android" or name in ("android", "ios")
-
-    @staticmethod
-    def environment_override():
-        value = os.environ.get("SPECTRUM_TOUCH", "").strip().lower()
-        if value in ("1", "true", "sim", "yes"):
-            return True
-        if value in ("0", "false", "nao", "não", "no"):
-            return False
-        return None
-
-    @property
-    def enabled(self):
-        """Se o teclado pode abrir agora, segundo o modo escolhido e o aparelho.
-
-        O filtro de eventos pergunta isto a cada evento da aplicação; por isso a detecção do aparelho
-        (que consulta o sistema) é refeita no máximo uma vez por segundo."""
-        now = time.monotonic()
-        cached = getattr(self, "_detect_cache", None)
-        if cached is None or now - cached[0] > 1.0:
-            cached = (now, (self.touch_detected(), self.mobile_platform(), self.environment_override()))
-            self._detect_cache = cached
-        touch, mobile, override = cached[1]
-        return kl.keyboard_allowed(self.mode, touch, mobile, override)
 
     # -- janela ---------------------------------------------------------------------------
     def _window(self):
@@ -317,41 +282,35 @@ class TouchKeyboardController(QObject):
     def _visible(self):
         return self.keyboard is not None and not sip.isdeleted(self.keyboard) and self.keyboard.isVisible()
 
+    def _is_keyboard(self, obj):
+        keyboard = self.keyboard
+        if keyboard is None or sip.isdeleted(keyboard):
+            return False
+        return obj is keyboard or keyboard.isAncestorOf(obj)
+
     def hide_keyboard(self, *_):
-        self._hide_timer.stop()
         if self.keyboard is not None and not sip.isdeleted(self.keyboard):
             self.keyboard.target = None
             self.keyboard.hide()
 
     def show_for(self, widget):
-        if not self.enabled or not is_input(widget) or not widget.isVisible():
+        if not is_input(widget) or not widget.isVisible():
             return
         window = self._window()
         if window.isVisible() and window.target is widget:
             return
-        self._hide_timer.stop()
         window.open_for(widget)
-
-    def _maybe_hide(self):
-        focus = QApplication.focusWidget()
-        if is_input(focus):
-            return
-        if self._visible() and self.keyboard.underMouse():
-            return
-        self.hide_keyboard()
 
     # -- observação dos eventos -------------------------------------------------------------
     def eventFilter(self, obj, event):
-        if not self.enabled or not isinstance(obj, QWidget):
+        if not isinstance(obj, QWidget):
             return False
         kind = event.type()
-        if kind == QEvent.FocusIn:
-            if is_input(obj) and (event.reason() == Qt.MouseFocusReason or self._visible()):
+        if kind == QEvent.MouseButtonDblClick:
+            if is_input(obj):
+                # Adiado: o duplo clique ainda seleciona a palavra; o teclado abre logo depois.
                 QTimer.singleShot(0, partial(self.show_for, obj))
-        elif kind == QEvent.MouseButtonRelease:
-            if is_input(obj) and not self._visible():
-                self.show_for(obj)
-        elif kind == QEvent.FocusOut:
-            if is_input(obj) and event.reason() not in (Qt.ActiveWindowFocusReason, Qt.PopupFocusReason):
-                self._hide_timer.start()
+        elif kind == QEvent.MouseButtonPress:
+            if self._visible() and not self._is_keyboard(obj) and obj is not self.keyboard.target:
+                self.hide_keyboard()
         return False
