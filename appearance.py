@@ -3,36 +3,43 @@ import json,os,re,tempfile,weakref
 from pathlib import Path
 from PyQt5 import sip
 from PyQt5.QtCore import QObject,QEvent,QTimer,Qt
-from PyQt5.QtGui import QColor,QPalette
+from PyQt5.QtGui import QColor,QPalette,QPixmap
 from PyQt5.QtWidgets import (QApplication,QWidget,QLabel,QPushButton,QComboBox,QDialog,
                              QVBoxLayout,QHBoxLayout,QFrame,QTabWidget,QMenu)
 from popup_design import popup_owner, popup_stylesheet
+from typography import normalize_qss, install as install_typography
 PALETTES={
- "light":{"canvas":"#E5EAED","surface":"#F1F3F4","soft":"#DCE7E4","border":"#C8D3DB",
-          "text":"#192F39","muted":"#566872","disabled":"#86949E","accent":"#356F6B",
-          "positive":"#3C7058","warning":"#866329","danger":"#A94D56"},
- "dark":{"canvas":"#111B24","surface":"#1B2934","soft":"#223C40","border":"#2D4058",
-         "text":"#E8EFF8","muted":"#A2B3C9","disabled":"#718299","accent":"#76D8D0",
-         "positive":"#6DD6AE","warning":"#F0C478","danger":"#FF98A0"},
- # Ouro sobre preto: fundo preto quente, texto em marfim e destaques dourados.
+ # Escuro: preto quente, texto marfim e detalhes dourados.
  "gold":{"canvas":"#0B0A08","surface":"#131108","soft":"#1C1810","border":"#4A3D22",
          "text":"#F4EAD2","muted":"#BFAE86","disabled":"#6F6548","accent":"#D4AF37",
-         "positive":"#B9D98A","warning":"#E8C25A","danger":"#E97462"}
+         "positive":"#B9D98A","warning":"#E8C25A","danger":"#E97462",
+         "accent_strong":"#D4AF37","positive_strong":"#8FB85A","danger_strong":"#E0604F","on_strong":"#0B0A08"},
+ # Claro: branco e verde. O matiz (~92 graus) vem das colinas do logo do Projeto Sucuriú.
+ "light":{"canvas":"#F6F9F3","surface":"#FFFFFF","soft":"#EAF1E4","border":"#CBD6C2",
+          "text":"#1B2612","muted":"#56634B","disabled":"#7E8873","accent":"#436722",
+          "positive":"#266435","warning":"#8A5A00","danger":"#B3261E",
+          "accent_strong":"#436722","positive_strong":"#266435","danger_strong":"#B3261E","on_strong":"#FFFFFF"},
 }
 DEFAULT_THEME="gold"
-THEME_LABELS={"light":"Claro","dark":"Escuro","gold":"Ouro (preto e dourado)"}
-def texture_path():
-    """Textura de madeira/celulose, quase transparente, usada no fundo do tema ouro."""
+LEGACY_THEMES={"dark":"gold"}   # preferência salva por versões anteriores
+THEME_LABELS={"gold":"Escuro · preto e dourado","light":"Claro · branco e verde"}
+TEXTURE_FILES={"gold":"celulose-madeira.png","light":"celulose-claro.png"}
+def texture_path(theme=None):
+    """Textura de fibras de celulose, quase transparente, usada no fundo da janela principal."""
     import sys
     base=Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))
-    return base/"assets"/"textures"/"celulose-madeira.png"
-def background_stylesheet(theme):
-    if theme!="gold":return ""
-    return f'QMainWindow {{ background-image: url("{texture_path().as_posix()}"); background-repeat: repeat; }}'
+    return base/"assets"/"textures"/TEXTURE_FILES.get(theme or current_theme(),TEXTURE_FILES[DEFAULT_THEME])
+_TEXTURE_CACHE={}
+def texture_pixmap(theme=None):
+    key=theme or current_theme()
+    if key not in _TEXTURE_CACHE:
+        pix=QPixmap(str(texture_path(key)))
+        _TEXTURE_CACHE[key]=pix
+    return _TEXTURE_CACHE[key]
 def current_theme():
     app=QApplication.instance()
-    return app.property("spectrum_theme") or "light" if app else "light"
-def palette_for(theme=None):return PALETTES.get(theme or current_theme(),PALETTES["light"])
+    return (app.property("spectrum_theme") or DEFAULT_THEME) if app else DEFAULT_THEME
+def palette_for(theme=None):return PALETTES.get(theme or current_theme(),PALETTES[DEFAULT_THEME])
 def mapped_color(value,kind="text",theme=None):
     p=palette_for(theme);color=QColor(value)
     if not color.isValid():return value
@@ -43,10 +50,9 @@ def mapped_color(value,kind="text",theme=None):
         if neutral or (lightness<0.20 and 0.48<hue<0.72):
             return p["canvas"] if value.lower() in ("#202020","#0f172a","#18181b","#111B24") else p["surface"]
         if lightness<0.35:
-            if hue<0.08 or hue>0.90:return "#FFF0F2" if (theme or current_theme())=="light" else "#38232F"
+            if hue<0.08 or hue>0.90:return "#FDECEA" if (theme or current_theme())=="light" else "#2A1512"
             return p["soft"]
-        return {"positive":"#087F5B","danger":"#C73544","accent":"#087D7B"}[
-            "danger" if hue<0.08 or hue>0.90 else "positive" if hue<0.47 else "accent"]
+        return p["danger_strong" if hue<0.08 or hue>0.90 else "positive_strong" if hue<0.47 else "accent_strong"]
     if neutral:
         if lightness>0.82:return p["text"]
         return p["disabled"] if lightness<0.38 else p["muted"]
@@ -54,7 +60,7 @@ def mapped_color(value,kind="text",theme=None):
     if hue<0.19:return p["warning"]
     if hue<0.47:return p["positive"]
     if kind=="accent" and hue>0.72:
-        return "#7952B3" if (theme or current_theme())=="light" else "#C3ABF4"
+        return p["accent"]
     return p["accent"]
 def theme_color(value,kind="text"):return mapped_color(value,kind)
 
@@ -71,8 +77,8 @@ def transform_stylesheet(source,theme):
             prop,value,end=match.groups()
             kind="surface" if prop.lower().startswith("background") else "border" if prop.lower().startswith("border") else "text"
             if prop.lower()=="color" and strong:
-                # Texto claro sobre fundo forte; no tema ouro o "claro" é o preto do fundo.
-                on_strong="#0B0A08" if theme=="gold" else "#FFFFFF"
+                # Texto sobre fundo forte: preto no tema ouro, branco no tema claro.
+                on_strong=palette_for(theme)["on_strong"]
                 value=COLOR.sub(lambda m:on_strong if QColor(m[0]).lightnessF()>0.82 else mapped_color(m[0],kind,theme),value)
             else:value=COLOR.sub(lambda m:mapped_color(m[0],kind,theme),value)
             if kind=="surface" and "qlineargradient" in value:
@@ -87,32 +93,59 @@ def preferences_path():
     base=os.environ.get("SPECTRUM_LAB_DATA_DIR")
     if not base:base=str(Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".spectrum_lab")))/"SpectrumLabPro")
     return Path(base)/"interface.json"
-def read_preference(path):
+def read_preferences(path):
+    """Lê interface.json. Aceita o formato antigo (só o tema) e migra o tema escuro azul para o ouro."""
     try:
-        theme=json.loads(path.read_text(encoding="utf-8")).get("theme")
-        return theme if theme in PALETTES else DEFAULT_THEME
-    except (OSError,ValueError,TypeError,AttributeError):return DEFAULT_THEME
-def save_preference(path,theme):
+        data=json.loads(path.read_text(encoding="utf-8"))
+    except (OSError,ValueError,TypeError,AttributeError):
+        data={}
+    if not isinstance(data,dict):data={}
+    theme=data.get("theme")
+    theme=LEGACY_THEMES.get(theme,theme)
+    if theme not in PALETTES:theme=DEFAULT_THEME
+    return {"theme":theme,"touch_keyboard":bool(data.get("touch_keyboard",True))}
+def read_preference(path):return read_preferences(path)["theme"]
+def save_preferences(path,prefs):
     temporary=None
     try:
         path.parent.mkdir(parents=True,exist_ok=True)
         with tempfile.NamedTemporaryFile("w",encoding="utf-8",dir=path.parent,delete=False) as handle:
-            temporary=Path(handle.name);json.dump({"theme":theme},handle);handle.flush();os.fsync(handle.fileno())
+            temporary=Path(handle.name);json.dump(prefs,handle);handle.flush();os.fsync(handle.fileno())
         os.replace(temporary,path);return True,""
     except OSError as exc:return False,str(exc)
     finally:
         if temporary and temporary.exists():temporary.unlink(missing_ok=True)
+def save_preference(path,theme):
+    prefs=read_preferences(path);prefs["theme"]=theme
+    return save_preferences(path,prefs)
 
 class ThemeManager(QObject):
     def __init__(self,app):
         super().__init__(app)
         self.app=app;self.applying=False;self.path=preferences_path();self.last_error=""
-        self.theme=read_preference(self.path)
+        self.prefs=read_preferences(self.path)
+        self.theme=self.prefs["theme"]
+        try:install_typography(app)
+        except Exception:pass   # sem as fontes embutidas o programa usa as alternativas da pilha
         app.installEventFilter(self)
+        from button_fx import ButtonFx
+        from touch_keyboard import TouchKeyboardController
+        self.button_fx=ButtonFx(app)
+        self.keyboard=TouchKeyboardController(app,self)
+        self.keyboard.enabled=self.prefs["touch_keyboard"]
         self.set_theme(self.theme,False)
+    @property
+    def touch_keyboard(self):return self.keyboard.enabled
+    def set_touch_keyboard(self,enabled):
+        self.keyboard.enabled=bool(enabled);self.prefs["touch_keyboard"]=bool(enabled)
+        if not enabled:self.keyboard.hide_keyboard()
+        ok,self.last_error=save_preferences(self.path,self.prefs);return ok
     def refresh_preferences_path(self):
         path=preferences_path()
-        if path!=self.path:self.path=path;self.set_theme(read_preference(path),False)
+        if path!=self.path:
+            self.path=path;self.prefs=read_preferences(path)
+            self.keyboard.enabled=self.prefs["touch_keyboard"]
+            self.set_theme(self.prefs["theme"],False)
     def eventFilter(self,obj,event):
         if isinstance(obj,QWidget) and not self.applying and event.type() in (QEvent.StyleChange,QEvent.Show):
             if not getattr(obj,"_theme_queued",False):
@@ -146,6 +179,7 @@ class ThemeManager(QObject):
         in_popup = popup_owner(widget) is not None
         if in_popup:
             rendered = popup_stylesheet(widget, palette_for(self.theme), rendered)
+        rendered=normalize_qss(rendered)
         widget._theme_last_qss=rendered
         previous=self.applying;self.applying=True
         try:
@@ -184,17 +218,16 @@ class ThemeManager(QObject):
                          (QPalette.ButtonText,"text"),(QPalette.Highlight,"accent"),
                          (QPalette.ToolTipBase,"surface"),(QPalette.ToolTipText,"text")):
             pal.setColor(role,QColor(p[key]))
-        pal.setColor(QPalette.HighlightedText,QColor("#0B0A08" if theme=="gold" else "#FFFFFF"))
+        pal.setColor(QPalette.HighlightedText,QColor(p["on_strong"]))
         for role in (QPalette.Text,QPalette.WindowText,QPalette.ButtonText):
             pal.setColor(QPalette.Disabled,role,QColor(p["disabled"]))
         self.applying=True
-        try:
-            self.app.setPalette(pal)
-            self.app.setStyleSheet(background_stylesheet(theme))
+        try:self.app.setPalette(pal)
         finally:self.applying=False
         for widget in self.app.allWidgets():self.apply_widget(widget)
+        self.prefs["theme"]=theme
         if persist:
-            ok,self.last_error=save_preference(self.path,theme);return ok
+            ok,self.last_error=save_preferences(self.path,self.prefs);return ok
         return True
 
 def ensure_theme_manager():
@@ -209,19 +242,27 @@ class AppearanceDialog(QDialog):
         super().__init__(parent)
         self.manager=manager
         self.setWindowTitle("Configurações · Aparência")
-        self.resize(420,240)
+        self.resize(460,330)
         layout=QVBoxLayout(self);layout.setContentsMargins(24,22,24,22);layout.setSpacing(14)
-        title=QLabel("Aparência");title.setStyleSheet("color: #FFFFFF; font-size: 22px; font-weight: 600;")
+        title=QLabel("Aparência");title.setStyleSheet("color: #FFFFFF; font-size: 19px; font-weight: 600; font-family: 'IBM Plex Serif';")
         layout.addWidget(title)
         label=QLabel("Escolha o tema da interface. A preferência será lembrada.")
-        label.setWordWrap(True);label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        label.setWordWrap(True);label.setStyleSheet("color: #9CA3AF; font-size: 13px;")
         layout.addWidget(label)
         self.selector=QComboBox()
-        for key in ("gold","light","dark"):self.selector.addItem(THEME_LABELS[key],key)
+        for key in ("gold","light"):self.selector.addItem(THEME_LABELS[key],key)
         self.selector.setCurrentIndex(max(0,self.selector.findData(manager.theme)))
         self.selector.setMinimumHeight(38)
         self.selector.currentIndexChanged.connect(self.change_theme)
         layout.addWidget(self.selector)
+        layout.addWidget(QLabel("Teclado na tela (para touchscreen)"))
+        self.keyboard_selector=QComboBox()
+        self.keyboard_selector.addItem("Ligado: abre ao tocar em um campo",True)
+        self.keyboard_selector.addItem("Desligado: usar o teclado do computador",False)
+        self.keyboard_selector.setCurrentIndex(0 if manager.touch_keyboard else 1)
+        self.keyboard_selector.setMinimumHeight(38)
+        self.keyboard_selector.currentIndexChanged.connect(self.change_keyboard)
+        layout.addWidget(self.keyboard_selector)
         self.feedback=QLabel("A alteração é aplicada imediatamente.")
         self.feedback.setWordWrap(True);self.feedback.setStyleSheet("color: #9CA3AF; font-size: 11px;")
         layout.addWidget(self.feedback)
@@ -229,6 +270,9 @@ class AppearanceDialog(QDialog):
         close=QPushButton("Concluir");close.clicked.connect(self.accept);row.addWidget(close)
         layout.addLayout(row)
         for widget in (self,*self.findChildren(QWidget)):manager.apply_widget(widget)
+    def change_keyboard(self):
+        ok=self.manager.set_touch_keyboard(self.keyboard_selector.currentData())
+        self.feedback.setText("Preferência salva." if ok else "Aplicado nesta sessão. Não foi possível salvar a preferência.")
     def change_theme(self):
         ok=self.manager.set_theme(self.selector.currentData())
         self.feedback.setText("Preferência salva." if ok else "Tema aplicado nesta sessão. Não foi possível salvar a preferência.")

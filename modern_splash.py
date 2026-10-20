@@ -4,7 +4,8 @@ from PyQt5.QtCore import Qt,QTimer,pyqtSignal,QPropertyAnimation,QEasingCurve,QR
 from PyQt5.QtGui import QPainter,QColor,QPen,QFont,QPainterPath
 from appearance import palette_for
 from brand_assets import program_logo_pixmap, logo_pixmap
-from version import __version__
+from version import __version__,__authors__
+import typography as ty
 
 class AnimatedSplashScreen(QWidget):
     finished=pyqtSignal()
@@ -48,13 +49,13 @@ class AnimatedSplashScreen(QWidget):
         c=palette_for();p=QPainter(self);p.setRenderHint(QPainter.Antialiasing);p.scale(self.width()/900,self.height()/520)
         p.setPen(Qt.NoPen);p.setBrush(QColor(c['surface']));p.drawRoundedRect(QRectF(0,0,900,520),14,14)
         p.setBrush(QColor(c['soft']));p.drawRect(QRectF(450,0,450,520))
-        def text(x,y,value,size,key='text',family='Segoe UI'):
-            font=QFont(family);font.setPixelSize(size);p.setFont(font);p.setPen(QColor(c[key]));p.drawText(QPointF(x,y),value)
+        def text(x,y,value,size,key='text',kind='ui',weight=400):
+            p.setFont(ty.make_font(kind,size,weight));p.setPen(QColor(c[key]));p.drawText(QPointF(x,y),value)
         p.drawPixmap(45,26,self.mark)
-        text(114,60,'SCADA',28,'text','Bahnschrift');text(114,81,'SPECTRUMLAB PRO · '+__version__,11,'muted')
-        text(45,174,'TECNOLOGIA APLICADA À CELULOSE',11,'accent')
-        text(45,230,'Da luz',44,'text','Bahnschrift');text(45,277,'à análise.',44,'text','Bahnschrift')
-        text(45,323,'Controle da bancada, aquisição espectral',13,'muted');text(45,344,'e análise demonstrativa de celulose.',13,'muted')
+        text(114,58,'SpectrumLab Pro',28,'accent','display',600);text(114,81,'Supervisório SCADA · versão '+__version__,13,'muted')
+        text(45,174,'TECNOLOGIA APLICADA À CELULOSE',11,'accent','ui',600)
+        text(45,230,'Da luz',ty.SIZE_DISPLAY,'text','display',600);text(45,277,'à análise.',ty.SIZE_DISPLAY,'accent','display',600)
+        text(45,323,'Controle da bancada, aquisição espectral',15,'muted');text(45,346,'e análise demonstrativa de celulose.',15,'muted')
         p.setPen(Qt.NoPen);p.setBrush(QColor(c['border']));p.drawRoundedRect(QRectF(45,391,340,8),4,4)
         fill_width=340*self.display_progress/100
         track=QPainterPath();track.addRoundedRect(QRectF(45,391,fill_width,8),4,4)
@@ -62,7 +63,7 @@ class AnimatedSplashScreen(QWidget):
         p.save();p.setClipPath(track)
         shine=QColor(c['surface']);shine.setAlpha(80)
         p.fillRect(QRectF(45+self.loading_phase*400-60,391,60,8),shine);p.restore()
-        text(45,421,self.status,11,'muted');text(351,421,f'{self.progress_val}%',11,'accent')
+        text(45,423,self.status,13,'muted');text(351,423,f'{self.progress_val}%',13,'accent','data',500)
         for i,logo in enumerate(self.logos):p.drawPixmap(45+i*192,461,logo)
         bottom=310;points=[]
         for i,v in enumerate([.32,.48,.59,.67,.75,.81]):
@@ -74,4 +75,5 @@ class AnimatedSplashScreen(QWidget):
         for point in points[1:]:path.lineTo(point)
         p.setPen(QPen(QColor(c['accent']),2.3));p.setBrush(Qt.NoBrush);p.drawPath(path);p.setBrush(QColor(c['surface']))
         for point in points:p.drawEllipse(point,3,3)
-        text(490,367,'Seis canais. Uma nova perspectiva.',18);text(490,394,'Protótipo acadêmico · SENAI / ARAUCO · Projeto Sucuriú',11,'muted')
+        text(490,367,'Seis canais. Uma nova perspectiva.',19,'text','display',600);text(490,392,'Protótipo acadêmico · SENAI / ARAUCO · Projeto Sucuriú',11,'muted')
+        text(490,467,'Protótipo desenvolvido por',11,'muted');text(490,486,', '.join(__authors__[:-1])+' e '+__authors__[-1],13,'text','ui',500)

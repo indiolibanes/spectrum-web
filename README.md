@@ -23,7 +23,9 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Tema Ouro (preto e dourado)** por padrão, com fundo de textura de celulose. Também há os temas Claro e Escuro.
+- **Dois temas:** Ouro (preto e dourado, padrão) e Claro (branco e verde, na linha da Arauco), com fundo de textura de celulose.
+- **Indicador de análise:** abaixo do gráfico, um rosto sorridente e mensagens em português acompanham cada etapa do ensaio.
+- **Teclado na tela** para touchscreen (numérico no campo de IP, completo nos demais), que pode ser desligado em *Configurações*.
 
 ## Estrutura do repositório
 
@@ -31,6 +33,9 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 |---|---|
 | `main.py` | Janela principal, máquina de estados e fluxos de ensaio |
 | `scada_ui.py` · `appearance.py` · `popup_design.py` | Interface, temas e diálogos de alerta |
+| `typography.py` · `button_fx.py` · `animation_math.py` | Escala tipográfica, efeitos de botão e funções de animação |
+| `analysis_indicator.py` · `analysis_messages.py` | Indicador de análise (rosto, etapas, frases) |
+| `touch_keyboard.py` · `keyboard_layouts.py` | Teclado na tela |
 | `connection_worker.py` · `serial_worker.py` | Comunicação com o ESP32 (USB, Bluetooth SPP e Wi-Fi TCP) |
 | `chemometrics.py` | Calibração, reflectância relativa, SNV e estimativa de Kappa |
 | `equipment_interlocks.py` · `manual_control_dialog.py` | Intertravamentos e painel de atuadores |
@@ -39,9 +44,12 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
-| `assets/textures/` | Textura de celulose do fundo do tema ouro |
+| `assets/fonts/` | Fontes IBM Plex (licença OFL) |
+| `assets/textures/` | Texturas de celulose do fundo (tema ouro e tema claro) |
+| `tests/` | Testes das regras puras e teste gráfico de fumaça |
 | `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
-| `docs/IDENTIDADE_VISUAL.md` | Logos, tipografia e escala de texto |
+| `docs/IDENTIDADE_VISUAL.md` | Logos, temas, tipografia, animações e teclado |
+| `docs/TUTORIAL_CODESPACE.md` | Roteiro de teste da interface no Codespace |
 | `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
 
 ## Identidade visual
@@ -56,17 +64,31 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Cores.** Tema padrão preto e dourado: fundo `#0B0A08`, texto marfim `#F4EAD2` e destaques dourados `#D4AF37`. Para trocar, use *Configurações → Aparência*. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+**Cores.** Dois temas, em *Configurações → Aparência*: **Ouro** (fundo `#0B0A08`, texto marfim `#F4EAD2`, destaques `#D4AF37`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Tipografia.** Todas as famílias vêm com o Windows 10 e 11:
+**Tipografia.** Superfamília IBM Plex (licença OFL), embutida em `assets/fonts/`, igual em Windows, Linux e no executável:
 
 | Família | Uso |
 |---|---|
-| Bahnschrift | Marca e títulos de destaque |
-| Segoe UI | Interface, rótulos e texto corrido |
-| Consolas | Valores de medição e tabelas |
+| IBM Plex Serif | Marca e títulos |
+| IBM Plex Sans | Interface, rótulos e texto corrido |
+| IBM Plex Mono | Valores de medição e tabelas |
 
-A escala vai de 11 px (mínimo) a 44 px (display), com até quatro tamanhos por painel. A tabela completa está no documento de identidade visual.
+A escala vai de 11 px (mínimo) a 40 px (número Kappa), mais 44 px só na abertura. A tabela completa está no documento de identidade visual.
+
+**Assinatura.** Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira.
+
+## Testes
+
+```bash
+python3 -I tests/test_typography.py
+python3 -I tests/test_analysis_messages.py
+python3 -I tests/test_animation_math.py
+python3 -I tests/test_keyboard_layouts.py
+QT_QPA_PLATFORM=offscreen python3 -m unittest tests.test_gui_smoke -v   # precisa de PyQt5
+```
+
+O roteiro de teste visual no Codespace está em [docs/TUTORIAL_CODESPACE.md](docs/TUTORIAL_CODESPACE.md).
 
 ## Requisitos
 
