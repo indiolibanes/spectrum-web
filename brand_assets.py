@@ -41,8 +41,8 @@ def logo_pixmap(name,width=100,height=28):
     return pix
 
 def institutional_signature(parent=None):
-    box=QWidget(parent);layout=QHBoxLayout(box);layout.setContentsMargins(0,0,0,0);layout.setSpacing(18)
+    box=QWidget(parent);layout=QHBoxLayout(box);layout.setContentsMargins(0,0,0,0);layout.setSpacing(14)
     for name,tip in (('senai','SENAI'),('arauco-sucuriu','ARAUCO · Projeto Sucuriú')):
-        label=QLabel();label.setObjectName('institution_'+name);label.setPixmap(logo_pixmap(name,168,28));label.setToolTip(tip)
+        label=QLabel();label.setObjectName('institution_'+name);label.setPixmap(logo_pixmap(name,120,20));label.setToolTip(tip)
         layout.addWidget(label)
     return box

@@ -157,8 +157,9 @@ class ConnectionWorker(QThread):
         sock = None
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.5)
+            sock.settimeout(4.0)    # a conexão com o ESP32 por Wi-Fi pode levar mais de 0,5 s
             sock.connect((host, port))
+            sock.settimeout(2.0)    # envio e recepção seguem com limite curto
 
             self.tcp_socket = sock
             self.sock = sock

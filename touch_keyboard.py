@@ -11,15 +11,24 @@ Como funciona
   - Campos com a propriedade touchKeyboard = "numeric" (dígitos e ponto), "digits" (só dígitos)
     ou "off" escolhem o teclado. Sem a propriedade, usa o teclado completo (ou numérico em
     caixas de número).
-  - Pode ser ligado e desligado em Configurações > Aparência (preferência gravada).
+  - Modo em Configurações > Acessibilidade: Automático (padrão; só abre em aparelho com tela de
+    toque), Sempre ou Desligado. SPECTRUM_TOUCH=1 ou 0 força a detecção no modo Automático.
+  - Fica compacto no canto superior esquerdo, sem cobrir o campo em edição.
 
 As regras de teclas e de posicionamento ficam em keyboard_layouts.py (testado sem Qt).
 """
+import os
+import sys
+import time
 from functools import partial
 
 from PyQt5 import sip
 from PyQt5.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QTimer
 from PyQt5.QtGui import QKeyEvent
+try:
+    from PyQt5.QtGui import QTouchDevice
+except ImportError:   # pragma: no cover
+    QTouchDevice = None
 from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit,
                              QPushButton, QSizePolicy, QTextEdit, QVBoxLayout, QWidget)
 
@@ -83,8 +92,8 @@ class TouchKeyboard(QWidget):
         self._scada_style_factory = self.style_for
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(14, 10, 14, 14)
-        root.setSpacing(8)
+        root.setContentsMargins(10, 6, 10, 10)
+        root.setSpacing(6)
         header = QHBoxLayout()
         self.caption = QLabel("Teclado")
         self.caption.setObjectName("kbCaption")
@@ -92,12 +101,12 @@ class TouchKeyboard(QWidget):
         self.close_button = QPushButton("Fechar")
         self.close_button.setObjectName("kbClose")
         self.close_button.setFocusPolicy(Qt.NoFocus)
-        self.close_button.setMinimumSize(96, 36)
+        self.close_button.setMinimumSize(72, 28)
         self.close_button.clicked.connect(self.controller.hide_keyboard)
         header.addWidget(self.close_button)
         root.addLayout(header)
         self.rows = QVBoxLayout()
-        self.rows.setSpacing(8)
+        self.rows.setSpacing(6)
         root.addLayout(self.rows, 1)
 
     # -- aparência ------------------------------------------------------------------------
@@ -105,15 +114,15 @@ class TouchKeyboard(QWidget):
         accent = p["accent_strong"]
         hot = glass.primary_fill(p, "hot")
         rim = glass.rim(p, 1.2)
-        base = glass.vgrad(_mix(p["canvas"], p["surface"], 0.65), p["canvas"]) if glass.is_dark(p) else glass.vgrad(p["soft"], _mix(p["soft"], p["border"], 0.5))
+        base = p["canvas"] if glass.is_dark(p) else p["soft"]
         return f"""QWidget#touchKeyboard {{background:{base};border:1px solid {rim};}}
 QLabel#kbCaption {{color:{p['muted']};{ty.qss('label')}}}
-QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:0;font-family:{ty.STACK_UI};font-size:19px;font-weight:400;}}
+QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:8px;padding:0;font-family:{ty.STACK_UI};font-size:16px;font-weight:400;}}
 QPushButton:pressed {{background:{hot};color:{p['on_strong']};border:1px solid {accent};}}
-QPushButton#kbNum {{font-family:{ty.STACK_DATA};font-size:19px;font-weight:400;}}
+QPushButton#kbNum {{font-family:{ty.STACK_DATA};font-size:16px;font-weight:400;}}
 QPushButton#kbAction,QPushButton#kbClose {{color:{p['muted']};{ty.qss('body')}}}
 QPushButton#kbShiftOn {{color:{p['accent']};border:1px solid {p['accent']};{ty.qss('body')}}}
-QPushButton#kbEnter {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {_mix(accent, '#FFFFFF', 0.35)};{ty.qss('button')}}}
+QPushButton#kbEnter {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {accent};{ty.qss('button')}}}
 QPushButton#kbEnter:pressed {{background:{hot};}}"""
 
     # -- montagem das teclas ----------------------------------------------------------------
@@ -135,7 +144,7 @@ QPushButton#kbEnter:pressed {{background:{hot};}}"""
         numeric = self.kind in ("numeric", "digits")
         for key_row in kl.layout_for(self.kind, self.layer, self.shift):
             row = QHBoxLayout()
-            row.setSpacing(8)
+            row.setSpacing(6)
             for key in key_row:
                 weight = int(key.weight * 10)
                 if key.kind == "spacer":
@@ -143,7 +152,7 @@ QPushButton#kbEnter:pressed {{background:{hot};}}"""
                     continue
                 button = QPushButton(key.label)
                 button.setFocusPolicy(Qt.NoFocus)
-                button.setMinimumHeight(44)
+                button.setMinimumHeight(34)
                 button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                 if key.kind == "enter":
                     button.setObjectName("kbEnter")
@@ -249,13 +258,55 @@ class TouchKeyboardController(QObject):
         super().__init__(app)
         self.app = app
         self.manager = manager
-        self.enabled = True
+        self.mode = kl.DEFAULT_MODE
         self.keyboard = None
         self._hide_timer = QTimer(self)
         self._hide_timer.setSingleShot(True)
         self._hide_timer.setInterval(HIDE_DELAY_MS)
         self._hide_timer.timeout.connect(self._maybe_hide)
         app.installEventFilter(self)
+
+    # -- dispositivo e modo ---------------------------------------------------------------
+    @staticmethod
+    def touch_detected():
+        """True se o aparelho tem tela de toque (celular, tablet, notebook com toque)."""
+        if QTouchDevice is None:
+            return False
+        try:
+            return any(device.type() == QTouchDevice.TouchScreen for device in QTouchDevice.devices())
+        except Exception:
+            return False
+
+    @staticmethod
+    def mobile_platform():
+        try:
+            name = QApplication.platformName().lower()
+        except Exception:
+            name = ""
+        return sys.platform == "android" or name in ("android", "ios")
+
+    @staticmethod
+    def environment_override():
+        value = os.environ.get("SPECTRUM_TOUCH", "").strip().lower()
+        if value in ("1", "true", "sim", "yes"):
+            return True
+        if value in ("0", "false", "nao", "não", "no"):
+            return False
+        return None
+
+    @property
+    def enabled(self):
+        """Se o teclado pode abrir agora, segundo o modo escolhido e o aparelho.
+
+        O filtro de eventos pergunta isto a cada evento da aplicação; por isso a detecção do aparelho
+        (que consulta o sistema) é refeita no máximo uma vez por segundo."""
+        now = time.monotonic()
+        cached = getattr(self, "_detect_cache", None)
+        if cached is None or now - cached[0] > 1.0:
+            cached = (now, (self.touch_detected(), self.mobile_platform(), self.environment_override()))
+            self._detect_cache = cached
+        touch, mobile, override = cached[1]
+        return kl.keyboard_allowed(self.mode, touch, mobile, override)
 
     # -- janela ---------------------------------------------------------------------------
     def _window(self):

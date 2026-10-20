@@ -9,15 +9,15 @@ import typography as ty
 from emoji_icons import GlyphIcon
 from animation_math import mix_hex
 from analysis_indicator import AnalysisIndicator
-from brand_assets import institutional_signature
+from brand_assets import institutional_signature,program_logo_pixmap
 from diagnostics import ControllerDiagnosticsCard
 from responsive_layout import ScaledCanvasView
 from version import __credits__,credits_html
 
 class CanvasRoot(QWidget):
-    """Raiz do painel: fundo do tema, textura (só celulose, no claro) e brilho ambiente.
+    """Raiz do painel: fundo liso do tema.
 
-    Os cartões são translúcidos (ver glass.py), então tudo isso aparece por trás deles."""
+    Estilo plano (ISA-101): hoje só a cor de fundo é pintada; textura e brilho foram retirados."""
     def paint_background(self,painter):
         """Fundo completo (cor, textura e brilho ambiente). Usado também pela animação de entrada."""
         from appearance import palette_for,texture_pixmap
@@ -44,7 +44,7 @@ def panel():
 def label(text,role='body',muted=False,name=None):
     """Rótulo com um papel tipográfico (ver typography.ROLES). 'muted' usa a cor secundária do tema."""
     out=QLabel(text)
-    if role in ('display','title','section'):out.setProperty('role','heading')   # cor de título definida no tema
+    if role in ('display','brand','title','section'):out.setProperty('role','heading')   # cor de título definida no tema
     out.setStyleSheet(('color: #9CA3AF; ' if muted else '')+ty.qss(role))
     if name:out.setObjectName(name)
     return out
@@ -61,13 +61,14 @@ def open_login(window):
         window.log_message('Sessão autenticada: '+window.current_operator_name)
 
 def dashboard_style(p):
-    """Folha de estilo do painel: vidro sobre o preto, botões com tom por função, destaque dourado."""
+    """Folha de estilo do painel (ISA-101): superfícies planas, botões com tom por função, destaque roxo."""
     accent=p['accent_strong']
     rim=glass.rim(p);rim_soft=glass.rim(p,.6);rim_button=glass.rim(p,1.5)
-    hover_border=glass.rgba(p['accent'],.85)
-    result_border=glass.rgba(p['accent'],.45)
-    danger_hot=glass.vgrad(mix_hex(p['danger_strong'],'#FFFFFF',.25),p['danger_strong'])
-    busy=glass.vgrad(glass.rgba(p['accent'],.34),glass.rgba(p['accent'],.18))
+    hover_border=p['accent']
+    result_border=glass.tone_border(p,'accent')
+    danger_hot=mix_hex(p['danger_strong'],'#FFFFFF',.25)
+    busy=mix_hex(p['surface'],p['accent'],.35)
+    danger_fill=mix_hex(p['surface'],p['danger'],.20)
     tones=''.join(f'''QPushButton[tone="{t}"] {{background:{glass.tone_fill(p,t)};color:{glass.tone_text(p,t)};border:1px solid {glass.tone_border(p,t)};}}
 QPushButton[tone="{t}"]:hover {{background:{glass.tone_fill(p,t,'hover')};border:1px solid {glass.tone_border(p,t,'hover')};}}
 QPushButton[tone="{t}"]:pressed {{background:{glass.tone_hot(p,t)};color:{glass.on_tone(p)};border:1px solid {glass.tone_color(p,t)};}}
@@ -79,28 +80,29 @@ QLabel#brandTitle {{color:{p['heading']};}}
 QLabel#kappaValue {{color:{p['accent']};}}
 QLabel#credits {{color:{p['text']};}}
 QLabel[role="heading"] {{color:{p['heading']};}}
-QFrame#scadaPanel {{background:{glass.panel_fill(p)};border:1px solid {rim};border-radius:16px;}}
-QFrame#scadaFooter {{background:{glass.result_fill(p)};border:1px solid {glass.rgba(p['accent'],.40)};border-radius:16px;}}
+QFrame#scadaPanel {{background:{glass.panel_fill(p)};border:1px solid {rim};border-radius:12px;}}
+QFrame#scadaFooter {{background:{glass.result_fill(p)};border:1px solid {glass.tone_border(p,'accent')};border-radius:12px;}}
+QFrame#scadaPanel[priority="high"] {{border:1px solid {glass.tone_border(p,'secondary')};}}
 QFrame[compact="true"] QPushButton {{padding:9px 14px;}}
-QFrame#scadaResult {{background:{glass.result_fill(p)};border:1px solid {result_border};border-radius:16px;}}
+QFrame#scadaResult {{background:{glass.result_fill(p)};border:1px solid {result_border};border-radius:12px;}}
 QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:10px;padding:11px 18px;{ty.qss('card')}}}
 QPushButton:hover {{background:{glass.button_fill(p,'hover')};border:1px solid {hover_border};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};border:1px solid {accent};}}
 QPushButton:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
-{tones}QPushButton#scadaPrimary {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {mix_hex(accent,'#FFFFFF',.40)};padding:14px 20px;{ty.qss('button')}}}
+{tones}QPushButton#scadaPrimary {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {accent};padding:14px 20px;{ty.qss('button')}}}
 QPushButton#scadaPrimary:hover {{background:{glass.primary_fill(p,'hover')};}}
 QPushButton#scadaPrimary:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};}}
 QPushButton#scadaPrimary:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
-QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['heading']};border:1px solid {glass.rgba(p['accent'],.85)};}}
-QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {glass.rgba(p['danger'],.80)};background:{glass.vgrad(glass.rgba(p['danger'],.22),glass.rgba(p['danger'],.10))};}}
+QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['heading']};border:1px solid {p['accent']};}}
+QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {p['danger']};background:{danger_fill};}}
 QPushButton#scadaEmergency:hover {{border:1px solid {p['danger']};}}
 QPushButton#scadaEmergency:pressed {{background:{danger_hot};color:{p['on_strong']};border:1px solid {p['danger_strong']};}}
 QComboBox,QLineEdit {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:10px;padding:10px 14px;{ty.qss('body')}}}
 QComboBox:focus,QLineEdit:focus {{border:1px solid {p['accent']};}}
 QComboBox QAbstractItemView {{background:{p['surface']};color:{p['text']};border:1px solid {rim};selection-background-color:{glass.rgba(p['accent'],.28)};selection-color:{p['heading']};}}
-QProgressBar {{background:{glass.rgba(p['text'],.14)};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
-QProgressBar::chunk {{background:{glass.vgrad(mix_hex(p['sky'],'#FFFFFF',.18),p['sky'])};border-radius:4px;}}
+QProgressBar {{background:{p['soft']};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
+QProgressBar::chunk {{background:{p['sky']};border-radius:4px;}}
 QTextEdit {{background:{glass.field_fill(p)};color:{p['muted']};border:1px solid {rim_soft};border-radius:10px;{ty.qss('data')}}}
 QScrollArea#leftScroll {{background:transparent;border:0;}}
 QScrollBar:vertical {{background:transparent;width:10px;margin:2px;}}
@@ -130,6 +132,14 @@ def connect_busy_state(w):
                 mark(button,False)
                 if button in original:button.setText(original.pop(button))
     w.analysis_indicator.busyChanged.connect(sync)
+
+def indicator_state(w):
+    """Estado mostrado no indicador: sem conexão com o ESP32, nunca diz 'Pronto'."""
+    state=getattr(w,'fsm_state','IDLE')
+    try:
+        if state=='IDLE' and not w.is_serial_connected():return 'DESCONECTADO'
+    except Exception:pass
+    return state
 
 def tone(button,name):
     """Dá ao botão um tom por função (ver glass.TONES); o estilo vem de dashboard_style."""
@@ -178,7 +188,7 @@ def apply_layout_mode(w,logical_w,logical_h):
     mode=responsive_math.layout_mode(logical_w,logical_h)
     arrange_topbar(w,mode['topbar_two_rows']);arrange_kpis(w,mode['kpi_columns']);arrange_main(w,mode['stack_main'])
 
-KPI_ICONS=(('bolt','amber'),('trend','violet'),('leaf','green'),('drop','sky'))
+KPI_ICONS=(('bolt','accent'),('trend','secondary'),('leaf','green'),('drop','sky'))
 SECTION_GAP=16   # espaço entre blocos (grade de 8 px: 8, 16, 24)
 PAD=18           # respiro interno dos cartões
 
@@ -201,8 +211,11 @@ def build_dashboard(w):
     box_b=QWidget();row_b=QHBoxLayout(box_b);row_b.setContentsMargins(0,0,0,0);row_b.setSpacing(10)
     outer.addWidget(box_a);outer.addWidget(box_b);box_b.hide()
     w._topbar_row_a,w._topbar_row_b,w._topbar_row_b_box=row_a,row_b,box_b
-    brand=QWidget();bl=QVBoxLayout(brand);bl.setContentsMargins(0,0,20,0);bl.setSpacing(1)
-    bl.addWidget(label('SpectrumLab Pro','title',name='brandTitle'));bl.addWidget(label('Supervisório NIR','caption',True))
+    brand=QWidget();bh=QHBoxLayout(brand);bh.setContentsMargins(0,0,20,0);bh.setSpacing(10)
+    mark=QLabel();mark.setObjectName('brandMark');mark.setPixmap(program_logo_pixmap(40));mark.setFixedSize(40,40);mark.setToolTip('SpectrumLab Pro')
+    bh.addWidget(mark,0,Qt.AlignVCenter)
+    names=QWidget();bl=QVBoxLayout(names);bl.setContentsMargins(0,0,0,0);bl.setSpacing(1);bh.addWidget(names)
+    bl.addWidget(label('SpectrumLab Pro','brand',name='brandTitle'));bl.addWidget(label('Supervisório NIR','caption',True))
     # Conserva os containers utilizados pela troca USB/Bluetooth/Wi-Fi.
     for item in w.widget_serial.findChildren(QLabel):item.hide()
     w.combo_com.setMaximumWidth(120);w.btn_refresh_ports.setText('↻')
@@ -210,7 +223,7 @@ def build_dashboard(w):
     manual.setText('Modo manual');manual.setMinimumWidth(120)
     w.btn_top_emergency.setText('Parada de emergência');w.btn_top_emergency.setObjectName('scadaEmergency')
     w.btn_login=QPushButton('Login');w.btn_login.clicked.connect(lambda:open_login(w))
-    tone(w.btn_connect,'green');tone(manual,'amber');tone(w.btn_login,'sky')
+    tone(w.btn_connect,'sky');tone(manual,'indigo');tone(w.btn_login,'slate')
     w._topbar_main=[brand,w.combo_conn_mode,w.widget_serial,w.widget_wifi,w.btn_connect,w.badge_com]
     w._topbar_actions=[manual,w.btn_top_emergency,w.btn_login,w.btn_settings]
     w._topbar_two_rows=None;arrange_topbar(w,False)
@@ -221,13 +234,13 @@ def build_dashboard(w):
     w._kpi_cards=[w.kpi_energy,w.kpi_peak,w.kpi_ratio_cel,w.kpi_ratio_water]
     w.kpi_grid.setSpacing(SECTION_GAP)
     for card,(kind,tone_name) in zip(w._kpi_cards,KPI_ICONS):
-        card.setObjectName('scadaPanel');card.layout().setContentsMargins(PAD,14,PAD,14);card.layout().setSpacing(4)
-        card.setMinimumHeight(108)
+        card.setObjectName('scadaPanel');card.layout().setContentsMargins(PAD,10,PAD,10);card.layout().setSpacing(2)
+        card.setMinimumHeight(90)
         header=card.layout().itemAt(0).layout()
         old=header.itemAt(0).widget()
         if old is not None:old.hide()   # o emoji de texto é removido pelo tema; o ícone colorido o substitui
-        header.insertWidget(0,GlyphIcon(kind,24))
-        bar=QFrame();bar.setFixedSize(40,4);bar.setProperty('bar',tone_name)
+        header.insertWidget(0,GlyphIcon(kind,20))
+        bar=QFrame();bar.setFixedSize(32,3);bar.setProperty('bar',tone_name)
         card.layout().insertWidget(0,bar,0,Qt.AlignLeft)
         card.lbl_title.setStyleSheet('color: #9CA3AF; '+ty.qss('card'))
         card.lbl_value.setStyleSheet('color: #FFFFFF; '+ty.qss('kpi'))
@@ -247,7 +260,7 @@ def build_dashboard(w):
     w.btn_start_scan.setText('Realizar leitura');w.btn_start_scan.setObjectName('scadaPrimary')
     w.btn_repeatability.setText('Leitura com repetibilidade · 5×')
     w.btn_calibrate.setText('Calibrar · Branco e escuro')
-    tone(w.btn_repeatability,'sky');tone(w.btn_calibrate,'violet')
+    tone(w.btn_repeatability,'secondary');tone(w.btn_calibrate,'rose')
     for button in (w.btn_start_scan,w.btn_repeatability,w.btn_calibrate):cl.addWidget(button)
     ll.addWidget(controls)
     w.card_housing.setObjectName('scadaPanel')
@@ -264,7 +277,7 @@ def build_dashboard(w):
     w.lbl_metodo_info.setWordWrap(True);w.lbl_kappa_classificacao.setWordWrap(True)
     ll.addWidget(w.card_resultado)
     buttons=QHBoxLayout();buttons.setSpacing(10)
-    for button,text,tone_name in ((w.btn_history,'Histórico','sky'),(w.btn_pdf,'PDF','rose'),(w.btn_csv,'CSV','green')):
+    for button,text,tone_name in ((w.btn_history,'Histórico','sand'),(w.btn_pdf,'PDF','indigo'),(w.btn_csv,'CSV','green')):
         button.setText(text);button.setMinimumWidth(0);tone(button,tone_name);buttons.addWidget(button,1)
     ll.addLayout(buttons);ll.addStretch(1)
     scroll=QScrollArea();scroll.setObjectName('leftScroll');scroll.setWidgetResizable(True);scroll.setFrameShape(QFrame.NoFrame)
@@ -274,7 +287,7 @@ def build_dashboard(w):
     w.left_scroll=scroll
     right=panel();w.right_panel=right;rl=QVBoxLayout(right);rl.setContentsMargins(16,14,16,14)
     rl.setSpacing(12);rl.addWidget(w.spectral_chart,1)
-    w.analysis_indicator=AnalysisIndicator(lambda:getattr(w,'fsm_state','IDLE'));rl.addWidget(w.analysis_indicator)
+    w.analysis_indicator=AnalysisIndicator(lambda:indicator_state(w));rl.addWidget(w.analysis_indicator)
     connect_busy_state(w)
     w.dashboard_splitter.addWidget(scroll);w.dashboard_splitter.addWidget(right)
     w.dashboard_splitter.setStretchFactor(0,0);w.dashboard_splitter.setStretchFactor(1,1)
@@ -286,10 +299,10 @@ def build_dashboard(w):
     w._main_stacked=False
 
     # ---- rodapé em destaque: estado e comandos em cima, logos e assinatura (com links) embaixo
-    footer=panel();footer.setObjectName('scadaFooter');w.footer=footer;fl=QVBoxLayout(footer);fl.setContentsMargins(PAD+2,14,PAD+2,14);fl.setSpacing(10)
+    footer=panel();footer.setObjectName('scadaFooter');w.footer=footer;fl=QVBoxLayout(footer);fl.setContentsMargins(PAD+2,10,PAD+2,10);fl.setSpacing(6)
     fr=QHBoxLayout();fr.setSpacing(12);w.lbl_cycle_status.setWordWrap(True);fr.addWidget(w.lbl_cycle_status,1)
     w.cycle_progress.setMaximumWidth(200);fr.addWidget(w.cycle_progress)
-    w.btn_console=QPushButton('Console de telemetria');w.btn_console.setCheckable(True);tone(w.btn_console,'violet')
+    w.btn_console=QPushButton('Console de telemetria');w.btn_console.setCheckable(True);tone(w.btn_console,'slate')
     w.btn_console.toggled.connect(w.txt_console.setVisible);fr.addWidget(w.btn_console);fl.addLayout(fr)
     fr2=QHBoxLayout();fr2.setSpacing(16);fr2.addWidget(institutional_signature());fr2.addStretch(1)
     credits=QLabel(credits_html());credits.setObjectName('credits');credits.setTextFormat(Qt.RichText)

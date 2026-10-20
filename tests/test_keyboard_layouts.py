@@ -110,35 +110,59 @@ class ResolveTests(unittest.TestCase):
 class PlacementTests(unittest.TestCase):
     SCREEN = (0, 0, 1920, 1080)
 
-    def test_prefers_bottom_center(self):
-        x, y = kl.compute_position((200, 100, 150, 36), self.SCREEN, (1000, 396))
-        self.assertEqual(x, 460)
-        self.assertEqual(y, 1080 - 396 - 14)
+    def test_prefers_the_top_left_corner(self):
+        x, y = kl.compute_position((900, 400, 150, 36), self.SCREEN, (300, 248))
+        self.assertEqual((x, y), (14, 14))
 
-    def test_moves_to_top_when_field_is_low(self):
-        field = (400, 900, 200, 40)
-        x, y = kl.compute_position(field, self.SCREEN, (1000, 396))
-        self.assertEqual(y, 14)
+    def test_steps_below_the_field_when_the_corner_would_cover_it(self):
+        field = (100, 40, 200, 40)
+        x, y = kl.compute_position(field, self.SCREEN, (300, 248))
+        self.assertEqual(x, 14)
+        self.assertEqual(y, 40 + 40 + 14)
 
     def test_never_covers_the_field(self):
         for fy in range(0, 1040, 40):
-            field = (300, fy, 160, 40)
-            x, y = kl.compute_position(field, self.SCREEN, (440, 372))
-            overlap_y = not (y + 372 <= fy or fy + 40 <= y)
-            overlap_x = not (x + 440 <= 300 or 460 <= x)
-            self.assertFalse(overlap_x and overlap_y, (fy, x, y))
+            for fx in (20, 300, 900):
+                field = (fx, fy, 160, 40)
+                x, y = kl.compute_position(field, self.SCREEN, (300, 248))
+                overlap_y = not (y + 248 <= fy or fy + 40 <= y)
+                overlap_x = not (x + 300 <= fx or fx + 160 <= x)
+                self.assertFalse(overlap_x and overlap_y, (fx, fy, x, y))
 
     def test_stays_inside_the_screen(self):
         for fy in range(0, 1040, 80):
-            x, y = kl.compute_position((900, fy, 160, 40), self.SCREEN, (1000, 396))
-            self.assertTrue(0 <= x and x + 1000 <= 1920 and 0 <= y and y + 396 <= 1080, (fy, x, y))
+            for size in ((300, 248), (660, 292)):
+                x, y = kl.compute_position((900, fy, 160, 40), self.SCREEN, size)
+                self.assertTrue(0 <= x and x + size[0] <= 1920 and 0 <= y and y + size[1] <= 1080, (fy, size, x, y))
 
-    def test_size_fits_small_screens(self):
+    def test_size_is_compact_and_fits_small_screens(self):
         w, h = kl.keyboard_size("full", 1024, 600)
         self.assertLessEqual(w, 1024)
         self.assertLessEqual(h, 300)
-        w, h = kl.keyboard_size("numeric", 1920, 1080)
-        self.assertEqual(w, 440)
+        self.assertEqual(kl.keyboard_size("numeric", 1920, 1080), (300, 248))
+        self.assertLessEqual(kl.keyboard_size("full", 1920, 1080)[0], 700)
+
+
+class ModeTests(unittest.TestCase):
+    def test_auto_opens_only_on_touch_or_mobile(self):
+        self.assertFalse(kl.keyboard_allowed("auto", touch_screen=False))
+        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=True))
+        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=False, mobile_platform=True))
+
+    def test_always_and_never_ignore_detection(self):
+        self.assertTrue(kl.keyboard_allowed("always", touch_screen=False))
+        self.assertFalse(kl.keyboard_allowed("never", touch_screen=True, mobile_platform=True))
+
+    def test_environment_override_applies_in_auto(self):
+        self.assertTrue(kl.keyboard_allowed("auto", touch_screen=False, override=True))
+        self.assertFalse(kl.keyboard_allowed("auto", touch_screen=True, override=False))
+
+    def test_legacy_preference_migrates_without_forcing_the_keyboard_on(self):
+        self.assertEqual(kl.normalize_mode(None, True), "auto")
+        self.assertEqual(kl.normalize_mode(None, False), "never")
+        self.assertEqual(kl.normalize_mode(None), "auto")
+        self.assertEqual(kl.normalize_mode("always", False), "always")
+        self.assertEqual(kl.normalize_mode("lixo", True), "auto")
 
 
 if __name__ == "__main__":

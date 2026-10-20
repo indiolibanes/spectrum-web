@@ -32,26 +32,42 @@ class PaletteTests(unittest.TestCase):
         self.palettes = load_palettes()
 
     def test_two_themes_with_the_same_tokens(self):
-        self.assertEqual(set(self.palettes), {"umber", "light"})
-        self.assertEqual(set(self.palettes["umber"]), set(self.palettes["light"]))
+        self.assertEqual(set(self.palettes), {"noturno", "light"})
+        self.assertEqual(set(self.palettes["noturno"]), set(self.palettes["light"]))
 
     def test_every_token_is_a_hex_color(self):
         for name, palette in self.palettes.items():
             for key, value in palette.items():
                 self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", (name, key))
 
-    def test_dark_theme_is_near_amoled(self):
-        self.assertLess(glass.luminance(self.palettes["umber"]["canvas"]), 0.01)
-        self.assertTrue(glass.is_dark(self.palettes["umber"]))
+    def test_night_theme_is_dark_and_neutral_enough(self):
+        p = self.palettes["noturno"]
+        self.assertTrue(glass.is_dark(p))
         self.assertFalse(glass.is_dark(self.palettes["light"]))
+        self.assertLess(glass.luminance(p["canvas"]), 0.01, "fundo quase preto")
 
-    def test_dark_theme_keeps_the_gold_and_paper_identity(self):
-        p = self.palettes["umber"]
+    def test_night_theme_is_purple_with_a_teal_secondary(self):
+        p = self.palettes["noturno"]
         r, g, b = glass._channels(p["accent"])
-        self.assertTrue(r > g > b and r > 200, "o destaque deve continuar dourado")
-        r, g, b = glass._channels(p["text"])
-        self.assertTrue(r >= g >= b, "o texto deve continuar cor de papel (quente)")
-        self.assertLess(glass.luminance(p["surface"]), 0.02)
+        self.assertTrue(b > r > g, "o destaque do noturno é roxo")
+        r, g, b = glass._channels(p["secondary"])
+        self.assertTrue(g >= b > r, "a secundária é turquesa")
+
+    def test_alarm_colors_are_not_used_as_identity_colors(self):
+        """ISA-101: vermelho/laranja/amarelo são de alarme. Nenhum tom de botão pode ter esse matiz."""
+        import colorsys
+        for name, p in self.palettes.items():
+            for tone in glass.TONES:
+                r, g, b = (c / 255 for c in glass._channels(glass.tone_color(p, tone)))
+                h, s, v = colorsys.rgb_to_hsv(r, g, b)
+                hue = h * 360
+                if s > 0.30:   # tons neutros (slate, sand) ficam de fora
+                    self.assertFalse(hue < 70 or hue > 335, (name, tone, round(hue)))
+
+    def test_every_button_tone_is_distinct(self):
+        for name, p in self.palettes.items():
+            colors = [glass.tone_color(p, t) for t in glass.TONES]
+            self.assertEqual(len(set(colors)), len(colors), name)
 
     def test_text_contrast_is_comfortable(self):
         for name, p in self.palettes.items():
@@ -63,7 +79,7 @@ class PaletteTests(unittest.TestCase):
             self.assertGreater(contrast(p["on_strong"], p["accent_strong"]), 4.5, name)
             self.assertGreater(contrast(p["on_strong"], p["danger_strong"]), 4.5, name)
             self.assertGreater(contrast(p["disabled"], p["canvas"]), 3.0, name)
-            for tone in ("sky", "violet", "rose", "positive", "warning", "danger"):
+            for tone in ("sky", "violet", "rose", "positive", "warning", "danger", "secondary", "slate", "sand"):
                 self.assertGreater(contrast(p[tone], p["surface"]), 4.5, (name, tone))
 
     def test_series_palettes_have_six_distinct_colors(self):
@@ -80,7 +96,9 @@ class PaletteTests(unittest.TestCase):
                 self.assertGreater(contrast(color, surface), 2.0, (name, color))
 
 
-class GlassTests(unittest.TestCase):
+class FlatSurfaceTests(unittest.TestCase):
+    """ISA-101: superfícies lisas, sem degradê, translucidez, brilho ou textura."""
+
     def setUp(self):
         self.palettes = load_palettes()
 
@@ -89,59 +107,47 @@ class GlassTests(unittest.TestCase):
         self.assertEqual(glass.rgba("#000000", 2), "rgba(0, 0, 0, 100%)")
         self.assertEqual(glass.rgba("#000000", -1), "rgba(0, 0, 0, 0%)")
 
-    def test_every_fill_is_a_valid_qss_value(self):
-        grad = re.compile(r"^qlineargradient\(x1:0,y1:0,x2:0,y2:1,stop:0 [^,]+(?:\([^)]*\))?,stop:1 .+\)$")
+    def test_every_fill_is_a_solid_hex_color(self):
         for p in self.palettes.values():
-            fills = [glass.panel_fill(p), glass.result_fill(p), glass.primary_fill(p), glass.primary_fill(p, "hover"),
-                     glass.primary_fill(p, "hot")] + [glass.button_fill(p, s) for s in ("rest", "hover", "disabled")]
+            fills = [glass.panel_fill(p), glass.result_fill(p), glass.field_fill(p), glass.rim(p), glass.rim(p, .6), glass.rim(p, 1.5)]
+            fills += [glass.primary_fill(p, s) for s in ("rest", "hover", "hot")]
+            fills += [glass.button_fill(p, s) for s in ("rest", "hover", "disabled")]
+            for tone in glass.TONES:
+                fills += [glass.tone_fill(p, tone, s) for s in ("rest", "hover")]
+                fills += [glass.tone_border(p, tone, s) for s in ("rest", "hover")] + [glass.tone_hot(p, tone)]
             for value in fills:
-                self.assertRegex(value, grad)
-                self.assertEqual(value.count("("), value.count(")"))
-            self.assertTrue(glass.field_fill(p))
-            self.assertTrue(glass.rim(p).startswith("rgba("))
+                self.assertRegex(value, r"^#[0-9A-Fa-f]{6}$", value)
 
-    def test_panels_are_translucent(self):
+    def test_no_gradient_helper_is_left(self):
+        self.assertFalse(hasattr(glass, "vgrad"))
+
+    def test_no_ambient_glow_and_no_edge_light(self):
         for p in self.palettes.values():
-            self.assertIn("%", glass.panel_fill(p))
-            self.assertNotIn("100%", glass.panel_fill(p))
+            self.assertEqual(glass.glow_spec(p), [])
+            self.assertEqual(glass.edge_highlight(p)[1], 0)
+
+    def test_no_texture_in_any_theme(self):
+        source = (ROOT / "appearance.py").read_text(encoding="utf-8")
+        self.assertIn("TEXTURE_FILES={}", source)
 
     def test_tone_recipes(self):
         for p in self.palettes.values():
             for tone in glass.TONES:
-                for state in ("rest", "hover"):
-                    self.assertTrue(glass.tone_fill(p, tone, state).startswith("qlineargradient("))
-                    self.assertTrue(glass.tone_border(p, tone, state).startswith("rgba("))
                 self.assertRegex(glass.tone_text(p, tone), r"^#[0-9A-Fa-f]{6}$")
-                self.assertGreater(contrast(glass.tone_text(p, tone), p["surface"]), 7, (tone, glass.is_dark(p)))
+                # texto do botão em tom sobre o preenchimento do próprio botão (legibilidade)
+                for state in ("rest", "hover"):
+                    self.assertGreater(contrast(glass.tone_text(p, tone), glass.tone_fill(p, tone, state)), 4.5, (tone, state, glass.is_dark(p)))
                 self.assertGreater(contrast(glass.on_tone(p), glass.tone_color(p, tone)), 4.5, tone)
 
     def test_secondary_buttons_are_visible_on_dark(self):
-        """Antes eram vidro a 4-9%: quase invisíveis sobre o preto. Agora o preenchimento passa de 14%."""
-        p = self.palettes["umber"]
-        self.assertIn("15%", glass.button_fill(p))
-        self.assertGreaterEqual(glass.DARK_RIM_ALPHA * 1.6, 0.35)
-
-    def test_glow_specs_are_in_range(self):
-        for p in self.palettes.values():
-            spec = glass.glow_spec(p)
-            self.assertGreaterEqual(len(spec), 2)
-            for x, y, radius, color, alpha in spec:
-                self.assertTrue(0 <= x <= 1 and 0 <= y <= 1)
-                self.assertTrue(0 < radius <= 1.2)
-                self.assertTrue(0 < alpha < 0.2)
-                self.assertRegex(color, r"^#[0-9A-Fa-f]{6}$")
-
-    def test_edge_highlight_alpha(self):
-        for p in self.palettes.values():
-            color, alpha = glass.edge_highlight(p)
-            self.assertRegex(color, r"^#[0-9A-Fa-f]{6}$")
-            self.assertTrue(0 < alpha <= 1)
+        p = self.palettes["noturno"]
+        self.assertGreater(contrast(glass.button_fill(p), p["surface"]), 1.15)
+        self.assertGreater(contrast(glass.rim(p, 1.5), p["surface"]), 2.5)
 
 
 class AssetTests(unittest.TestCase):
     def test_generated_assets_exist(self):
-        for rel in ("assets/textures/celulose-claro.png",
-                    "assets/cursors/fibra-seta.png", "assets/cursors/fibra-seta@2x.png",
+        for rel in ("assets/cursors/fibra-seta.png", "assets/cursors/fibra-seta@2x.png",
                     "assets/cursors/fibra-mao.png", "assets/cursors/fibra-mao@2x.png"):
             path = ROOT / rel
             self.assertTrue(path.exists(), rel)
@@ -149,7 +155,7 @@ class AssetTests(unittest.TestCase):
 
     def test_font_files_declared_in_typography_exist(self):
         source = (ROOT / "typography.py").read_text(encoding="utf-8")
-        for name in re.findall(r'"((?:IBMPlex|EBGaramond)[A-Za-z-]*\.ttf)"', source):
+        for name in re.findall(r'"((?:IBMPlex|Dropline|Arena)[A-Za-z-]*\.(?:ttf|otf))"', source):
             self.assertTrue((ROOT / "assets" / "fonts" / name).exists(), name)
 
 

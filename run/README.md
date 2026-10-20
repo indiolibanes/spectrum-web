@@ -1,7 +1,7 @@
 # Executar o SPECTRUM-LAB PRO no Codespace
 
 Roteiro para rodar o supervisório num navegador, com display virtual e uma bancada simulada (ESP32 falso).
-**Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (EB Garamond e IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
+**Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (Arena, Dropline e IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
 
 > Para testar a interface nova (temas, Configurações, botões e animações, gráficos, indicador de análise e teclado na tela), use o roteiro completo em [docs/TUTORIAL_CODESPACE.md](../docs/TUTORIAL_CODESPACE.md). Este arquivo cobre só a parte de execução e responsividade.
 

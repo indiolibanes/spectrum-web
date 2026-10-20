@@ -101,8 +101,10 @@ class QssTests(unittest.TestCase):
     def test_role_qss(self):
         self.assertIn("font-size: 28px", ty.qss("kpi"))
         self.assertIn(ty.FAMILY_DATA, ty.qss("kpi"))
-        self.assertIn("font-weight: 700", ty.qss("title"))
+        self.assertIn("font-weight: 400", ty.qss("title"), "Dropline só existe em peso regular")
         self.assertIn(ty.FAMILY_DISPLAY, ty.qss("title"))
+        self.assertIn(ty.FAMILY_BRAND, ty.qss("brand"))
+        self.assertIn("font-weight: 400", ty.qss("brand"))
         self.assertEqual(ty.normalize_qss(ty.qss("section")), ty.qss("section"))
 
     def test_braces_stay_balanced(self):
@@ -118,6 +120,35 @@ class AssetsTests(unittest.TestCase):
 
     def test_license_ships_with_fonts(self):
         self.assertTrue((ty.fonts_directory() / "LICENSE-IBM-Plex-OFL.txt").exists())
+
+
+class HierarchyTests(unittest.TestCase):
+    def test_hierarchy_families(self):
+        self.assertEqual((ty.FAMILY_BRAND, ty.FAMILY_DISPLAY, ty.FAMILY_UI, ty.FAMILY_DATA),
+                         ("Arena", "Dropline", "IBM Plex Sans", "IBM Plex Mono"))
+        self.assertEqual(ty.ROLES["brand"][1], "brand")
+        for role in ("display", "title", "section"):
+            self.assertEqual(ty.ROLES[role][1], "display", role)
+            self.assertEqual(ty.ROLES[role][2], 400, role)
+        for role in ("button", "body", "label"):
+            self.assertEqual(ty.ROLES[role][1], "ui", role)
+
+    def test_display_stack_falls_back_to_the_ui_font_for_missing_signs(self):
+        self.assertLess(ty.STACK_DISPLAY.index("Dropline"), ty.STACK_DISPLAY.index("IBM Plex Sans"))
+
+    def test_garamond_is_gone_and_new_fonts_are_loaded(self):
+        self.assertFalse(any("Garamond" in name for name in ty.FONT_FILES))
+        self.assertIn("DroplineRegular.otf", ty.FONT_FILES)
+        self.assertIn("Arena.ttf", ty.FONT_FILES)
+
+    def test_bold_is_dropped_for_regular_only_families(self):
+        out = ty.normalize_qss("QLabel { font-family: 'Dropline'; font-size: 24px; font-weight: 700; }")
+        self.assertIn("font-weight: 400", out)
+        self.assertEqual(ty.normalize_qss(out), out)   # idempotente
+
+    def test_legacy_garamond_maps_to_dropline(self):
+        out = ty.normalize_qss("QLabel { font-family: 'EB Garamond'; font-size: 24px; }")
+        self.assertIn("Dropline", out)
 
 
 if __name__ == "__main__":

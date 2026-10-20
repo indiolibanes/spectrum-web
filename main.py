@@ -2737,27 +2737,52 @@ class SpectrumLabMainWindow(QMainWindow):
     def toggle_com_connect(self):
         if self.serial_worker.is_connected():
             self.disconnect_hardware()
+            return
+        # Feedback imediato: a conexão por Wi-Fi pode levar alguns segundos e a interface não pode parecer parada.
+        self._connect_attempt = True
+        self.btn_connect.setText("Conectando…")
+        self.btn_connect.setEnabled(False)
+        QApplication.processEvents()
+        try:
+            self._start_connection()
+        finally:
+            self._connect_attempt = False
+            self.btn_connect.setEnabled(True)
+            if not self.serial_worker.is_connected():
+                self.btn_connect.setText("Conectar ESP32")
+
+    def _start_connection(self):
+        mode = self.combo_conn_mode.currentData() if hasattr(self, "combo_conn_mode") else "USB"
+        if mode in ("USB", "BLUETOOTH"):
+            port_name = self.combo_com.currentData()
+            if not port_name:
+                QMessageBox.warning(self, "Porta Inválida", f"Nenhuma porta selecionada para o modo {mode}.")
+                return
+            baudrate = int(self.combo_baud.currentText()) if hasattr(self, "combo_baud") else 115200
+            self.serial_worker.connect_serial(port_name, baudrate, mode=mode)
+        elif mode == "WIFI":
+            ip = self.txt_ip.text().strip()
+            port_str = self.txt_tcp_port.text().strip()
+            if not ip:
+                QMessageBox.warning(self, "IP Inválido", "Informe o endereço IP do ESP32 (ex: 192.168.4.1).")
+                return
+            try:
+                port = int(port_str)
+            except ValueError:
+                QMessageBox.warning(self, "Porta Inválida", "A porta TCP deve ser um número inteiro (ex: 8080).")
+                return
+            self.serial_worker.connect_tcp(ip, port)
+
+    def _explain_connection_failure(self, message):
+        """Diz ao operador por que a conexão falhou e o que conferir (antes, só aparecia 'Desconectado')."""
+        mode = self.combo_conn_mode.currentData() if hasattr(self, "combo_conn_mode") else "USB"
+        if mode == "WIFI":
+            hint = ("Confira:<br>1. O computador está na rede Wi-Fi do ESP32 (padrão 192.168.4.1, porta 8080).<br>"
+                    "2. O IP e a porta estão corretos.<br>"
+                    "3. No Codespaces, o simulador está ativo (<b>bash run/start_app.sh</b>) e o IP é 127.0.0.1.")
         else:
-            mode = self.combo_conn_mode.currentData() if hasattr(self, "combo_conn_mode") else "USB"
-            if mode in ("USB", "BLUETOOTH"):
-                port_name = self.combo_com.currentData()
-                if not port_name:
-                    QMessageBox.warning(self, "Porta Inválida", f"Nenhuma porta selecionada para o modo {mode}.")
-                    return
-                baudrate = int(self.combo_baud.currentText()) if hasattr(self, "combo_baud") else 115200
-                self.serial_worker.connect_serial(port_name, baudrate, mode=mode)
-            elif mode == "WIFI":
-                ip = self.txt_ip.text().strip()
-                port_str = self.txt_tcp_port.text().strip()
-                if not ip:
-                    QMessageBox.warning(self, "IP Inválido", "Informe o endereço IP do ESP32 (ex: 192.168.4.1).")
-                    return
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    QMessageBox.warning(self, "Porta Inválida", "A porta TCP deve ser um número inteiro (ex: 8080).")
-                    return
-                self.serial_worker.connect_tcp(ip, port)
+            hint = "Confira o cabo, a porta selecionada e se outro programa (monitor serial) não a está usando."
+        QMessageBox.warning(self, "Falha na conexão", f"<b>Não foi possível conectar ao ESP32.</b><br><br>{message}<br><br>{hint}")
 
     def is_serial_connected(self) -> bool:
         return self.serial_worker.is_connected()
@@ -2844,6 +2869,9 @@ class SpectrumLabMainWindow(QMainWindow):
             self.btn_connect.setStyleSheet("background-color: #0078D4; color: #FFFFFF; border: none; font-weight: bold; padding: 6px 14px;")
             self.lbl_cycle_status.setText("Status do Ciclo: Hardware desconectado.")
             self.log_message(f"Hardware ESP32 desconectado: {message}")
+            if getattr(self, "_connect_attempt", False) and message and message != "Desconectado":
+                self.lbl_cycle_status.setText("Status do Ciclo: Falha ao conectar. Veja a mensagem.")
+                QTimer.singleShot(0, lambda m=message: self._explain_connection_failure(m))
 
         self.card_telemetria.reset("Aguardando telemetria" if connected else "Desconectado")
         self.card_esp32.refresh(self)

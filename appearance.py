@@ -8,31 +8,35 @@ from PyQt5.QtWidgets import (QApplication,QWidget,QLabel,QPushButton,QComboBox,Q
                              QVBoxLayout,QHBoxLayout,QFrame,QTabWidget,QMenu)
 from popup_design import popup_owner, popup_stylesheet
 from typography import normalize_qss, install as install_typography
+import keyboard_layouts as kl
 PALETTES={
- # Escuro: preto AMOLED sóbrio (fundo #000000, sem textura) com o dourado como destaque.
- # Texto em contraste alto (revisão de legibilidade): texto 18:1, secundário 12:1 sobre o fundo.
- "umber":{"canvas":"#000000","surface":"#17140E","soft":"#221E15","border":"#5A5342",
-          "text":"#F8F4EA","heading":"#FFF3BF","muted":"#DDD5C0","disabled":"#8A836C","accent":"#E8C96A",
-          "positive":"#9AD68F","warning":"#F0A965","danger":"#F58B7E",
-          "sky":"#7CC4F2","violet":"#B9A2F2","rose":"#F29BB8",
-          "accent_strong":"#E8C96A","positive_strong":"#8FD08A","danger_strong":"#EE9187","on_strong":"#2B2200"},
- # Claro: branco e verde. O matiz (~92 graus) vem das colinas do logo do Projeto Sucuriú.
- "light":{"canvas":"#F6F9F3","surface":"#FFFFFF","soft":"#EAF1E4","border":"#B9C6AE",
+ # Noturno (ISA-101): fundo neutro quase preto com leve tom violeta, superfícies lisas e sem textura.
+ # Roxo é a cor de identidade (ações e seleção); turquesa é a secundária (dados e calibração).
+ # Vermelho, laranja e amarelo ficam reservados a alarmes e avisos (positive/warning/danger).
+ "noturno":{"canvas":"#0D0B14","surface":"#181426","soft":"#231E37","border":"#5B5280",
+          "text":"#F4F1FB","heading":"#FFFFFF","muted":"#D2CBE6","disabled":"#8F88AB","accent":"#B79CFF",
+          "secondary":"#4FD1C1","slate":"#AEB8CC","sand":"#D6C6A8",
+          "positive":"#7FD99A","warning":"#F0B24B","danger":"#FF8A80",
+          "sky":"#7CC4F2","violet":"#93A6FF","rose":"#E89CDA",
+          "accent_strong":"#B79CFF","positive_strong":"#7FD99A","danger_strong":"#FF8A80","on_strong":"#1C0B45"},
+ # Claro (ISA-101): branco e verde, liso, sem textura. O matiz (~92 graus) vem do logo do Projeto Sucuriú.
+ "light":{"canvas":"#F4F6F1","surface":"#FFFFFF","soft":"#E8EEE2","border":"#B3C0A8",
           "text":"#142009","heading":"#1B2E10","muted":"#44523A","disabled":"#7E8873","accent":"#436722",
+          "secondary":"#0F6E66","slate":"#4A5568","sand":"#6A5F52",
           "positive":"#266435","warning":"#8A5A00","danger":"#B3261E",
-          "sky":"#1F6FA8","violet":"#6A4BC2","rose":"#B03A6B",
+          "sky":"#1F6FA8","violet":"#4B55C8","rose":"#A03C8E",
           "accent_strong":"#436722","positive_strong":"#266435","danger_strong":"#B3261E","on_strong":"#FFFFFF"},
 }
 # Cores por série (bandas espectrais), em ordem fixa. Validadas com o validador de paletas
 # (diferença para daltonismo e contraste sobre a superfície) nos dois temas.
 SERIES={
- "umber":["#3987E5","#D95926","#199E70","#C98500","#D55181","#9085E9"],
+ "noturno":["#3987E5","#D95926","#199E70","#C98500","#D55181","#9085E9"],
  "light":["#2A78D6","#EB6834","#1BAF7A","#EDA100","#E87BA4","#6250D6"],
 }
-DEFAULT_THEME="umber"
-LEGACY_THEMES={"dark":"umber","gold":"umber"}   # preferências salvas por versões anteriores
-THEME_LABELS={"umber":"Escuro · preto e dourado","light":"Claro · branco e verde"}
-TEXTURE_FILES={"light":"celulose-claro.png"}   # o Escuro é preto liso (AMOLED), sem textura
+DEFAULT_THEME="noturno"
+LEGACY_THEMES={"dark":"noturno","gold":"noturno","umber":"noturno"}   # preferências salvas por versões anteriores
+THEME_LABELS={"noturno":"Noturno · roxo e turquesa","light":"Claro · branco e verde"}
+TEXTURE_FILES={}   # ISA-101: nenhum tema usa textura
 def texture_path(theme=None):
     """Textura do fundo da janela principal, ou None quando o tema não tem textura."""
     import sys
@@ -93,7 +97,7 @@ def transform_stylesheet(source,theme):
             prop,value,end=match.groups()
             kind="surface" if prop.lower().startswith("background") else "border" if prop.lower().startswith("border") else "text"
             if prop.lower()=="color" and strong:
-                # Texto sobre fundo forte: marrom escuro no tema umber, branco no tema claro.
+                # Texto sobre fundo forte: roxo muito escuro no tema noturno, branco no tema claro.
                 on_strong=palette_for(theme)["on_strong"]
                 value=COLOR.sub(lambda m:on_strong if QColor(m[0]).lightnessF()>0.82 else mapped_color(m[0],kind,theme),value)
             else:value=COLOR.sub(lambda m:mapped_color(m[0],kind,theme),value)
@@ -110,7 +114,7 @@ def preferences_path():
     if not base:base=str(Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".spectrum_lab")))/"SpectrumLabPro")
     return Path(base)/"interface.json"
 def read_preferences(path):
-    """Lê interface.json. Aceita o formato antigo (só o tema) e migra os temas escuros anteriores para o umber."""
+    """Lê interface.json. Aceita o formato antigo (só o tema) e migra os temas escuros anteriores para o noturno."""
     try:
         data=json.loads(path.read_text(encoding="utf-8"))
     except (OSError,ValueError,TypeError,AttributeError):
@@ -119,7 +123,9 @@ def read_preferences(path):
     theme=data.get("theme")
     theme=LEGACY_THEMES.get(theme,theme)
     if theme not in PALETTES:theme=DEFAULT_THEME
-    return {"theme":theme,"touch_keyboard":bool(data.get("touch_keyboard",True)),"reduce_motion":bool(data.get("reduce_motion",False))}
+    mode=kl.normalize_mode(data.get("keyboard_mode"),bool(data.get("touch_keyboard",True)))
+    # touch_keyboard (sim/não) continua gravado para versões antigas; o que vale é keyboard_mode.
+    return {"theme":theme,"keyboard_mode":mode,"touch_keyboard":mode!="never","reduce_motion":bool(data.get("reduce_motion",False))}
 def read_preference(path):return read_preferences(path)["theme"]
 def save_preferences(path,prefs):
     temporary=None
@@ -153,14 +159,20 @@ class ThemeManager(QObject):
         motion.set_reduced(motion.reduced() or self.prefs["reduce_motion"])
         self.motion_fx=motion.MotionController(app)
         self.keyboard=TouchKeyboardController(app,self)
-        self.keyboard.enabled=self.prefs["touch_keyboard"]
+        self.keyboard.mode=self.prefs["keyboard_mode"]
         self.set_theme(self.theme,False)
     @property
     def touch_keyboard(self):return self.keyboard.enabled
-    def set_touch_keyboard(self,enabled):
-        self.keyboard.enabled=bool(enabled);self.prefs["touch_keyboard"]=bool(enabled)
-        if not enabled:self.keyboard.hide_keyboard()
+    @property
+    def keyboard_mode(self):return self.keyboard.mode
+    def set_keyboard_mode(self,mode):
+        mode=kl.normalize_mode(mode)
+        self.keyboard.mode=mode;self.prefs["keyboard_mode"]=mode;self.prefs["touch_keyboard"]=mode!="never"
+        if not self.keyboard.enabled:self.keyboard.hide_keyboard()
         ok,self.last_error=save_preferences(self.path,self.prefs);return ok
+    def set_touch_keyboard(self,enabled):
+        """Compatível com a preferência antiga (sim/não): sim é o modo Automático."""
+        return self.set_keyboard_mode("auto" if enabled else "never")
     @property
     def reduce_motion(self):return bool(self.prefs.get("reduce_motion",False))
     def set_reduce_motion(self,enabled):
@@ -171,7 +183,7 @@ class ThemeManager(QObject):
         path=preferences_path()
         if path!=self.path:
             self.path=path;self.prefs=read_preferences(path)
-            self.keyboard.enabled=self.prefs["touch_keyboard"]
+            self.keyboard.mode=self.prefs["keyboard_mode"]
             self.set_theme(self.prefs["theme"],False)
     def eventFilter(self,obj,event):
         if isinstance(obj,QWidget) and not self.applying and event.type() in (QEvent.StyleChange,QEvent.Show):
@@ -277,14 +289,14 @@ class AppearanceDialog(QDialog):
         self.resize(600,660)
         layout=QVBoxLayout(self);layout.setContentsMargins(26,24,26,22);layout.setSpacing(16)
         title=QLabel("Configurações");title.setProperty("role","heading")
-        title.setStyleSheet("color: #FFFFFF; font-size: 24px; font-weight: 700; font-family: 'EB Garamond';")
+        title.setStyleSheet("color: #FFFFFF; font-size: 24px; font-weight: 400; font-family: 'Dropline';")
         layout.addWidget(title)
 
         # ---- Aparência: tema claro ou escuro
         self.theme_buttons={}
         self.theme_group=QButtonGroup(self);self.theme_group.setExclusive(True)
         pickers=QHBoxLayout();pickers.setSpacing(12)
-        for key,text in (("umber","Escuro\npreto e dourado"),("light","Claro\nbranco e verde")):
+        for key,text in (("noturno","Noturno\nroxo e turquesa"),("light","Claro\nbranco e verde")):
             button=QPushButton(text);button.setCheckable(True);button.setMinimumHeight(68)
             button.setProperty("fxTone","soft");button.setChecked(manager.theme==key)
             button.clicked.connect(lambda _=False,k=key:self.change_theme(k))
@@ -297,13 +309,15 @@ class AppearanceDialog(QDialog):
         caption=QLabel("Teclado na tela (touchscreen)");caption.setStyleSheet("color: #9CA3AF; font-size: 12px;")
         access.addWidget(caption)
         self.keyboard_selector=QComboBox()
-        self.keyboard_selector.addItem("Ligado: abre ao tocar em um campo",True)
-        self.keyboard_selector.addItem("Desligado: usar o teclado do computador",False)
-        self.keyboard_selector.setCurrentIndex(0 if manager.touch_keyboard else 1)
+        self.keyboard_selector.addItem("Automático: abre só em aparelho com tela de toque","auto")
+        self.keyboard_selector.addItem("Sempre: abre ao tocar em um campo","always")
+        self.keyboard_selector.addItem("Desligado: usar o teclado do computador","never")
+        self.keyboard_selector.setCurrentIndex(max(0,self.keyboard_selector.findData(manager.keyboard_mode)))
         self.keyboard_selector.setMinimumHeight(42)
         self.keyboard_selector.currentIndexChanged.connect(self.change_keyboard)
         access.addWidget(self.keyboard_selector)
-        hint=QLabel("O campo de IP abre um teclado numérico e a porta, só de dígitos. Os demais campos abrem o teclado completo, com acentos.")
+        detected="Neste aparelho: tela de toque detectada." if manager.keyboard.touch_detected() else "Neste aparelho: nenhuma tela de toque detectada."
+        hint=QLabel("O campo de IP abre um teclado numérico e a porta, só de dígitos; os demais, o completo, com acentos. "+detected)
         hint.setWordWrap(True);hint.setStyleSheet("color: #9CA3AF; font-size: 12px;");access.addWidget(hint)
         motion_caption=QLabel("Animações");motion_caption.setStyleSheet("color: #9CA3AF; font-size: 12px;");access.addWidget(motion_caption)
         self.motion_selector=QComboBox()
@@ -329,12 +343,12 @@ class AppearanceDialog(QDialog):
         frame=QFrame();frame.setObjectName("settingsSection")
         box=QVBoxLayout(frame);box.setContentsMargins(20,16,20,18);box.setSpacing(10)
         head=QLabel(heading);head.setProperty("role","heading")
-        head.setStyleSheet("color: #FFFFFF; font-size: 20px; font-weight: 700; font-family: 'EB Garamond';")
+        head.setStyleSheet("color: #FFFFFF; font-size: 20px; font-weight: 400; font-family: 'Dropline';")
         note=QLabel(description);note.setWordWrap(True);note.setStyleSheet("color: #9CA3AF; font-size: 14px;")
         box.addWidget(head);box.addWidget(note);box.addWidget(content)
         return frame
     def change_keyboard(self):
-        ok=self.manager.set_touch_keyboard(self.keyboard_selector.currentData())
+        ok=self.manager.set_keyboard_mode(self.keyboard_selector.currentData())
         self.feedback.setText("Preferência salva." if ok else "Aplicado nesta sessão. Não foi possível salvar a preferência.")
     def change_motion(self):
         ok=self.manager.set_reduce_motion(self.motion_selector.currentData())
