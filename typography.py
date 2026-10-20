@@ -1,12 +1,16 @@
 """
 Tipografia do SPECTRUM-LAB PRO: famílias, escala e normalização de folhas de estilo.
 
-Superfamília IBM Plex (licença SIL OFL, ver assets/fonts/LICENSE-IBM-Plex-OFL.txt),
-embutida no programa para que Windows, Linux e o executável tenham a mesma aparência:
+Famílias (todas com licença SIL OFL, ver os arquivos LICENSE-* em assets/fonts/),
+embutidas no programa para que Windows, Linux e o executável tenham a mesma aparência:
 
+    EB Garamond     títulos e cabeçalhos (voz editorial)
     IBM Plex Sans   interface: rótulos, botões e texto corrido
-    IBM Plex Serif  títulos
     IBM Plex Mono   valores de medição, tabelas e console
+
+Só existem os pesos 400 (regular) e 700 (negrito). É de propósito: os arquivos Medium e
+SemiBold dessas famílias declaram nomes de família próprios, e o Windows os registraria como
+famílias separadas, quebrando o peso pedido no QSS. Regular e Bold formam par normal.
 
 A parte de regras deste módulo não depende do Qt, para poder ser testada sem interface.
 """
@@ -15,7 +19,7 @@ import sys
 from pathlib import Path
 
 FAMILY_UI = "IBM Plex Sans"
-FAMILY_DISPLAY = "IBM Plex Serif"
+FAMILY_DISPLAY = "EB Garamond"
 FAMILY_DATA = "IBM Plex Mono"
 
 # Pilhas com alternativas, caso a fonte embutida não carregue.
@@ -24,66 +28,55 @@ STACK_DISPLAY = f"'{FAMILY_DISPLAY}', 'Georgia', 'Times New Roman', serif"
 STACK_DATA = f"'{FAMILY_DATA}', 'Consolas', 'Courier New', monospace"
 
 # Escala em pixels (tamanho lógico, a 100%). Nada fica abaixo de 11.
-SCALE = (11, 13, 15, 19, 28, 40)
-SIZE_CAPTION, SIZE_BODY, SIZE_SECTION, SIZE_TITLE, SIZE_KPI, SIZE_HERO = SCALE
+SCALE = (11, 13, 15, 19, 24, 28, 40)
+(SIZE_CAPTION, SIZE_BODY, SIZE_BUTTON, SIZE_SECTION, SIZE_TITLE, SIZE_KPI, SIZE_HERO) = SCALE
 SIZE_DISPLAY = 44  # só para a abertura, desenhada à mão
+REGULAR, BOLD = 400, 700
 
 # Papéis: (tamanho, família, peso)
 ROLES = {
-    "display": (SIZE_DISPLAY, "display", 600),
-    "hero": (SIZE_HERO, "data", 500),
-    "kpi": (SIZE_KPI, "data", 500),
-    "title": (SIZE_TITLE, "display", 600),
-    "section": (SIZE_SECTION, "ui", 600),
-    "body": (SIZE_BODY, "ui", 400),
-    "card": (SIZE_BODY, "ui", 500),
-    "label": (SIZE_CAPTION, "ui", 500),
-    "caption": (SIZE_CAPTION, "ui", 400),
-    "data": (SIZE_BODY, "data", 400),
+    "display": (SIZE_DISPLAY, "display", BOLD),
+    "hero": (SIZE_HERO, "data", REGULAR),
+    "kpi": (SIZE_KPI, "data", REGULAR),
+    "title": (SIZE_TITLE, "display", BOLD),
+    "section": (SIZE_SECTION, "display", BOLD),
+    "button": (SIZE_BUTTON, "ui", BOLD),
+    "body": (SIZE_BODY, "ui", REGULAR),
+    "card": (SIZE_BODY, "ui", REGULAR),
+    "label": (SIZE_CAPTION, "ui", REGULAR),
+    "caption": (SIZE_CAPTION, "ui", REGULAR),
+    "data": (SIZE_BODY, "data", REGULAR),
 }
 _STACKS = {"ui": STACK_UI, "display": STACK_DISPLAY, "data": STACK_DATA}
 
 FONT_FILES = (
-    "IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf", "IBMPlexSans-SemiBold.ttf", "IBMPlexSans-Bold.ttf",
-    "IBMPlexSerif-Regular.ttf", "IBMPlexSerif-SemiBold.ttf", "IBMPlexSerif-Bold.ttf",
-    "IBMPlexMono-Regular.ttf", "IBMPlexMono-Medium.ttf",
+    "IBMPlexSans-Regular.ttf", "IBMPlexSans-Bold.ttf",
+    "EBGaramond-Regular.ttf", "EBGaramond-Bold.ttf", "EBGaramond-Italic.ttf",
+    "IBMPlexMono-Regular.ttf",
 )
 
 
 def snap_size(px):
     """Leva qualquer tamanho em pixels ao degrau mais próximo da escala (sem passar de 40)."""
     px = float(px)
-    if px <= 11:
-        return 11
-    if px <= 13:
-        return 13
-    if px <= 16:
-        return 15
-    if px <= 23:
-        return 19
-    if px <= 34:
-        return 28
+    for limit, step in ((11, 11), (13, 13), (16, 15), (21, 19), (26, 24), (34, 28)):
+        if px <= limit:
+            return step
     return 40
 
 
 def snap_weight(value):
-    """Pesos disponíveis nas fontes embutidas: 400, 500, 600 e 700."""
+    """Só 400 e 700 existem nas fontes embutidas: de 600 para cima é negrito, o resto é regular."""
     text = str(value).strip().lower()
     if text in ("bold", "bolder"):
-        return 600
+        return BOLD
     if text in ("normal", "lighter"):
-        return 400
+        return REGULAR
     try:
         number = int(float(text))
     except ValueError:
         return value
-    if number >= 700:
-        return 700
-    if number >= 600:
-        return 600
-    if number >= 500:
-        return 500
-    return 400
+    return BOLD if number >= 600 else REGULAR
 
 
 def qss(role, extra=""):
@@ -105,7 +98,7 @@ _RE_LETTERSPACING = re.compile(r"\bletter-spacing\s*:\s*[^;{}]+;?\s*", re.I)
 
 def _map_family(value):
     low = value.lower()
-    if "ibm plex" in low:
+    if "ibm plex" in low or "eb garamond" in low:
         return value.strip()
     if any(token in low for token in ("consolas", "courier", "mono", "menlo")):
         return STACK_DATA
@@ -142,7 +135,7 @@ def normalize_body(body):
     elif snapped:
         # Sem família declarada: títulos em serifa, números grandes em mono.
         biggest = max(snapped)
-        if biggest == SIZE_TITLE:
+        if SIZE_SECTION <= biggest < SIZE_KPI:
             family = STACK_DISPLAY
         elif biggest >= SIZE_KPI:
             family = STACK_DATA
@@ -198,5 +191,5 @@ def make_font(kind="ui", pixel_size=SIZE_BODY, weight=400):
     family = {"ui": FAMILY_UI, "display": FAMILY_DISPLAY, "data": FAMILY_DATA}[kind]
     font = QFont(family)
     font.setPixelSize(int(pixel_size))
-    font.setWeight({400: QFont.Normal, 500: QFont.Medium, 600: QFont.DemiBold, 700: QFont.Bold}.get(snap_weight(weight), QFont.Normal))
+    font.setWeight(QFont.Bold if snap_weight(weight) == BOLD else QFont.Normal)
     return font

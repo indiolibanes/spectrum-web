@@ -22,12 +22,22 @@ class SnapTests(unittest.TestCase):
             self.assertEqual(ty.snap_size(step), step)
 
     def test_weights(self):
-        self.assertEqual(ty.snap_weight("bold"), 600)
+        # Só existem regular (400) e negrito (700) nas fontes embutidas.
+        self.assertEqual(ty.snap_weight("bold"), 700)
         self.assertEqual(ty.snap_weight("900"), 700)
-        self.assertEqual(ty.snap_weight("800"), 700)
+        self.assertEqual(ty.snap_weight("600"), 700)
         self.assertEqual(ty.snap_weight("normal"), 400)
         self.assertEqual(ty.snap_weight("300"), 400)
-        self.assertEqual(ty.snap_weight("500"), 500)
+        self.assertEqual(ty.snap_weight("500"), 400)
+
+    def test_weights_are_idempotent(self):
+        for raw in ("100", "400", "500", "600", "700", "800", "900", "bold", "normal"):
+            once = ty.snap_weight(raw)
+            self.assertEqual(once, ty.snap_weight(once))
+
+    def test_only_regular_and_bold_in_any_role(self):
+        for role, (_, _, weight) in ty.ROLES.items():
+            self.assertIn(weight, (400, 700), role)
 
 
 class QssTests(unittest.TestCase):
@@ -85,7 +95,8 @@ class QssTests(unittest.TestCase):
     def test_role_qss(self):
         self.assertIn("font-size: 28px", ty.qss("kpi"))
         self.assertIn(ty.FAMILY_DATA, ty.qss("kpi"))
-        self.assertIn("font-weight: 600", ty.qss("title"))
+        self.assertIn("font-weight: 700", ty.qss("title"))
+        self.assertIn(ty.FAMILY_DISPLAY, ty.qss("title"))
         self.assertEqual(ty.normalize_qss(ty.qss("section")), ty.qss("section"))
 
     def test_braces_stay_balanced(self):

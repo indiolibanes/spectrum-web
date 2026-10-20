@@ -10,7 +10,7 @@ sudo apt-get install -y \
   libgl1 libegl1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
   libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libxcb-cursor0 \
-  fontconfig fonts-dejavu-core fonts-liberation
+  fontconfig fonts-dejavu-core fonts-liberation file procps
 
 echo "==> Dependências Python (sem PyInstaller, que só serve para gerar o .exe)"
 python3 -m pip install --upgrade pip

@@ -47,32 +47,82 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_embedded_fonts_are_registered(self):
         families = set(QFontDatabase().families())
-        for family in ("IBM Plex Sans", "IBM Plex Serif", "IBM Plex Mono"):
+        for family in ("IBM Plex Sans", "EB Garamond", "IBM Plex Mono"):
             self.assertIn(family, families)
+
+    def test_font_styles_are_regular_and_bold_only(self):
+        """Diagnóstico: cada família deve ter só os estilos Regular/Bold (e Italic na Garamond).
+
+        Se aparecer outro estilo (Medium, SemiBold), o Windows pode registrá-lo como família separada
+        e a pilha de fontes deixa de se comportar como esperado."""
+        db = QFontDatabase()
+        allowed = {"Regular", "Bold", "Italic", "Normal", "Bold Italic"}
+        for family in ("IBM Plex Sans", "EB Garamond", "IBM Plex Mono"):
+            styles = set(db.styles(family))
+            self.assertTrue(styles, family)
+            self.assertLessEqual(styles, allowed, f"{family}: estilos inesperados {sorted(styles - allowed)}")
+
+    def test_cursor_images_load(self):
+        import cursors
+        for name in (cursors.ARROW, cursors.HAND):
+            cursor = cursors.load_cursor(name)
+            self.assertIsNotNone(cursor, name)
+            self.assertEqual(cursor.shape(), Qt.BitmapCursor)
+
+    def test_buttons_and_windows_get_the_cellulose_cursor(self):
+        import cursors
+        if not cursors.enabled():
+            self.skipTest("SPECTRUM_SYSTEM_CURSOR=1")
+        button = QPushButton("Teste")
+        button.show()
+        self.pump()
+        self.assertEqual(button.cursor().shape(), Qt.BitmapCursor)
+        button.close()
 
     def test_only_two_themes_exist(self):
         from appearance import PALETTES
-        self.assertEqual(set(PALETTES), {"gold", "light"})
+        self.assertEqual(set(PALETTES), {"umber", "light"})
         with self.assertRaises(ValueError):
             self.manager.set_theme("dark", persist=False)
 
     def test_theme_switch_updates_the_application(self):
-        for theme in ("light", "gold"):
+        for theme in ("light", "umber"):
             self.manager.set_theme(theme, persist=False)
             self.assertEqual(self.app.property("spectrum_theme"), theme)
 
     def test_canvas_root_paints_the_cellulose_texture(self):
         import scada_ui
-        for theme in ("gold", "light"):
+        for theme in ("umber", "light"):
             self.manager.set_theme(theme, persist=False)
             root = scada_ui.CanvasRoot()
             root.resize(420, 300)
             pixmap = root.grab()
             self.assertGreater(len(distinct_pixels(pixmap, 5, 5)), 1, f"textura invisível no tema {theme}")
 
+    def test_legacy_theme_names_migrate_to_umber(self):
+        from appearance import LEGACY_THEMES
+        self.assertEqual(LEGACY_THEMES.get("dark"), "umber")
+        self.assertEqual(LEGACY_THEMES.get("gold"), "umber")
+
+    def test_glass_panels_show_the_texture_through(self):
+        """O cartão é translúcido: renderizado sobre a textura, não pode ser uma cor chapada."""
+        import scada_ui
+        self.manager.set_theme("umber", persist=False)
+        root = scada_ui.CanvasRoot()
+        layout = QVBoxLayout(root)
+        box = scada_ui.panel()
+        layout.addWidget(box)
+        root._scada_style_factory = scada_ui.dashboard_style
+        root.resize(420, 300)
+        root.show()
+        self.manager.apply_widget(root)
+        self.pump()
+        self.assertGreater(len(distinct_pixels(box.grab(), 5, 5)), 1, "painel opaco: a textura não aparece")
+        root.close()
+
     def test_analysis_indicator_renders_every_state(self):
         from analysis_indicator import AnalysisIndicator
-        for theme in ("gold", "light"):
+        for theme in ("umber", "light"):
             self.manager.set_theme(theme, persist=False)
             for state in messages.known_states():
                 indicator = AnalysisIndicator(lambda s=state: s)

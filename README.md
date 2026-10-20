@@ -23,7 +23,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Dois temas:** Ouro (preto e dourado, padrão) e Claro (branco e verde, na linha da Arauco), com fundo de textura de celulose.
+- **Dois temas:** Escuro (preto quase AMOLED com umber e ouro, padrão, sobre textura de madeira) e Claro (branco e verde, na linha da Arauco, sobre textura de celulose). Painéis em vidro translúcido e botões refinados.
 - **Indicador de análise:** abaixo do gráfico, um rosto sorridente e mensagens em português acompanham cada etapa do ensaio.
 - **Teclado na tela** para touchscreen (numérico no campo de IP, completo nos demais), que pode ser desligado em *Configurações*.
 
@@ -44,8 +44,10 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `runtime_data.py` · `version.py` | Criação de dados locais e versionamento |
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
-| `assets/fonts/` | Fontes IBM Plex (licença OFL) |
-| `assets/textures/` | Texturas de celulose do fundo (tema ouro e tema claro) |
+| `assets/fonts/` | Fontes EB Garamond e IBM Plex (licença OFL) |
+| `assets/textures/` · `assets/cursors/` | Texturas do fundo (madeira escura e celulose clara) e cursores de fibra de celulose |
+| `glass.py` · `cursors.py` | Receitas do vidro (cores e QSS) e instalação dos cursores |
+| `tools/` | Geradores reproduzíveis das texturas, dos cursores e dos espécimes de tema |
 | `tests/` | Testes das regras puras e teste gráfico de fumaça |
 | `banco_materiais.json` | Base inicial de materiais (cópia editável criada na primeira execução) |
 | `docs/IDENTIDADE_VISUAL.md` | Logos, temas, tipografia, animações e teclado |
@@ -64,17 +66,17 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Cores.** Dois temas, em *Configurações → Aparência*: **Ouro** (fundo `#0B0A08`, texto marfim `#F4EAD2`, destaques `#D4AF37`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+**Cores.** Dois temas, em *Configurações → Aparência*: **Escuro · umber e ouro** (fundo quase AMOLED `#050504`, texto `#F0EADB`, títulos `#FFF1B4`, destaques `#E2C35C`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Tipografia.** Superfamília IBM Plex (licença OFL), embutida em `assets/fonts/`, igual em Windows, Linux e no executável:
+**Tipografia.** EB Garamond nos títulos e IBM Plex na interface e nos números (ambas licença OFL), embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável:
 
 | Família | Uso |
 |---|---|
-| IBM Plex Serif | Marca e títulos |
+| EB Garamond | Marca e títulos |
 | IBM Plex Sans | Interface, rótulos e texto corrido |
 | IBM Plex Mono | Valores de medição e tabelas |
 
-A escala vai de 11 px (mínimo) a 40 px (número Kappa), mais 44 px só na abertura. A tabela completa está no documento de identidade visual.
+A escala vai de 11 px (mínimo) a 40 px (número Kappa), mais 44 px só na abertura. O cursor do mouse é uma seta de fibra de celulose (desligue com `SPECTRUM_SYSTEM_CURSOR=1`). A tabela completa está no documento de identidade visual.
 
 **Assinatura.** Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira.
 
