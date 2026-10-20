@@ -13,8 +13,22 @@ PALETTES={
           "positive":"#3C7058","warning":"#866329","danger":"#A94D56"},
  "dark":{"canvas":"#111B24","surface":"#1B2934","soft":"#223C40","border":"#2D4058",
          "text":"#E8EFF8","muted":"#A2B3C9","disabled":"#718299","accent":"#76D8D0",
-         "positive":"#6DD6AE","warning":"#F0C478","danger":"#FF98A0"}
+         "positive":"#6DD6AE","warning":"#F0C478","danger":"#FF98A0"},
+ # Ouro sobre preto: fundo preto quente, texto em marfim e destaques dourados.
+ "gold":{"canvas":"#0B0A08","surface":"#131108","soft":"#1C1810","border":"#4A3D22",
+         "text":"#F4EAD2","muted":"#BFAE86","disabled":"#6F6548","accent":"#D4AF37",
+         "positive":"#B9D98A","warning":"#E8C25A","danger":"#E97462"}
 }
+DEFAULT_THEME="gold"
+THEME_LABELS={"light":"Claro","dark":"Escuro","gold":"Ouro (preto e dourado)"}
+def texture_path():
+    """Textura de madeira/celulose, quase transparente, usada no fundo do tema ouro."""
+    import sys
+    base=Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))
+    return base/"assets"/"textures"/"celulose-madeira.png"
+def background_stylesheet(theme):
+    if theme!="gold":return ""
+    return f'QMainWindow {{ background-image: url("{texture_path().as_posix()}"); background-repeat: repeat; }}'
 def current_theme():
     app=QApplication.instance()
     return app.property("spectrum_theme") or "light" if app else "light"
@@ -57,7 +71,9 @@ def transform_stylesheet(source,theme):
             prop,value,end=match.groups()
             kind="surface" if prop.lower().startswith("background") else "border" if prop.lower().startswith("border") else "text"
             if prop.lower()=="color" and strong:
-                value=COLOR.sub(lambda m:"#FFFFFF" if QColor(m[0]).lightnessF()>0.82 else mapped_color(m[0],kind,theme),value)
+                # Texto claro sobre fundo forte; no tema ouro o "claro" é o preto do fundo.
+                on_strong="#0B0A08" if theme=="gold" else "#FFFFFF"
+                value=COLOR.sub(lambda m:on_strong if QColor(m[0]).lightnessF()>0.82 else mapped_color(m[0],kind,theme),value)
             else:value=COLOR.sub(lambda m:mapped_color(m[0],kind,theme),value)
             if kind=="surface" and "qlineargradient" in value:
                 colors=COLOR.findall(value)
@@ -74,8 +90,8 @@ def preferences_path():
 def read_preference(path):
     try:
         theme=json.loads(path.read_text(encoding="utf-8")).get("theme")
-        return theme if theme in PALETTES else "light"
-    except (OSError,ValueError,TypeError,AttributeError):return "light"
+        return theme if theme in PALETTES else DEFAULT_THEME
+    except (OSError,ValueError,TypeError,AttributeError):return DEFAULT_THEME
 def save_preference(path,theme):
     temporary=None
     try:
@@ -168,11 +184,13 @@ class ThemeManager(QObject):
                          (QPalette.ButtonText,"text"),(QPalette.Highlight,"accent"),
                          (QPalette.ToolTipBase,"surface"),(QPalette.ToolTipText,"text")):
             pal.setColor(role,QColor(p[key]))
-        pal.setColor(QPalette.HighlightedText,QColor("#FFFFFF"))
+        pal.setColor(QPalette.HighlightedText,QColor("#0B0A08" if theme=="gold" else "#FFFFFF"))
         for role in (QPalette.Text,QPalette.WindowText,QPalette.ButtonText):
             pal.setColor(QPalette.Disabled,role,QColor(p["disabled"]))
         self.applying=True
-        try:self.app.setPalette(pal)
+        try:
+            self.app.setPalette(pal)
+            self.app.setStyleSheet(background_stylesheet(theme))
         finally:self.applying=False
         for widget in self.app.allWidgets():self.apply_widget(widget)
         if persist:
@@ -199,8 +217,8 @@ class AppearanceDialog(QDialog):
         label.setWordWrap(True);label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
         layout.addWidget(label)
         self.selector=QComboBox()
-        self.selector.addItem("Claro","light");self.selector.addItem("Escuro","dark")
-        self.selector.setCurrentIndex(0 if manager.theme=="light" else 1)
+        for key in ("gold","light","dark"):self.selector.addItem(THEME_LABELS[key],key)
+        self.selector.setCurrentIndex(max(0,self.selector.findData(manager.theme)))
         self.selector.setMinimumHeight(38)
         self.selector.currentIndexChanged.connect(self.change_theme)
         layout.addWidget(self.selector)

@@ -56,7 +56,7 @@ def resolve_database_path(name="usuarios.db"):
 
 
 def prepare_data_files():
-    from appearance import preferences_path
+    from appearance import preferences_path, DEFAULT_THEME
 
     base = data_directory()
     base.mkdir(parents=True, exist_ok=True)
@@ -74,6 +74,6 @@ def prepare_data_files():
             raise ValueError("A base inicial de materiais precisa ser um objeto JSON.")
         create_json_if_missing(material_path, materials)
     preference_path = preferences_path()
-    create_json_if_missing(preference_path, {"theme": "light"})
+    create_json_if_missing(preference_path, {"theme": DEFAULT_THEME})
     return {"database": resolve_database_path(), "materials": str(material_path),
             "preferences": str(preference_path)}
