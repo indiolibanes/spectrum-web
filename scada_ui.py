@@ -15,7 +15,7 @@ from responsive_layout import ScaledCanvasView
 from version import __credits__,credits_html
 
 class CanvasRoot(QWidget):
-    """Raiz do painel: fundo do tema, textura (madeira no escuro, celulose no claro) e brilho ambiente.
+    """Raiz do painel: fundo do tema, textura (só celulose, no claro) e brilho ambiente.
 
     Os cartões são translúcidos (ver glass.py), então tudo isso aparece por trás deles."""
     def paint_background(self,painter):
@@ -61,7 +61,7 @@ def open_login(window):
         window.log_message('Sessão autenticada: '+window.current_operator_name)
 
 def dashboard_style(p):
-    """Folha de estilo do painel: vidro sobre a madeira, botões com tom por função, destaque contido."""
+    """Folha de estilo do painel: vidro sobre o preto, botões com tom por função, destaque dourado."""
     accent=p['accent_strong']
     rim=glass.rim(p);rim_soft=glass.rim(p,.6);rim_button=glass.rim(p,1.5)
     hover_border=glass.rgba(p['accent'],.85)

@@ -2,7 +2,7 @@
 Vidro: receitas de cor e QSS compartilhadas pelos painéis, botões, diálogos e teclado.
 
 O Qt não desfoca o que está atrás de um widget, então o "vidro" aqui é construído com o que o QSS
-sabe fazer: preenchimento translúcido em degradê, fio de luz na borda (rim), a textura de madeira
+sabe fazer: preenchimento translúcido em degradê, fio de luz na borda (rim), a textura (no claro)
 aparecendo por baixo dos painéis e um brilho ambiente no fundo (pintado em scada_ui.CanvasRoot).
 
 Módulo sem Qt, para poder ser testado em qualquer lugar (tests/test_glass.py).
@@ -47,7 +47,7 @@ def rim(p, strength=1.0):
 
 
 def panel_fill(p):
-    """Painel de vidro: mais claro no alto, mais fundo embaixo; deixa a madeira aparecer."""
+    """Painel de vidro: mais claro no alto, mais fundo embaixo; deixa o fundo aparecer."""
     if is_dark(p):
         return vgrad(rgba(mix_hex(p["surface"], "#FFFFFF", 0.07), 0.74), rgba(p["surface"], 0.56))
     return vgrad(rgba("#FFFFFF", 0.88), rgba("#FFFFFF", 0.66))

@@ -1,6 +1,6 @@
 # Tutorial de teste no Codespace
 
-Roteiro para validar a interface nova: tema Escuro (preto quase AMOLED, umber e ouro, sobre madeira), tema Claro, Configurações em duas seções (Aparência e Acessibilidade), legibilidade e responsividade, botões em tons com animação de mola, gráficos coloridos, indicador de análise com rosto colorido, teclado na tela, rodapé com links e cursor de fibra de celulose. Tempo estimado: 50 minutos, sendo 10 de preparação.
+Roteiro para validar a interface nova: tema Escuro (preto AMOLED sóbrio, com dourado em destaque), tema Claro, Configurações em duas seções (Aparência e Acessibilidade), legibilidade e responsividade, botões em tons com animação de mola, gráficos coloridos, indicador de análise com rosto colorido, teclado na tela, rodapé com links e cursor de fibra de celulose. Tempo estimado: 50 minutos, sendo 10 de preparação.
 
 > **Importante.** A interface foi escrita sem poder abrir o PyQt5 no ambiente do assistente. A lógica pura tem testes automáticos que passam, mas **a aparência e o toque ainda não foram vistos em execução**. É isso que este roteiro verifica.
 
@@ -81,11 +81,11 @@ Marque **OK** ou descreva o problema. Prints ajudam muito.
 
 | # | Passo | Esperado | |
 |---|---|---|---|
-| A1 | Observe a abertura | Marca "SpectrumLab Pro" em Garamond cor de ouro pálido; "Da luz" em ouro pálido e "à análise." em dourado; madeira escura ao fundo, logos SENAI e ARAUCO; assinatura no canto inferior direito | ☐ |
-| A2 | Janela principal | Fundo quase preto (confira em tela OLED, se tiver), veios de madeira discretos nas margens **e por trás dos painéis**, painéis de vidro com fio de luz na borda, destaques dourados | ☐ |
+| A1 | Observe a abertura | Marca "SpectrumLab Pro" em Garamond cor de ouro pálido; "Da luz" em ouro pálido e "à análise." em dourado; fundo preto liso, sem textura no Escuro, logos SENAI e ARAUCO; assinatura no canto inferior direito | ☐ |
+| A2 | Janela principal | Fundo preto liso (confira em tela OLED, se tiver), **sem** veios ou textura no Escuro; painéis de vidro com fio de luz na borda; destaques dourados | ☐ |
 | A3 | Títulos e números | "SpectrumLab Pro", "Ensaios automáticos" e o título do indicador em **Garamond** (serifa fina); rótulos e botões em Plex Sans; valores dos indicadores e o número Kappa em Mono | ☐ |
 | A4 | **Configurações** → seção **Aparência** → tema **Claro** | Troca na hora, com uma fusão suave, para branco e verde; nenhum trecho azul ou preto "esquecido". O tema fica **só** nessa seção | ☐ |
-| A5 | Volte para **Escuro · umber e ouro** | Preto, madeira e ouro. A lista tem só dois temas | ☐ |
+| A5 | Volte para **Escuro · preto e dourado** | Preto e dourado, sem textura. A lista tem só dois temas | ☐ |
 | A6 | Feche e abra o programa | Lembra o último tema escolhido | ☐ |
 | A7 | Rodapé | Cartão com borda de destaque, bem visível nos dois temas. À direita: "Protótipo desenvolvido por Davi Baracat, **Kauê Carvalho** e **Mateus Ferreira**", com os dois nomes em destaque como links | ☐ |
 | A7b | Clique em **Kauê Carvalho** e em **Mateus Ferreira** | Abrem `github.com/indiolibanes` e `github.com/yosemate` no navegador | ☐ |

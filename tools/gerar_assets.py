@@ -1,5 +1,5 @@
 """
-Gera as imagens procedurais do tema: textura de madeira escura e cursores de fibra de celulose.
+Gera os cursores de fibra de celulose (a textura clara de celulose é um asset fixo em assets/textures).
 
 Uso (só desenvolvimento; precisa de numpy e Pillow):
     python3 tools/gerar_assets.py
@@ -15,53 +15,6 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 TEXTURES = ROOT / "assets" / "textures"
 CURSORS = ROOT / "assets" / "cursors"
-
-
-# ---------------------------------------------------------------------------------------------
-# Textura de madeira (tile 512 x 512 sem emendas, RGBA, só alfa varia)
-# ---------------------------------------------------------------------------------------------
-def periodic_noise(size, sigma_x, sigma_y, rng):
-    """Ruído periódico (emenda perfeita) com correlação maior em x que em y: gera fibras."""
-    spectrum = np.fft.fft2(rng.standard_normal((size, size)))
-    fx = np.fft.fftfreq(size)[None, :]
-    fy = np.fft.fftfreq(size)[:, None]
-    gauss = np.exp(-0.5 * ((fx * sigma_x) ** 2 + (fy * sigma_y) ** 2) * (2 * math.pi) ** 2)
-    out = np.real(np.fft.ifft2(spectrum * gauss))
-    out -= out.min()
-    return out / out.max()
-
-
-def wood_texture(size=512, planks=2, seed=7):
-    rng = np.random.default_rng(seed)
-    fibers = periodic_noise(size, 90, 1.3, rng)            # fibras longas, finas
-    streaks = periodic_noise(size, 40, 3.5, rng)           # veios mais largos
-    warp = periodic_noise(size, 110, 40, rng)              # deforma de leve os anéis de crescimento
-    pores = periodic_noise(size, 1.2, 0.9, rng)            # poros pequenos
-    height = size // planks
-    yy, xx = np.mgrid[0:size, 0:size]
-    value = np.zeros((size, size))
-    for k in range(planks):
-        y0, y1 = k * height, (k + 1) * height
-        local = (yy[y0:y1] - y0) / height
-        phase = rng.uniform(0, 1)
-        rings = 0.5 + 0.5 * np.sin(2 * math.pi * (local * (5.5 + 2 * k) + warp[y0:y1] * 1.1 + phase))
-        rings = rings ** 1.6
-        plank = 0.40 * rings + 0.34 * fibers[y0:y1] + 0.26 * streaks[y0:y1]
-        plank = (plank - plank.min()) / (plank.max() - plank.min())
-        plank = plank ** 1.35
-        plank *= 0.80 + 0.25 * (rng.uniform() - 0.5)          # cada tábua com um brilho próprio
-        value[y0:y1] = plank
-        # junta entre as tábuas: um fio claro seguido de uma sombra
-        value[y0, :] = 0.0
-        value[y0 + 1, :] = 0.95
-        value[y0 + 2, :] = 0.35
-    value -= 0.10 * (pores > 0.82)                           # poros escurecem um pouco
-    value = np.clip(value, 0, 1)
-    alpha = (value * 74).astype(np.uint8)
-    rgba = np.zeros((size, size, 4), np.uint8)
-    rgba[..., 0], rgba[..., 1], rgba[..., 2] = 214, 160, 88  # âmbar (cor da fibra)
-    rgba[..., 3] = alpha
-    return Image.fromarray(rgba, "RGBA")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -135,7 +88,6 @@ def save_cursor(name, **kw):
 def main():
     TEXTURES.mkdir(parents=True, exist_ok=True)
     CURSORS.mkdir(parents=True, exist_ok=True)
-    wood_texture().save(TEXTURES / "madeira-escura.png", optimize=True)
     save_cursor("fibra-seta", fill=(244, 237, 220, 255), outline=(30, 22, 10, 255), strand=(236, 226, 200, 220))
     save_cursor("fibra-mao", fill=(226, 195, 92, 255), outline=(30, 22, 10, 255), strand=(240, 220, 150, 230), ring=True)
     print("Gerado em", TEXTURES, "e", CURSORS)

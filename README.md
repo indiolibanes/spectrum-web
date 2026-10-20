@@ -23,7 +23,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 - **Repetibilidade:** cinco aquisições consecutivas no mesmo posicionamento, com estatísticas e histórico individual.
 - **Histórico:** ensaios salvos em `usuarios.db`, com consulta, exportação em CSV e laudo em PDF.
 - **Gerenciamento de usuários:** perfis *administrador* e *operador*.
-- **Dois temas:** Escuro (preto quase AMOLED com umber e ouro, padrão, sobre textura de madeira) e Claro (branco e verde, na linha da Arauco, sobre textura de celulose). Painéis em vidro translúcido, botões em tons por função e gráficos com uma cor por banda.
+- **Dois temas:** Escuro (preto AMOLED sóbrio com destaques dourados, padrão) e Claro (branco e verde, na linha da Arauco, sobre textura de celulose). Painéis em vidro translúcido, botões em tons por função e gráficos com uma cor por banda.
 - **Indicador de análise:** abaixo do gráfico, um rosto colorido e mensagens em português acompanham cada etapa do ensaio.
 - **Responsivo:** a janela se adapta a qualquer tela (cabeçalho em duas linhas, indicadores em grade, painéis empilhados) sem comprimir o texto.
 - **Animações** inspiradas no movimento da Apple (molas, entrada escalonada, fusão na troca de tema), com opção de reduzi-las.
@@ -47,7 +47,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `assets/logo/` | Marca do programa |
 | `assets/brands/` | Logos SENAI e ARAUCO (SVG, fundo transparente) |
 | `assets/fonts/` | Fontes EB Garamond e IBM Plex (licença OFL) |
-| `assets/textures/` · `assets/cursors/` | Texturas do fundo (madeira escura e celulose clara) e cursores de fibra de celulose |
+| `assets/textures/` · `assets/cursors/` | Textura do fundo do tema claro (celulose) e cursores de fibra de celulose |
 | `glass.py` · `cursors.py` | Receitas do vidro (cores e QSS) e instalação dos cursores |
 | `tools/` | Geradores reproduzíveis das texturas, dos cursores e dos espécimes de tema |
 | `tests/` | Testes das regras puras e teste gráfico de fumaça |
@@ -55,6 +55,17 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 | `docs/IDENTIDADE_VISUAL.md` | Logos, temas, tipografia, animações e teclado |
 | `docs/TUTORIAL_CODESPACE.md` | Roteiro de teste da interface no Codespace |
 | `docs/AUDITORIA_GUI_UX.md` | Auditoria de interface, segurança e pendências |
+
+## Como foi desenvolvido
+
+Este projeto foi feito com assistentes de IA, e isso está declarado aqui de forma explícita:
+
+- **Em parceria com o Antigravity**, como assistente de IA durante o desenvolvimento.
+- **Desenvolvimento principal no Codex e no Claude Code**: código, refatorações, testes e documentação.
+- **Testes**: a maior parte é feita no **GitHub Codespaces**, com um display virtual e uma bancada simulada (ESP32 falso). Também há testes com **amostras reais** na bancada.
+- **Autoria**: a interface foi inspirada em projetos de terceiros (por exemplo, o BitChord, usado só como referência de linguagem visual, sem código copiado) e também em ideias autorais. Ela recebeu dezenas de implementações e melhorias após feedbacks de usuários reais.
+
+Revisão técnica, decisões de segurança e a validade dos resultados são responsabilidade dos autores.
 
 ## Identidade visual
 
@@ -68,7 +79,7 @@ O SPECTRUM-LAB PRO controla uma bancada de medição NIR de baixo custo: aquisi�
 
 Os logos SENAI e ARAUCO são de terceiros e seu uso depende de autorização. O detalhe das regras está em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
-**Cores.** Dois temas, em *Configurações → Aparência*: **Escuro · umber e ouro** (fundo quase AMOLED `#050504`, texto `#F8F4EA`, títulos `#FFF3BF`, destaques `#E8C96A`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
+**Cores.** Dois temas, em *Configurações → Aparência*: **Escuro · preto e dourado** (fundo preto AMOLED `#000000`, sem textura, texto `#F8F4EA`, títulos `#FFF3BF`, destaques dourados `#E8C96A`) e **Claro** (fundo `#F6F9F3`, cartões brancos, verde `#436722`). O verde deriva do logo Projeto Sucuriú; se houver o manual oficial da Arauco, ajuste em `appearance.py`. Paleta completa em [docs/IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md).
 
 **Tipografia.** EB Garamond nos títulos e IBM Plex na interface e nos números (ambas licença OFL), embutidas em `assets/fonts/`, iguais em Windows, Linux e no executável:
 

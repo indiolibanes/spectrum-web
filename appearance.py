@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import (QApplication,QWidget,QLabel,QPushButton,QComboBox,Q
 from popup_design import popup_owner, popup_stylesheet
 from typography import normalize_qss, install as install_typography
 PALETTES={
- # Escuro: preto quase AMOLED com os tons de papel, umber e ouro da identidade do autor.
- # Texto em contraste alto (revisão de legibilidade): texto 17:1, secundário 13:1 sobre o fundo.
- "umber":{"canvas":"#050504","surface":"#17140E","soft":"#221E15","border":"#5A5342",
+ # Escuro: preto AMOLED sóbrio (fundo #000000, sem textura) com o dourado como destaque.
+ # Texto em contraste alto (revisão de legibilidade): texto 18:1, secundário 12:1 sobre o fundo.
+ "umber":{"canvas":"#000000","surface":"#17140E","soft":"#221E15","border":"#5A5342",
           "text":"#F8F4EA","heading":"#FFF3BF","muted":"#DDD5C0","disabled":"#8A836C","accent":"#E8C96A",
           "positive":"#9AD68F","warning":"#F0A965","danger":"#F58B7E",
           "sky":"#7CC4F2","violet":"#B9A2F2","rose":"#F29BB8",
@@ -31,18 +31,21 @@ SERIES={
 }
 DEFAULT_THEME="umber"
 LEGACY_THEMES={"dark":"umber","gold":"umber"}   # preferências salvas por versões anteriores
-THEME_LABELS={"umber":"Escuro · umber e ouro","light":"Claro · branco e verde"}
-TEXTURE_FILES={"umber":"madeira-escura.png","light":"celulose-claro.png"}
+THEME_LABELS={"umber":"Escuro · preto e dourado","light":"Claro · branco e verde"}
+TEXTURE_FILES={"light":"celulose-claro.png"}   # o Escuro é preto liso (AMOLED), sem textura
 def texture_path(theme=None):
-    """Textura de fibras de celulose, quase transparente, usada no fundo da janela principal."""
+    """Textura do fundo da janela principal, ou None quando o tema não tem textura."""
     import sys
+    name=TEXTURE_FILES.get(theme or current_theme())
+    if name is None:return None
     base=Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parent))
-    return base/"assets"/"textures"/TEXTURE_FILES.get(theme or current_theme(),TEXTURE_FILES[DEFAULT_THEME])
+    return base/"assets"/"textures"/name
 _TEXTURE_CACHE={}
 def texture_pixmap(theme=None):
     key=theme or current_theme()
     if key not in _TEXTURE_CACHE:
-        pix=QPixmap(str(texture_path(key)))
+        path=texture_path(key)
+        pix=QPixmap(str(path)) if path else QPixmap()   # QPixmap vazio: o chamador não desenha nada
         _TEXTURE_CACHE[key]=pix
     return _TEXTURE_CACHE[key]
 def current_theme():
@@ -281,7 +284,7 @@ class AppearanceDialog(QDialog):
         self.theme_buttons={}
         self.theme_group=QButtonGroup(self);self.theme_group.setExclusive(True)
         pickers=QHBoxLayout();pickers.setSpacing(12)
-        for key,text in (("umber","Escuro\nâmbar e ouro"),("light","Claro\nbranco e verde")):
+        for key,text in (("umber","Escuro\npreto e dourado"),("light","Claro\nbranco e verde")):
             button=QPushButton(text);button.setCheckable(True);button.setMinimumHeight(68)
             button.setProperty("fxTone","soft");button.setChecked(manager.theme==key)
             button.clicked.connect(lambda _=False,k=key:self.change_theme(k))
