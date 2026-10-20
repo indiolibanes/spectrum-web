@@ -5,14 +5,18 @@ Este documento define logos, cores, tipografia, vidro, cursor e comportamento vi
 ![Tema Escuro](img/especime-umber.png)
 ![Tema Claro](img/especime-claro.png)
 
-> As duas imagens são um **espécime em HTML** gerado por `tools/especime.py` a partir das **mesmas paletas e receitas de vidro** do programa (`appearance.py` e `glass.py`). Servem para conferir hierarquia, contraste e proporção. **Não são capturas da tela real**: o desfoque de fundo e a renderização exata das fontes no Qt só se confirmam com o programa aberto (`docs/TUTORIAL_CODESPACE.md`).
+| Configurações · Escuro | Configurações · Claro |
+|---|---|
+| ![Configurações no tema Escuro](img/especime-config-umber.png) | ![Configurações no tema Claro](img/especime-config-claro.png) |
+
+> As imagens são um **espécime em HTML** gerado por `tools/especime.py` a partir das **mesmas paletas e receitas de vidro** do programa (`appearance.py` e `glass.py`). Servem para conferir hierarquia, contraste e proporção. **Não são capturas da tela real**: o desfoque de fundo e a renderização exata das fontes no Qt só se confirmam com o programa aberto (`docs/TUTORIAL_CODESPACE.md`).
 
 ## Linguagem de design
 
 Três referências, todas usadas como inspiração de linguagem, nunca como cópia de código ou de imagem:
 
 - **Vidro translúcido** (superfícies que deixam o fundo aparecer, com um fio de luz na borda). Ponto de partida: o visual do app BitChord, que é licenciado em GPL-3.0; por isso **nenhum código nem recurso dele** foi copiado, só a ideia (cartões flutuantes, translucidez, realce de borda).
-- **Clareza da interface da Apple**: poucos elementos por tela, hierarquia tipográfica curta, cantos generosos (10 px nos botões e campos, 16 px nos painéis), um único tom de destaque usado com contenção, estados de toque discretos. Só a *linguagem*: as fontes e o kit visual da Apple são proprietários e não são usados.
+- **Clareza da interface da Apple**: poucos elementos por tela, hierarquia tipográfica curta, cantos generosos (10 px nos botões e campos, 16 px nos painéis), destaque dourado (ou verde) para a ação principal e um tom por função nos demais botões, movimento com física de mola (entrada escalonada, botões que cedem ao toque e voltam com leve ultrapassagem, troca de tema em fusão). Só a *linguagem*: as fontes e o kit visual da Apple são proprietários e não são usados.
 - **Material 3** para os estados de toque (realce ao passar, cor viva ao pressionar, ondulação no ponto tocado) e alvos de toque grandes.
 
 **O que o Qt não faz.** O QSS não desfoca o que está atrás do widget. O vidro é construído com preenchimento translúcido em degradê, fio de luz na borda, a textura do fundo aparecendo por baixo dos painéis e um brilho ambiente pintado no fundo. Resultado: a mesma sensação de profundidade, sem desfoque real.
@@ -39,11 +43,11 @@ Regras de uso:
 
 > Protótipo desenvolvido por Davi Baracat, Kauê Carvalho e Mateus Ferreira
 
-Aparece na abertura (canto inferior direito) e no rodapé da janela principal. O texto está em `version.py` (`__credits__` e `__authors__`), em um só lugar.
+Aparece na abertura (canto inferior direito) e no **rodapé da janela principal**, que é um cartão de destaque (borda dourada ou verde, texto no contraste do tema). Cada autor é um link para o seu GitHub: **Kauê Carvalho** → `github.com/indiolibanes` e **Mateus Ferreira** → `github.com/yosemate`. Os nomes e os links estão em `version.py` (`__authors__` e `__author_links__`; `credits_html()` monta o texto), em um só lugar. Davi Baracat aparece sem link porque o endereço dele ainda não foi informado: basta acrescentá-lo em `__author_links__`.
 
 ## Temas
 
-Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva. Preferências antigas (`dark`, `gold`) migram sozinhas para o tema Escuro.
+Há dois temas, escolhidos em *Configurações → Aparência*; a escolha fica salva e a troca acontece em uma fusão suave de cerca de 360 ms (sem ela, com *Reduzir animações*). *Acessibilidade* é uma seção à parte, com o teclado na tela e as animações. Preferências antigas (`dark`, `gold`) migram sozinhas para o tema Escuro.
 
 ### Escuro · umber e ouro (padrão)
 
@@ -52,16 +56,17 @@ Preto quase AMOLED (`#050504`: os pixels ficam praticamente apagados em telas OL
 | Token | Hex | Uso |
 |---|---|---|
 | canvas | `#050504` | Fundo da janela |
-| surface | `#14120D` | Diálogos e base dos painéis de vidro |
-| soft | `#1F1C14` | Áreas alternadas |
-| border | `#4C4638` | Bordas sólidas e divisores |
-| text | `#F0EADB` | Texto principal (papel) |
-| heading | `#FFF1B4` | Títulos (ouro pálido) |
-| muted | `#C7BFA9` | Texto secundário |
-| disabled | `#6F6853` | Controles desabilitados |
-| accent | `#E2C35C` | Destaque: botão principal, números, curva |
-| positive / warning / danger | `#8FBF86` / `#E79A5C` / `#EC7F73` | Estado OK / atenção / erro |
-| on_strong | `#3B2F00` | Texto sobre botão dourado |
+| surface | `#17140E` | Diálogos e base dos painéis de vidro |
+| soft | `#221E15` | Áreas alternadas |
+| border | `#5A5342` | Bordas sólidas e divisores |
+| text | `#F8F4EA` | Texto principal (papel), 17:1 sobre o fundo |
+| heading | `#FFF3BF` | Títulos (ouro pálido) |
+| muted | `#DDD5C0` | Texto secundário, 13:1 sobre o fundo |
+| disabled | `#8A836C` | Controles desabilitados |
+| accent | `#E8C96A` | Destaque: botão principal, números, curva |
+| positive / warning / danger | `#9AD68F` / `#F0A965` / `#F58B7E` | Estado OK / atenção / erro |
+| sky / violet / rose | `#7CC4F2` / `#B9A2F2` / `#F29BB8` | Tons de função dos botões e dos ícones |
+| on_strong | `#2B2200` | Texto sobre botão dourado |
 
 **Textura de madeira.** `assets/textures/madeira-escura.png`: tábuas de fibra âmbar quase transparentes, geradas por `tools/gerar_assets.py` (semente fixa, sem imagem de terceiros). Aparece no fundo e por trás dos painéis de vidro.
 
@@ -72,20 +77,27 @@ Preto quase AMOLED (`#050504`: os pixels ficam praticamente apagados em telas OL
 | canvas | `#F6F9F3` | Fundo da janela (branco com um fio de verde) |
 | surface | `#FFFFFF` | Cartões e diálogos |
 | soft | `#EAF1E4` | Áreas alternadas |
-| border | `#CBD6C2` | Bordas e divisores |
-| text | `#1B2612` | Texto principal |
-| heading | `#243818` | Títulos |
-| muted | `#56634B` | Texto secundário |
+| border | `#B9C6AE` | Bordas e divisores |
+| text | `#142009` | Texto principal |
+| heading | `#1B2E10` | Títulos |
+| muted | `#44523A` | Texto secundário |
 | disabled | `#7E8873` | Controles desabilitados |
 | accent | `#436722` | Verde de destaque e botão primário |
 | positive / warning / danger | `#266435` / `#8A5A00` / `#B3261E` | Estado OK / atenção / erro |
+| sky / violet / rose | `#1F6FA8` / `#6A4BC2` / `#B03A6B` | Tons de função dos botões e dos ícones |
 | on_strong | `#FFFFFF` | Texto sobre botão verde |
 
 **Textura de celulose.** `assets/textures/celulose-claro.png`: fibras verde-musgo quase transparentes.
 
 **Origem do verde.** Não há manual de marca da Arauco no repositório. O verde foi derivado do logo *ARAUCO | Projeto Sucuriú* (matiz das colinas, cerca de 92°) e escurecido para dar contraste. **Se houver o manual oficial, troque `accent` e `accent_strong` em `appearance.py`** e o resto do tema acompanha.
 
-**Contrastes (WCAG, conferidos em `tests/test_glass.py`).** Texto sobre fundo acima de 14:1; texto secundário sobre cartão acima de 6:1; destaque sobre fundo acima de 6:1; texto do botão principal e do botão de perigo acima de 4,5:1. Controles desabilitados ficam perto de 3,5:1 de propósito.
+**Contrastes (WCAG, conferidos em `tests/test_glass.py`).** Escuro: texto sobre fundo 18:1 e secundário sobre cartão 12:1. Claro: texto sobre fundo acima de 14:1; texto secundário sobre cartão acima de 6:1; destaque sobre fundo acima de 6:1; texto do botão principal e do botão de perigo acima de 4,5:1. Controles desabilitados ficam perto de 3,5:1 de propósito.
+
+## Cores por função e por série
+
+- **Botões** têm um tom por função: dourado/verde (principal), azul-céu (ler e conectar), violeta (calibrar), rosa (esvaziar e limpar), verde (conectar), âmbar (modo manual) e vermelho (emergência). O tom aparece como vidro tingido, borda do tom e texto do tom, e vira cor cheia ao pressionar. As receitas (`tone_fill`, `tone_text`, `tone_border`, `tone_hot`) estão em `glass.py`.
+- **Gráficos** usam uma cor por banda espectral, sempre na mesma ordem (`appearance.SERIES`): escuro `#3987E5 #D95926 #199E70 #C98500 #D55181 #9085E9`; claro `#2A78D6 #EB6834 #1BAF7A #EDA100 #E87BA4 #6250D6`. Foram validadas com o validador de paletas (distinção para daltonismo e contraste). O texto do rótulo fica na cor de texto do tema, com uma tarja da cor da banda ao lado, para a leitura nunca depender só da cor.
+- A curva espectral usa a cor de títulos do tema, com área suave e halo na cor de destaque, e um ponto por banda na cor da banda.
 
 ## Vidro
 
@@ -95,8 +107,9 @@ Receitas em `glass.py` (sem Qt, testadas):
 |---|---|
 | Painel | Degradê vertical translúcido (74% em cima, 56% embaixo no escuro), borda de 1 px com fio de luz (16% de `heading` no escuro, 22% de `accent` no claro), raio 16 px |
 | Cartão de resultado | O mesmo vidro com um sopro do tom de destaque e borda de destaque a 38% |
-| Botão secundário | Vidro leve; ao passar o mouse ganha luz e a borda vira destaque |
-| Botão principal | Cor de destaque cheia, com luz no topo (desenhada por `button_fx.py`) |
+| Botão secundário | Vidro branco a 15% (escuro) com borda de 24% de `heading`, bem visível sobre o fundo preto; ao passar o mouse ganha luz e a borda vira destaque |
+| Botão em tom | Vidro tingido com a cor da função (30% no alto, 14% embaixo, no escuro), borda a 70% do tom |
+| Botão principal | Cor de destaque cheia, com luz no topo e foco de luz que acompanha o ponteiro (desenhados por `button_fx.py`) |
 | Campos | Poço levemente mais escuro que o painel, borda de destaque no foco |
 | Fundo | Cor do tema + textura + dois brilhos ambientes (dourado no escuro, verde no claro) |
 
@@ -124,23 +137,32 @@ Se uma fonte não carregar, o programa usa Georgia / Segoe UI / Consolas (nessa 
 | hero | 40 | Mono 400 | Número kappa |
 | kpi | 28 | Mono 400 | Valor dos indicadores |
 | title | 24 | Garamond 700 | Marca no cabeçalho, títulos de diálogo |
-| section | 19 | Garamond 700 | Títulos de painel e do indicador de análise |
-| button | 15 | Sans 700 | Botão principal e Concluir do teclado |
-| card | 13 | Sans 400 | Título de cartão, botões |
-| body | 13 | Sans 400 | Texto corrido, campos |
-| label | 11 | Sans 400 | Rótulos pequenos |
-| caption | 11 | Sans 400 | Legendas e apoio |
-| data | 13 | Mono 400 | Tabelas e console |
+| section | 20 | Garamond 700 | Títulos de painel e do indicador de análise |
+| button | 16 | Sans 700 | Botão principal e Concluir do teclado |
+| card | 14 | Sans 400 | Título de cartão, botões |
+| body | 14 | Sans 400 | Texto corrido, campos |
+| label | 12 | Sans 400 | Rótulos pequenos |
+| caption | 12 | Sans 400 | Legendas e apoio |
+| data | 14 | Mono 400 | Tabelas e console |
 
 Regras:
 
-1. O mínimo é 11 px. Nada fica menor.
+1. A escala é 12, 14, 16, 20, 24, 28 e 40 px (44 só na abertura). O mínimo é 12 px: nada fica menor, e tamanhos antigos de 9 a 11 px sobem para 12.
 2. Cada painel usa no máximo quatro tamanhos.
 3. Cada tela tem um único destaque.
 4. Números de medição sempre em Mono.
 5. O QSS do Qt **ignora** `line-height` e `letter-spacing`; por isso o programa não os usa.
 
 **Como é aplicado.** `typography.py` define a escala. Toda folha de estilo que passa pelo gerenciador de temas é normalizada: tamanhos vão ao degrau mais próximo, pesos aos disponíveis (400 ou 700), famílias antigas (Segoe UI, Bahnschrift, Consolas) à família do mesmo papel, e `line-height`/`letter-spacing` são removidos. Assim, telas antigas seguem a escala sem reescrita. Novos widgets devem usar `typography.qss("papel")`.
+
+## Responsividade
+
+A janela se adapta a qualquer tela, sem encolher o texto:
+
+- O painel é um canvas que **acompanha o tamanho da janela** e é ampliado ou reduzido só um pouco (escala entre 0,90 e 1,35, nunca abaixo do que o layout precisa). A lógica está em `responsive_math.py` (pura, com testes) e em `responsive_layout.py`.
+- Quando falta largura, o **layout se reorganiza**: o cabeçalho passa para duas linhas abaixo de ~1590 px lógicos, os quatro indicadores viram uma grade 2×2 abaixo de ~1180 px e os painéis se empilham em tela vertical ou abaixo de ~1040 px.
+- A coluna da esquerda (método, ensaios, calibração, resultado) fica numa **área rolável**: os cartões mantêm a altura natural e o texto nunca é comprimido; se não couber, rola.
+- O cartão de calibração mostra R², RMSE e N em **linhas** (rótulo à esquerda, valor à direita), em vez de três caixas estreitas lado a lado, que era o que comprimia o texto.
 
 ## Cursor
 
@@ -150,25 +172,32 @@ Os desenhos são gerados por `tools/gerar_assets.py`. A instalação está em `c
 
 ## Botões e animações
 
-| Estado | Efeito |
+Inspiração: movimento da Apple (molas com amortecimento, entradas escalonadas, fusões), sem copiar assets. As curvas estão em `animation_math.py` (`spring`, `ease_out_expo`, `staggered`; puras e testadas) e o que o QSS não anima fica em `button_fx.py` e `motion.py`.
+
+| Elemento | Efeito |
 |---|---|
-| Repouso | Vidro leve com fio de luz no topo (botão principal: destaque cheio) |
-| Passar o mouse/dedo | Borda de destaque e realce que surge suavemente (140 ms) |
-| Pressionado | Degradê vivo do tema, com ondulação (520 ms) a partir do ponto tocado |
-| Em andamento | O botão que iniciou o ciclo vira "Analisando…" com um brilho que percorre o botão |
+| Botão em repouso | Vidro com fio de luz no topo; botões em tom, tingidos pela função |
+| Passar o mouse/dedo | Borda realçada e um **foco de luz que acompanha o ponteiro** (180 ms) |
+| Pressionado | O botão "cede": escurecimento nas bordas e profundidade, com **mola** (320 ms) e ondulação (620 ms) a partir do ponto tocado |
+| Soltar | Volta com **leve ultrapassagem** e um anel que se dissipa (900 ms) |
+| Em andamento | Vira "Analisando…" com um brilho que percorre o botão |
 | Desabilitado | Vidro apagado, texto cinza do tema, sem efeito |
+| Abertura da janela | Painéis entram em sequência (atraso de 70 ms entre eles, 750 ms cada) com subida e fusão |
+| Troca de tema | Fusão de ~360 ms entre a imagem antiga e a nova |
+| Diálogos | Surgem com fusão de 200 ms |
+| Barras do gráfico | Sobem em 850 ms com mola (ultrapassagem leve) |
 
-Implementação: o preenchimento e a cor de pressionado ficam no QSS; `button_fx.py` acrescenta o que o QSS não anima (realce, fio de luz, ondulação e brilho) com uma camada transparente por cima de cada botão.
+O efeito de pressão é **só pintura**: não muda o tamanho do botão. Escalar a geometria foi descartado porque faz o layout se mexer e perde toques na borda.
 
-**Fase seguinte.** Esta revisão fecha UX/UI. As animações (transições entre telas, entrada dos painéis, curva do gráfico) ficam para a próxima fase, como combinado.
+**Reduzir animações.** Em *Configurações → Acessibilidade → Animações* (ou `SPECTRUM_REDUCE_MOTION=1`) ficam só a troca de estado dos botões; molas, entradas, fusões e a subida das barras são desligadas.
 
 ## Indicador de análise
 
 Abaixo do gráfico, o `AnalysisIndicator` mostra o que o equipamento faz, em linguagem simples:
 
-- **Rosto** desenhado (sem emoji): sorri em repouso e ao concluir, pisca de tempos em tempos, dá um pulinho com faíscas quando a análise termina e fica sério em falha ou emergência.
+- **Rosto colorido** desenhado em vetor (`emoji_icons.py`; amarelo com brilho, ficando laranja com gota de suor no alerta): sorri em repouso e ao concluir, pisca de tempos em tempos, dá um pulinho com faíscas coloridas quando a análise termina e fica preocupado em falha ou emergência. É desenhado em vez de usar emoji de texto porque o tema remove emojis de texto e as fontes de emoji colorido variam entre sistemas.
 - **Título e frase** que se alternam a cada 4,5 s (`analysis_messages.py`, textos em português do Brasil).
-- **Espectro animado** durante a leitura e **etapas 1 a 5** (fechar gaveta, avançar sensor, ler, recuar sensor, abrir gaveta).
+- **Espectro animado** durante a leitura e **etapas 1 a 5**, cada etapa concluída na cor da sua banda (fechar gaveta, avançar sensor, ler, recuar sensor, abrir gaveta).
 - **Mensagem final** "Análise concluída. Boa amostra!" por 7 s.
 
 ## Teclado na tela
@@ -179,12 +208,12 @@ Para touchscreen, ao tocar em um campo de texto abre um teclado próprio (`touch
 - **Completo** (letras, símbolos e acentos do português) nos demais campos, como login e nomes de amostra.
 - Não rouba o foco: o cursor continua no campo e as teclas chegam como as do teclado físico.
 - Posiciona-se onde não cubra o campo em edição e funciona dentro de diálogos modais.
-- Liga e desliga em *Configurações → Aparência* (padrão: ligado).
+- Liga e desliga em *Configurações → Acessibilidade* (padrão: ligado).
 
 Para um campo novo escolher o teclado: `campo.setProperty("touchKeyboard", "numeric")` (ou `"digits"` / `"off"`).
 
 ## Estado da aplicação
 
-Aplicado: abertura, painel principal, cartões KPI, gráficos, diálogos (via normalização), campos de IP, teclado, indicador, cursor.
+Aplicado: abertura, painel principal (cabeçalho, indicadores com ícones coloridos, coluna rolável, gráfico, rodapé), cartões KPI, diálogos (via normalização), Configurações em duas seções, campos de IP, teclado, indicador, cursor, animações.
 
 **Não verificado com o programa em execução.** Esta revisão foi escrita sem PyQt5 disponível no ambiente de desenvolvimento do assistente: a lógica pura tem testes (`tests/`), e há um teste gráfico (`tests/test_gui_smoke.py`) para rodar no Codespace, mas o resultado visual real precisa ser conferido pelo roteiro de `docs/TUTORIAL_CODESPACE.md`.

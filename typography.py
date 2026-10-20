@@ -27,8 +27,9 @@ STACK_UI = f"'{FAMILY_UI}', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
 STACK_DISPLAY = f"'{FAMILY_DISPLAY}', 'Georgia', 'Times New Roman', serif"
 STACK_DATA = f"'{FAMILY_DATA}', 'Consolas', 'Courier New', monospace"
 
-# Escala em pixels (tamanho lógico, a 100%). Nada fica abaixo de 11.
-SCALE = (11, 13, 15, 19, 24, 28, 40)
+# Escala em pixels (tamanho lógico, a 100%). Nada fica abaixo de 12: abaixo disso o texto claro
+# sobre fundo escuro perde nitidez (revisão de legibilidade).
+SCALE = (12, 14, 16, 20, 24, 28, 40)
 (SIZE_CAPTION, SIZE_BODY, SIZE_BUTTON, SIZE_SECTION, SIZE_TITLE, SIZE_KPI, SIZE_HERO) = SCALE
 SIZE_DISPLAY = 44  # só para a abertura, desenhada à mão
 REGULAR, BOLD = 400, 700
@@ -59,7 +60,7 @@ FONT_FILES = (
 def snap_size(px):
     """Leva qualquer tamanho em pixels ao degrau mais próximo da escala (sem passar de 40)."""
     px = float(px)
-    for limit, step in ((11, 11), (13, 13), (16, 15), (21, 19), (26, 24), (34, 28)):
+    for limit, step in ((12, 12), (14, 14), (17, 16), (22, 20), (26, 24), (34, 28)):
         if px <= limit:
             return step
     return 40

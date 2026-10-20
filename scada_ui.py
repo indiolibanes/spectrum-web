@@ -2,24 +2,26 @@
 from PyQt5.QtCore import Qt,QTimer,QSize,QPointF
 from PyQt5.QtGui import QColor,QPainter,QRadialGradient
 from PyQt5.QtWidgets import (QWidget,QFrame,QLabel,QPushButton,QVBoxLayout,QHBoxLayout,QGridLayout,
-                             QSplitter,QDialog,QSizePolicy)
+                             QSplitter,QDialog,QSizePolicy,QScrollArea,QScroller)
 import glass
+import responsive_math
 import typography as ty
+from emoji_icons import GlyphIcon
 from animation_math import mix_hex
 from analysis_indicator import AnalysisIndicator
 from brand_assets import institutional_signature
 from diagnostics import ControllerDiagnosticsCard
 from responsive_layout import ScaledCanvasView
-from version import __credits__
+from version import __credits__,credits_html
 
 class CanvasRoot(QWidget):
     """Raiz do painel: fundo do tema, textura (madeira no escuro, celulose no claro) e brilho ambiente.
 
     Os cartões são translúcidos (ver glass.py), então tudo isso aparece por trás deles."""
-    def paintEvent(self,event):
+    def paint_background(self,painter):
+        """Fundo completo (cor, textura e brilho ambiente). Usado também pela animação de entrada."""
         from appearance import palette_for,texture_pixmap
         p=palette_for()
-        painter=QPainter(self)
         painter.fillRect(self.rect(),QColor(p['canvas']))
         tile=texture_pixmap()
         if not tile.isNull():painter.drawTiledPixmap(self.rect(),tile)
@@ -31,6 +33,9 @@ class CanvasRoot(QWidget):
             outer=QColor(color);outer.setAlpha(0)
             gradient.setColorAt(0.0,inner);gradient.setColorAt(1.0,outer)
             painter.fillRect(self.rect(),gradient)
+    def paintEvent(self,event):
+        painter=QPainter(self)
+        self.paint_background(painter)
         painter.end()
 
 def panel():
@@ -56,38 +61,53 @@ def open_login(window):
         window.log_message('Sessão autenticada: '+window.current_operator_name)
 
 def dashboard_style(p):
-    """Folha de estilo do painel: vidro sobre a madeira, botões refinados, destaque contido."""
+    """Folha de estilo do painel: vidro sobre a madeira, botões com tom por função, destaque contido."""
     accent=p['accent_strong']
-    rim=glass.rim(p);rim_soft=glass.rim(p,.6)
-    hover_border=glass.rgba(p['accent'],.75)
-    result_border=glass.rgba(p['accent'],.38)
+    rim=glass.rim(p);rim_soft=glass.rim(p,.6);rim_button=glass.rim(p,1.5)
+    hover_border=glass.rgba(p['accent'],.85)
+    result_border=glass.rgba(p['accent'],.45)
     danger_hot=glass.vgrad(mix_hex(p['danger_strong'],'#FFFFFF',.25),p['danger_strong'])
-    busy=glass.vgrad(glass.rgba(p['accent'],.30),glass.rgba(p['accent'],.16))
+    busy=glass.vgrad(glass.rgba(p['accent'],.34),glass.rgba(p['accent'],.18))
+    tones=''.join(f'''QPushButton[tone="{t}"] {{background:{glass.tone_fill(p,t)};color:{glass.tone_text(p,t)};border:1px solid {glass.tone_border(p,t)};}}
+QPushButton[tone="{t}"]:hover {{background:{glass.tone_fill(p,t,'hover')};border:1px solid {glass.tone_border(p,t,'hover')};}}
+QPushButton[tone="{t}"]:pressed {{background:{glass.tone_hot(p,t)};color:{glass.on_tone(p)};border:1px solid {glass.tone_color(p,t)};}}
+QPushButton[tone="{t}"]:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
+QFrame[bar="{t}"] {{background:{glass.tone_color(p,t)};border:0;border-radius:2px;}}
+''' for t in glass.TONES)
     return f'''QWidget#centralWidget {{color:{p['text']};}}
 QLabel#brandTitle {{color:{p['heading']};}}
 QLabel#kappaValue {{color:{p['accent']};}}
+QLabel#credits {{color:{p['text']};}}
 QLabel[role="heading"] {{color:{p['heading']};}}
 QFrame#scadaPanel {{background:{glass.panel_fill(p)};border:1px solid {rim};border-radius:16px;}}
-QFrame[compact="true"] QPushButton {{padding:8px 12px;}}
+QFrame#scadaFooter {{background:{glass.result_fill(p)};border:1px solid {glass.rgba(p['accent'],.40)};border-radius:16px;}}
+QFrame[compact="true"] QPushButton {{padding:9px 14px;}}
 QFrame#scadaResult {{background:{glass.result_fill(p)};border:1px solid {result_border};border-radius:16px;}}
-QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:10px 16px;{ty.qss('card')}}}
+QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:10px;padding:11px 18px;{ty.qss('card')}}}
 QPushButton:hover {{background:{glass.button_fill(p,'hover')};border:1px solid {hover_border};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};border:1px solid {accent};}}
 QPushButton:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
-QPushButton#scadaPrimary {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {mix_hex(accent,'#FFFFFF',.35)};padding:13px 18px;{ty.qss('button')}}}
+{tones}QPushButton#scadaPrimary {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {mix_hex(accent,'#FFFFFF',.40)};padding:14px 20px;{ty.qss('button')}}}
 QPushButton#scadaPrimary:hover {{background:{glass.primary_fill(p,'hover')};}}
 QPushButton#scadaPrimary:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};}}
 QPushButton#scadaPrimary:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
-QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['accent']};border:1px solid {glass.rgba(p['accent'],.7)};}}
-QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {glass.rgba(p['danger'],.7)};}}
+QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['heading']};border:1px solid {glass.rgba(p['accent'],.85)};}}
+QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {glass.rgba(p['danger'],.80)};background:{glass.vgrad(glass.rgba(p['danger'],.22),glass.rgba(p['danger'],.10))};}}
+QPushButton#scadaEmergency:hover {{border:1px solid {p['danger']};}}
 QPushButton#scadaEmergency:pressed {{background:{danger_hot};color:{p['on_strong']};border:1px solid {p['danger_strong']};}}
-QComboBox,QLineEdit {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:9px 13px;{ty.qss('body')}}}
+QComboBox,QLineEdit {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim_button};border-radius:10px;padding:10px 14px;{ty.qss('body')}}}
 QComboBox:focus,QLineEdit:focus {{border:1px solid {p['accent']};}}
-QComboBox QAbstractItemView {{background:{p['surface']};color:{p['text']};border:1px solid {rim};selection-background-color:{p['soft']};selection-color:{p['heading']};}}
-QProgressBar {{background:{glass.rgba(p['text'],.10)};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
-QProgressBar::chunk {{background:{glass.vgrad(mix_hex(accent,'#FFFFFF',.18),accent)};border-radius:4px;}}
-QTextEdit {{background:{glass.field_fill(p)};color:{p['muted']};border:1px solid {rim_soft};border-radius:10px;{ty.qss('data')}}}'''
+QComboBox QAbstractItemView {{background:{p['surface']};color:{p['text']};border:1px solid {rim};selection-background-color:{glass.rgba(p['accent'],.28)};selection-color:{p['heading']};}}
+QProgressBar {{background:{glass.rgba(p['text'],.14)};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
+QProgressBar::chunk {{background:{glass.vgrad(mix_hex(p['sky'],'#FFFFFF',.18),p['sky'])};border-radius:4px;}}
+QTextEdit {{background:{glass.field_fill(p)};color:{p['muted']};border:1px solid {rim_soft};border-radius:10px;{ty.qss('data')}}}
+QScrollArea#leftScroll {{background:transparent;border:0;}}
+QScrollBar:vertical {{background:transparent;width:10px;margin:2px;}}
+QScrollBar::handle:vertical {{background:{glass.rgba(p['text'],.34)};border-radius:4px;min-height:36px;}}
+QScrollBar::handle:vertical:hover {{background:{glass.rgba(p['accent'],.70)};}}
+QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {{height:0;}}
+QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {{background:transparent;}}'''
 
 def connect_busy_state(w):
     """Enquanto o ciclo roda, o botão que o iniciou mostra "Analisando…" com um brilho em movimento."""
@@ -111,6 +131,57 @@ def connect_busy_state(w):
                 if button in original:button.setText(original.pop(button))
     w.analysis_indicator.busyChanged.connect(sync)
 
+def tone(button,name):
+    """Dá ao botão um tom por função (ver glass.TONES); o estilo vem de dashboard_style."""
+    button.setProperty('tone',name);return button
+
+def _take_all(layout):
+    while layout.count():layout.takeAt(0)
+
+def arrange_topbar(w,two_rows):
+    """Cabeçalho em uma linha (tela larga) ou em duas (notebook e tablet): nada fica cortado."""
+    if getattr(w,'_topbar_two_rows',None)==two_rows:return
+    w._topbar_two_rows=two_rows
+    row_a,row_b=w._topbar_row_a,w._topbar_row_b
+    _take_all(row_a);_take_all(row_b)
+    for item in w._topbar_main:row_a.addWidget(item)
+    row_a.addStretch(1)
+    target=row_b if two_rows else row_a
+    if two_rows:row_b.addStretch(1)
+    for item in w._topbar_actions:target.addWidget(item)
+    w._topbar_row_b_box.setVisible(two_rows)
+
+def arrange_kpis(w,columns):
+    if getattr(w,'_kpi_columns',None)==columns:return
+    w._kpi_columns=columns
+    grid=w.kpi_grid;cards=w._kpi_cards
+    for card in cards:grid.removeWidget(card)
+    for index,card in enumerate(cards):grid.addWidget(card,index//columns,index%columns)
+    for column in range(4):grid.setColumnStretch(column,1 if column<columns else 0)
+
+def arrange_main(w,stacked):
+    """Controles à esquerda e gráfico à direita; em retrato ou tela estreita, um sobre o outro."""
+    if getattr(w,'_main_stacked',None)==stacked:return
+    w._main_stacked=stacked
+    splitter=w.dashboard_splitter
+    splitter.setOrientation(Qt.Vertical if stacked else Qt.Horizontal)
+    splitter.setSizes([520,620] if stacked else [450,1100])
+    grid=w.diagnostic_grid
+    grid.removeWidget(w.card_esp32);grid.removeWidget(w.card_telemetria)
+    if stacked:
+        grid.addWidget(w.card_esp32,0,0);grid.addWidget(w.card_telemetria,1,0);grid.setColumnStretch(0,1);grid.setColumnStretch(1,0)
+    else:
+        grid.addWidget(w.card_esp32,0,0);grid.addWidget(w.card_telemetria,0,1);grid.setColumnStretch(0,4);grid.setColumnStretch(1,7)
+
+def apply_layout_mode(w,logical_w,logical_h):
+    """Chamado pelo canvas sempre que o tamanho lógico muda: escolhe a disposição (ver responsive_math)."""
+    mode=responsive_math.layout_mode(logical_w,logical_h)
+    arrange_topbar(w,mode['topbar_two_rows']);arrange_kpis(w,mode['kpi_columns']);arrange_main(w,mode['stack_main'])
+
+KPI_ICONS=(('bolt','amber'),('trend','violet'),('leaf','green'),('drop','sky'))
+SECTION_GAP=16   # espaço entre blocos (grade de 8 px: 8, 16, 24)
+PAD=18           # respiro interno dos cartões
+
 def build_dashboard(w):
     root=CanvasRoot();root.setObjectName('centralWidget');root.main_win=w
     w.dashboard_content=root
@@ -121,75 +192,117 @@ def build_dashboard(w):
     for seed in seeds:
         for widget in [seed,*seed.findChildren(QWidget)]:
             widget.setStyleSheet('');widget._theme_base_qss='';widget._theme_last_qss=''
-    layout=QVBoxLayout(root);layout.setContentsMargins(20,16,20,16);layout.setSpacing(14)
-    top=panel();top.setProperty('compact',True);w.topbar=top;row=QHBoxLayout(top);row.setContentsMargins(18,12,18,12);row.setSpacing(9)
+    layout=QVBoxLayout(root);layout.setContentsMargins(24,18,24,18);layout.setSpacing(SECTION_GAP)
+
+    # ---- cabeçalho (duas linhas quando a tela é estreita)
+    top=panel();top.setProperty('compact',True);w.topbar=top
+    outer=QVBoxLayout(top);outer.setContentsMargins(PAD+2,12,PAD+2,12);outer.setSpacing(10)
+    box_a=QWidget();row_a=QHBoxLayout(box_a);row_a.setContentsMargins(0,0,0,0);row_a.setSpacing(10)
+    box_b=QWidget();row_b=QHBoxLayout(box_b);row_b.setContentsMargins(0,0,0,0);row_b.setSpacing(10)
+    outer.addWidget(box_a);outer.addWidget(box_b);box_b.hide()
+    w._topbar_row_a,w._topbar_row_b,w._topbar_row_b_box=row_a,row_b,box_b
     brand=QWidget();bl=QVBoxLayout(brand);bl.setContentsMargins(0,0,20,0);bl.setSpacing(1)
-    bl.addWidget(label('SpectrumLab Pro','title',name='brandTitle'));bl.addWidget(label('Supervisório NIR','caption',True));row.addWidget(brand)
-    row.addWidget(w.combo_conn_mode)
+    bl.addWidget(label('SpectrumLab Pro','title',name='brandTitle'));bl.addWidget(label('Supervisório NIR','caption',True))
     # Conserva os containers utilizados pela troca USB/Bluetooth/Wi-Fi.
     for item in w.widget_serial.findChildren(QLabel):item.hide()
     w.combo_com.setMaximumWidth(120);w.btn_refresh_ports.setText('↻')
-    row.addWidget(w.widget_serial);row.addWidget(w.widget_wifi);row.addWidget(w.btn_connect)
-    row.addWidget(w.badge_com);row.addStretch()
     manual=next(b for b in seeds[0].findChildren(QPushButton) if 'Atuadores' in b.text())
-    manual.setText('Modo manual');manual.setMinimumWidth(115);row.addWidget(manual)
+    manual.setText('Modo manual');manual.setMinimumWidth(120)
     w.btn_top_emergency.setText('Parada de emergência');w.btn_top_emergency.setObjectName('scadaEmergency')
-    row.addWidget(w.btn_top_emergency)
-    w.btn_login=QPushButton('Login');w.btn_login.clicked.connect(lambda:open_login(w));row.addWidget(w.btn_login)
-    row.addWidget(w.btn_settings);layout.addWidget(top)
+    w.btn_login=QPushButton('Login');w.btn_login.clicked.connect(lambda:open_login(w))
+    tone(w.btn_connect,'green');tone(manual,'amber');tone(w.btn_login,'sky')
+    w._topbar_main=[brand,w.combo_conn_mode,w.widget_serial,w.widget_wifi,w.btn_connect,w.badge_com]
+    w._topbar_actions=[manual,w.btn_top_emergency,w.btn_login,w.btn_settings]
+    w._topbar_two_rows=None;arrange_topbar(w,False)
+    layout.addWidget(top)
+
+    # ---- indicadores (ícone colorido, filete de cor e altura igual)
     w.kpi_bar=seeds[1]
-    for card in (w.kpi_energy,w.kpi_peak,w.kpi_ratio_cel,w.kpi_ratio_water):
-        card.setObjectName('scadaPanel');card.layout().setContentsMargins(18,12,18,12);card.layout().setSpacing(2)
+    w._kpi_cards=[w.kpi_energy,w.kpi_peak,w.kpi_ratio_cel,w.kpi_ratio_water]
+    w.kpi_grid.setSpacing(SECTION_GAP)
+    for card,(kind,tone_name) in zip(w._kpi_cards,KPI_ICONS):
+        card.setObjectName('scadaPanel');card.layout().setContentsMargins(PAD,14,PAD,14);card.layout().setSpacing(4)
+        card.setMinimumHeight(108)
+        header=card.layout().itemAt(0).layout()
+        old=header.itemAt(0).widget()
+        if old is not None:old.hide()   # o emoji de texto é removido pelo tema; o ícone colorido o substitui
+        header.insertWidget(0,GlyphIcon(kind,24))
+        bar=QFrame();bar.setFixedSize(40,4);bar.setProperty('bar',tone_name)
+        card.layout().insertWidget(0,bar,0,Qt.AlignLeft)
         card.lbl_title.setStyleSheet('color: #9CA3AF; '+ty.qss('card'))
         card.lbl_value.setStyleSheet('color: #FFFFFF; '+ty.qss('kpi'))
         card.lbl_sub.setStyleSheet('color: #9CA3AF; '+ty.qss('caption'))
     w.kpi_ratio_cel.lbl_title.setText('Razão R680 / R730');w.kpi_ratio_water.lbl_title.setText('Razão R860 / R760')
+    w._kpi_columns=None;arrange_kpis(w,4)
     layout.addWidget(w.kpi_bar)
     w.kpi_bar.show()
-    w.dashboard_splitter=QSplitter(Qt.Horizontal);w.dashboard_splitter.setChildrenCollapsible(False);w.dashboard_splitter.setHandleWidth(16)
-    left=QWidget();w.left_panel=left;ll=QVBoxLayout(left);ll.setContentsMargins(0,0,0,0);ll.setSpacing(12)
-    controls=panel();cl=QVBoxLayout(controls);cl.setContentsMargins(16,14,16,14);cl.setSpacing(10)
+
+    # ---- corpo: controles (rolagem) e gráfico
+    w.dashboard_splitter=QSplitter(Qt.Horizontal);w.dashboard_splitter.setChildrenCollapsible(False);w.dashboard_splitter.setHandleWidth(SECTION_GAP)
+    left=QWidget();w.left_panel=left;left.setAutoFillBackground(False)
+    ll=QVBoxLayout(left);ll.setContentsMargins(0,0,0,0);ll.setSpacing(SECTION_GAP)
+    controls=panel();cl=QVBoxLayout(controls);cl.setContentsMargins(PAD,16,PAD,16);cl.setSpacing(12)
     cl.addWidget(label('Método analítico','label',True));cl.addWidget(w.combo_op_mode)
     cl.addWidget(label('Ensaios automáticos','section'))
     w.btn_start_scan.setText('Realizar leitura');w.btn_start_scan.setObjectName('scadaPrimary')
     w.btn_repeatability.setText('Leitura com repetibilidade · 5×')
     w.btn_calibrate.setText('Calibrar · Branco e escuro')
+    tone(w.btn_repeatability,'sky');tone(w.btn_calibrate,'violet')
     for button in (w.btn_start_scan,w.btn_repeatability,w.btn_calibrate):cl.addWidget(button)
     ll.addWidget(controls)
     w.card_housing.setObjectName('scadaPanel')
+    housing=w.card_housing.layout();housing.setContentsMargins(PAD,14,PAD,14);housing.setSpacing(6)
+    housing.insertWidget(0,label('Estado do equipamento','label',True))
+    for state in (w.lbl_housing_state,w.lbl_door_state,w.lbl_carriage_state):
+        state.setWordWrap(True);state.setStyleSheet(ty.qss('body'))
     ll.addWidget(w.card_housing)
-    w.card_calibracao.setObjectName('scadaPanel');w.card_calibracao.layout().setSpacing(5)
+    w.card_calibracao.setObjectName('scadaPanel');w.card_calibracao.layout().setSpacing(8)
+    w.card_calibracao.layout().setContentsMargins(PAD,14,PAD,14)
     ll.addWidget(w.card_calibracao)
-    w.card_resultado.setObjectName('scadaResult')
+    w.card_resultado.setObjectName('scadaResult');w.card_resultado.layout().setContentsMargins(PAD,14,PAD,14)
     w.lbl_kappa_valor.setObjectName('kappaValue');w.lbl_kappa_valor.setStyleSheet(ty.qss('hero'))
     w.lbl_metodo_info.setWordWrap(True);w.lbl_kappa_classificacao.setWordWrap(True)
     ll.addWidget(w.card_resultado)
-    buttons=QHBoxLayout();buttons.setSpacing(8)
-    for button,text in ((w.btn_history,'Histórico'),(w.btn_pdf,'PDF'),(w.btn_csv,'CSV')):
-        button.setText(text);button.setMinimumWidth(0);buttons.addWidget(button)
+    buttons=QHBoxLayout();buttons.setSpacing(10)
+    for button,text,tone_name in ((w.btn_history,'Histórico','sky'),(w.btn_pdf,'PDF','rose'),(w.btn_csv,'CSV','green')):
+        button.setText(text);button.setMinimumWidth(0);tone(button,tone_name);buttons.addWidget(button,1)
     ll.addLayout(buttons);ll.addStretch(1)
-    right=panel();w.right_panel=right;rl=QVBoxLayout(right);rl.setContentsMargins(14,12,14,12)
-    rl.setSpacing(10);rl.addWidget(w.spectral_chart,1)
+    scroll=QScrollArea();scroll.setObjectName('leftScroll');scroll.setWidgetResizable(True);scroll.setFrameShape(QFrame.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff);scroll.setWidget(left);scroll.viewport().setAutoFillBackground(False)
+    scroll.setMinimumWidth(400)
+    QScroller.grabGesture(scroll.viewport(),QScroller.TouchGesture)   # rolagem com o dedo em touchscreen
+    w.left_scroll=scroll
+    right=panel();w.right_panel=right;rl=QVBoxLayout(right);rl.setContentsMargins(16,14,16,14)
+    rl.setSpacing(12);rl.addWidget(w.spectral_chart,1)
     w.analysis_indicator=AnalysisIndicator(lambda:getattr(w,'fsm_state','IDLE'));rl.addWidget(w.analysis_indicator)
     connect_busy_state(w)
-    w.dashboard_splitter.addWidget(left);w.dashboard_splitter.addWidget(right)
+    w.dashboard_splitter.addWidget(scroll);w.dashboard_splitter.addWidget(right)
     w.dashboard_splitter.setStretchFactor(0,0);w.dashboard_splitter.setStretchFactor(1,1)
-    w.dashboard_splitter.setSizes([420,1120]);layout.addWidget(w.dashboard_splitter,1)
+    w.dashboard_splitter.setSizes([450,1100]);layout.addWidget(w.dashboard_splitter,1)
     w.card_esp32=ControllerDiagnosticsCard(w)
-    diagnostics=QWidget();dg=QGridLayout(diagnostics);dg.setContentsMargins(0,0,0,0);dg.setSpacing(16)
+    diagnostics=QWidget();dg=QGridLayout(diagnostics);dg.setContentsMargins(0,0,0,0);dg.setSpacing(SECTION_GAP)
     dg.addWidget(w.card_esp32,0,0);dg.addWidget(w.card_telemetria,0,1);dg.setColumnStretch(0,4);dg.setColumnStretch(1,7)
     w.diagnostic_grid=dg;layout.addWidget(diagnostics)
-    footer=panel();w.footer=footer;fl=QVBoxLayout(footer);fl.setContentsMargins(14,9,14,9);fl.setSpacing(5)
-    fr=QHBoxLayout();w.lbl_cycle_status.setWordWrap(True);fr.addWidget(w.lbl_cycle_status,1)
-    w.cycle_progress.setMaximumWidth(180);fr.addWidget(w.cycle_progress)
-    w.btn_console=QPushButton('Console de telemetria');w.btn_console.setCheckable(True)
-    w.btn_console.toggled.connect(w.txt_console.setVisible);fr.addWidget(w.btn_console)
-    fr.addWidget(institutional_signature());fl.addLayout(fr)
-    credits=label(__credits__,'caption',True,'credits');credits.setAlignment(Qt.AlignRight|Qt.AlignVCenter);fl.addWidget(credits)
+    w._main_stacked=False
+
+    # ---- rodapé em destaque: estado e comandos em cima, logos e assinatura (com links) embaixo
+    footer=panel();footer.setObjectName('scadaFooter');w.footer=footer;fl=QVBoxLayout(footer);fl.setContentsMargins(PAD+2,14,PAD+2,14);fl.setSpacing(10)
+    fr=QHBoxLayout();fr.setSpacing(12);w.lbl_cycle_status.setWordWrap(True);fr.addWidget(w.lbl_cycle_status,1)
+    w.cycle_progress.setMaximumWidth(200);fr.addWidget(w.cycle_progress)
+    w.btn_console=QPushButton('Console de telemetria');w.btn_console.setCheckable(True);tone(w.btn_console,'violet')
+    w.btn_console.toggled.connect(w.txt_console.setVisible);fr.addWidget(w.btn_console);fl.addLayout(fr)
+    fr2=QHBoxLayout();fr2.setSpacing(16);fr2.addWidget(institutional_signature());fr2.addStretch(1)
+    credits=QLabel(credits_html());credits.setObjectName('credits');credits.setTextFormat(Qt.RichText)
+    credits.setOpenExternalLinks(True);credits.setTextInteractionFlags(Qt.TextBrowserInteraction)
+    credits.setStyleSheet(ty.qss('body'));credits.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+    credits.setToolTip('Abrir o perfil no GitHub')
+    fr2.addWidget(credits);fl.addLayout(fr2)
     w.txt_console.hide();fl.addWidget(w.txt_console)
     layout.addWidget(footer)
     root._scada_style_factory=dashboard_style
-    w.canvas_view=ScaledCanvasView(root,QSize(1600,1000),w);w.setCentralWidget(w.canvas_view)
+    w.canvas_view=ScaledCanvasView(root,QSize(1600,1000),w,adaptive=True)
+    w.canvas_view.layout_listener=lambda lw,lh:apply_layout_mode(w,lw,lh)
+    w.setCentralWidget(w.canvas_view)
     w._scada_refresh_timer=QTimer(w)
     def refresh():
         w.card_esp32.refresh(w)
@@ -207,4 +320,8 @@ def build_dashboard(w):
         seed.setParent(None);seed.deleteLater()
     w._ui_seed_widgets=[w.kpi_bar]
     for widget in (w,root,*root.findChildren(QWidget)):w.theme_manager.apply_widget(widget)
+    try:
+        from motion import install_entrance
+        install_entrance(root,[top,*w._kpi_cards,scroll,right,diagnostics,footer])
+    except Exception:pass   # a animação é um extra: sem ela a interface funciona igual
     QTimer.singleShot(0,w._adapt_interface)

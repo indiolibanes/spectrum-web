@@ -1,22 +1,26 @@
 """Diagnóstico sem valores nominais apresentados como medições reais."""
 import math,time
 from PyQt5.QtWidgets import QFrame,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel
+import typography as ty
+
+def _title(text):
+    out=QLabel(text);out.setProperty('role','heading');out.setStyleSheet(ty.qss('section'));return out
 
 class SensorDiagnosticsCard(QFrame):
     def __init__(self,parent=None):
         super().__init__(parent);self.setObjectName('scadaPanel');self.last_received=None
-        layout=QVBoxLayout(self);layout.setContentsMargins(14,12,14,12);layout.setSpacing(8)
-        row=QHBoxLayout();row.addWidget(QLabel('GY-AS7263 · Sensor espectral'));row.addStretch()
+        layout=QVBoxLayout(self);layout.setContentsMargins(18,14,18,14);layout.setSpacing(10)
+        row=QHBoxLayout();row.addWidget(_title('GY-AS7263 · Sensor espectral'));row.addStretch()
         self.lbl_status_badge=QLabel('Aguardando telemetria');row.addWidget(self.lbl_status_badge);layout.addLayout(row)
-        grid=QGridLayout();grid.setHorizontalSpacing(16);grid.setVerticalSpacing(6);layout.addLayout(grid)
+        grid=QGridLayout();grid.setHorizontalSpacing(18);grid.setVerticalSpacing(8);layout.addLayout(grid)
         fields=[('Temperatura interna','lbl_die_temp'),('Ganho configurado','lbl_ganho'),
                 ('Integração configurada','lbl_integracao'),('Corrente LED configurada','lbl_driver_led'),
                 ('Estado reportado do LED','lbl_led_state'),('Modelo declarado','lbl_hardware'),
                 ('Saturação nas contagens','lbl_sat'),('Irradiância absoluta','lbl_irrad'),
                 ('Firmware do chip','lbl_chip_firmware')]
         for i,(title,name) in enumerate(fields):
-            caption=QLabel(title);caption.setStyleSheet('color: #9CA3AF; font-size: 11px;')
-            value=QLabel('—');value.setStyleSheet('font-size: 11px;');setattr(self,name,value)
+            caption=QLabel(title);caption.setStyleSheet('color: #9CA3AF; '+ty.qss('label'))
+            value=QLabel('—');value.setStyleSheet(ty.qss('body'));setattr(self,name,value)
             row,col=divmod(i,3);grid.addWidget(caption,row,col*2);grid.addWidget(value,row,col*2+1)
         self.lbl_status_sensor=QLabel('Aguardando telemetria');self.lbl_status_sensor.hide()
         for alias,name in [('temp','die_temp'),('gain','ganho'),('integration','integracao'),('led','driver_led'),
@@ -59,13 +63,13 @@ class SensorDiagnosticsCard(QFrame):
 class ControllerDiagnosticsCard(QFrame):
     def __init__(self,parent=None):
         super().__init__(parent);self.setObjectName('scadaPanel')
-        layout=QVBoxLayout(self);layout.setContentsMargins(14,12,14,12);layout.setSpacing(8)
-        layout.addWidget(QLabel('ESP32 · Comunicação'))
-        self.values={};grid=QGridLayout();layout.addLayout(grid)
+        layout=QVBoxLayout(self);layout.setContentsMargins(18,14,18,14);layout.setSpacing(10)
+        layout.addWidget(_title('ESP32 · Comunicação'))
+        self.values={};grid=QGridLayout();grid.setHorizontalSpacing(18);grid.setVerticalSpacing(8);layout.addLayout(grid)
         for i,(key,title) in enumerate([('connection','Conexão'),('protocol','Protocolo'),('heartbeat','Heartbeat'),
                                        ('baud','Velocidade USB'),('resources','CPU / memória'),('temp','Temperatura ESP32')]):
-            row,col=divmod(i,2);label=QLabel(title);label.setStyleSheet('color: #9CA3AF; font-size: 11px;')
-            value=QLabel('—');value.setStyleSheet('font-size: 11px;');self.values[key]=value
+            row,col=divmod(i,2);label=QLabel(title);label.setStyleSheet('color: #9CA3AF; '+ty.qss('label'))
+            value=QLabel('—');value.setStyleSheet(ty.qss('body'));self.values[key]=value
             grid.addWidget(label,row,col*2);grid.addWidget(value,row,col*2+1)
         self.values['resources'].setText('Não enviados');self.values['temp'].setText('Não enviada')
 

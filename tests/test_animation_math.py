@@ -67,5 +67,48 @@ class SpectrumTests(unittest.TestCase):
         self.assertEqual(len(am.spectrum_points(1, 0.0)), 1)
 
 
+class SpringTests(unittest.TestCase):
+    def test_starts_at_zero_and_settles_at_one(self):
+        self.assertEqual(am.spring(0.0), 0.0)
+        self.assertEqual(am.spring(-1.0), 0.0)
+        self.assertAlmostEqual(am.spring(3.0), 1.0, places=3)
+
+    def test_underdamped_spring_overshoots(self):
+        peak = max(am.spring(i / 200.0, 0.5, 0.4) for i in range(0, 400))
+        self.assertGreater(peak, 1.05)
+        self.assertLess(peak, 1.5)
+
+    def test_critically_damped_does_not_overshoot(self):
+        peak = max(am.spring(i / 200.0, 0.5, 1.0) for i in range(0, 400))
+        self.assertLessEqual(peak, 1.0 + 1e-9)
+
+    def test_more_damping_overshoots_less(self):
+        def peak(damping):
+            return max(am.spring(i / 200.0, 0.5, damping) for i in range(0, 400))
+        self.assertGreater(peak(0.3), peak(0.6))
+        self.assertGreater(peak(0.6), peak(0.9))
+
+    def test_never_nan(self):
+        for t in (0.0, 1e-9, 0.01, 1.0, 100.0):
+            for damping in (0.0, 0.5, 0.999, 1.0, 2.0):
+                value = am.spring(t, 0.4, damping)
+                self.assertEqual(value, value)
+
+
+class EntranceTests(unittest.TestCase):
+    def test_ease_out_expo_endpoints_and_monotonic(self):
+        self.assertEqual(am.ease_out_expo(0.0), 0.0)
+        self.assertEqual(am.ease_out_expo(1.0), 1.0)
+        values = [am.ease_out_expo(i / 20.0) for i in range(21)]
+        self.assertEqual(values, sorted(values))
+        self.assertGreater(am.ease_out_expo(0.3), 0.8)   # sobe depressa no começo
+
+    def test_stagger_delays_each_item(self):
+        self.assertEqual(am.staggered(0.0, 0), 0.0)
+        self.assertGreater(am.staggered(0.2, 0), am.staggered(0.2, 3))
+        self.assertEqual(am.staggered(0.1, 5, 0.06, 0.5), 0.0)
+        self.assertEqual(am.staggered(5.0, 5), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

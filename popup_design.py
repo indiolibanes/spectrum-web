@@ -29,6 +29,8 @@ QPushButton:hover {{background:{glass.button_fill(p, 'hover')};border:1px solid 
 QPushButton:pressed {{background:{glass.primary_fill(p, 'hot')};color:{p['on_strong']};border:1px solid {p['accent_strong']};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:disabled {{background:{glass.button_fill(p, 'disabled')};color:{p['disabled']};border-color:{glass.rim(p, .6)};}}
+QPushButton:checked {{background:{glass.tone_fill(p, 'gold')};color:{p['heading']};border:1px solid {p['accent']};}}
+QFrame#settingsSection {{background:{glass.field_fill(p)};border:1px solid {glass.rim(p)};border-radius:14px;}}
 QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:8px 12px;font-size:13px;}}
 QLineEdit:focus,QComboBox:focus {{border-color:{p['accent']};}}
 QTableWidget {{background:{glass.field_fill(p)};alternate-background-color:{glass.rgba(p['text'], .04)};color:{p['text']};border:1px solid {rim};border-radius:10px;gridline-color:{glass.rim(p, .6)};selection-background-color:{glass.rgba(p['accent'], .22)};selection-color:{p['heading']};}}

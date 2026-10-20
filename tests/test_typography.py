@@ -13,9 +13,15 @@ class SnapTests(unittest.TestCase):
         for raw in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 27, 30, 34, 36, 48):
             self.assertIn(ty.snap_size(raw), ty.SCALE, raw)
 
-    def test_minimum_is_11(self):
-        self.assertEqual(ty.snap_size(8), 11)
-        self.assertEqual(ty.snap_size(10), 11)
+    def test_minimum_is_12(self):
+        self.assertEqual(ty.snap_size(8), 12)
+        self.assertEqual(ty.snap_size(11), 12)
+        self.assertEqual(min(ty.SCALE), 12)
+
+    def test_legacy_sizes_map_to_readable_steps(self):
+        self.assertEqual(ty.snap_size(13), 14)
+        self.assertEqual(ty.snap_size(15), 16)
+        self.assertEqual(ty.snap_size(19), 20)
 
     def test_scale_values_are_fixed_points(self):
         for step in ty.SCALE:

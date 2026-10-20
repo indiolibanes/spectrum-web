@@ -1,31 +1,38 @@
 """
-Efeitos de botão do SPECTRUM-LAB PRO.
+Efeitos de botão do SPECTRUM-LAB PRO (dinâmica inspirada nos toques da Apple).
 
-O QSS não anima. Por isso o gradiente e a cor de "pressionado" ficam nas folhas de estilo
-(appearance / scada_ui / popup_design) e este módulo acrescenta só o que o QSS não faz:
+O QSS não anima. O preenchimento, a borda e o tom por função ficam nas folhas de estilo (scada_ui,
+popup_design, glass.py); este módulo acrescenta, numa camada transparente por cima de cada botão:
 
-  - realce que surge e some suavemente ao passar o mouse (ou o dedo);
-  - ondulação (ripple) que nasce no ponto tocado ao pressionar;
-  - brilho que percorre o botão enquanto ele estiver "em andamento"
-    (propriedade dinâmica fxBusy = True, usada no botão Realizar leitura durante a análise).
+  - holofote: um reflexo de luz que segue o mouse ou o dedo e surge suavemente ao passar;
+  - pressão com mola: ao apertar, as bordas escurecem (como um botão que afunda) e, ao soltar, o
+    botão "volta" com um leve vai e volta (física de mola, animation_math.spring);
+  - onda de toque (ripple) a partir do ponto tocado e um anel de luz no instante do clique;
+  - brilho que percorre o botão enquanto ele estiver "em andamento" (propriedade fxBusy = True).
 
-Cada QPushButton recebe uma camada transparente por cima, que não captura o mouse.
+Não se altera o tamanho do botão ao apertar: mexer na geometria de um widget que o layout controla
+pode fazer o toque na borda cair fora do botão e perder o clique. O efeito é todo de pintura.
+
 Para desligar o efeito em um botão: button.setProperty("fx", False) antes de mostrá-lo.
-Para um botão de fundo forte (texto escuro/claro sobre cor cheia): setProperty("fxTone", "strong").
+Botão de fundo forte (texto escuro/claro sobre cor cheia): setProperty("fxTone", "strong").
+Tom do botão (gold, sky, violet, rose, green, amber): setProperty("tone", ...), ver glass.TONES.
 """
 import time
 
 from PyQt5 import sip
 from PyQt5.QtCore import QEvent, QEasingCurve, QObject, QPointF, QRectF, Qt, QTimer, QVariantAnimation
-from PyQt5.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QRadialGradient
+from PyQt5.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PyQt5.QtWidgets import QPushButton, QWidget
 
 import glass
-from animation_math import busy_sweep_x, ripple_alpha, ripple_radius
+import motion
+from animation_math import busy_sweep_x, ripple_alpha, ripple_radius, spring
 
 RADIUS = 10.0   # igual ao border-radius dos botões em glass.py / scada_ui.py
-HOVER_MS = 140
-RIPPLE_MS = 520
+HOVER_MS = 180
+RIPPLE_MS = 620
+PRESS_MS = 320       # mola ao apertar: rápida, quase sem vai e volta
+RELEASE_MS = 900     # mola ao soltar: com ultrapassagem visível
 BUSY_PERIOD_S = 1.6
 
 
@@ -34,15 +41,20 @@ class _Overlay(QWidget):
         super().__init__(button)
         self.button = button
         self.hover = 0.0
+        self.depth = 0.0                 # 0 em repouso, 1 apertado; fica negativo na ultrapassagem da mola
         self.ripple_progress = 1.0
         self.ripple_center = QPointF()
+        self.spot = QPointF(-1000, -1000)
+        self._spring_from = 0.0
+        self._spring_to = 0.0
+        self._spring_params = (0.2, 0.75, PRESS_MS)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_NoSystemBackground)
         self.setFocusPolicy(Qt.NoFocus)
 
         self.hover_anim = QVariantAnimation(self)
         self.hover_anim.setDuration(HOVER_MS)
-        self.hover_anim.setEasingCurve(QEasingCurve.OutQuad)
+        self.hover_anim.setEasingCurve(QEasingCurve.OutCubic)
         self.hover_anim.valueChanged.connect(self._set_hover)
 
         self.ripple_anim = QVariantAnimation(self)
@@ -52,11 +64,18 @@ class _Overlay(QWidget):
         self.ripple_anim.setEasingCurve(QEasingCurve.OutCubic)
         self.ripple_anim.valueChanged.connect(self._set_ripple)
 
+        self.spring_anim = QVariantAnimation(self)
+        self.spring_anim.setStartValue(0.0)
+        self.spring_anim.setEndValue(1.0)
+        self.spring_anim.setEasingCurve(QEasingCurve.Linear)
+        self.spring_anim.valueChanged.connect(self._set_spring)
+
         self.busy_timer = QTimer(self)
         self.busy_timer.setInterval(33)
         self.busy_timer.timeout.connect(self.update)
         self.busy_started = time.monotonic()
 
+        button.setMouseTracking(True)    # o holofote acompanha o ponteiro sem precisar apertar
         button.installEventFilter(self)
         self.setGeometry(button.rect())
         self.show()
@@ -71,6 +90,25 @@ class _Overlay(QWidget):
     def _set_ripple(self, value):
         self.ripple_progress = float(value)
         self.update()
+
+    def _set_spring(self, value):
+        response, damping, duration_ms = self._spring_params
+        elapsed = float(value) * duration_ms / 1000.0
+        progress = spring(elapsed, response, damping)
+        self.depth = self._spring_from + (self._spring_to - self._spring_from) * progress
+        self.update()
+
+    def _run_spring(self, target, response, damping, duration_ms):
+        self.spring_anim.stop()
+        if motion.reduced():          # "Reduzir animações": o estado muda direto, sem mola
+            self.depth = float(target)
+            self.update()
+            return
+        self._spring_from = self.depth
+        self._spring_to = float(target)
+        self._spring_params = (response, damping, duration_ms)
+        self.spring_anim.setDuration(duration_ms)
+        self.spring_anim.start()
 
     def _is_busy(self):
         # O botão fica desabilitado enquanto o ciclo roda; mesmo assim ele mostra que está trabalhando.
@@ -104,11 +142,21 @@ class _Overlay(QWidget):
                 self._animate_hover(1.0)
         elif kind == QEvent.Leave:
             self._animate_hover(0.0)
+            if self.depth > 0.01:
+                self._run_spring(0.0, 0.55, 0.45, RELEASE_MS)
+        elif kind == QEvent.MouseMove:
+            self.spot = QPointF(event.pos())
+            self.update()
         elif kind == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton and self.button.isEnabled():
                 self.ripple_center = QPointF(event.pos())
+                self.spot = QPointF(event.pos())
                 self.ripple_anim.stop()
                 self.ripple_anim.start()
+                self._run_spring(1.0, 0.20, 0.80, PRESS_MS)
+        elif kind == QEvent.MouseButtonRelease:
+            if event.button() == Qt.LeftButton and (self.depth > 0.01 or self.spring_anim.state() == QVariantAnimation.Running):
+                self._run_spring(0.0, 0.55, 0.40, RELEASE_MS)   # volta com um leve "pop"
         elif kind == QEvent.EnabledChange:
             if not self.button.isEnabled():
                 self._animate_hover(0.0)
@@ -118,6 +166,12 @@ class _Overlay(QWidget):
         return False
 
     # -- pintura --------------------------------------------------------------------------
+    def _tone(self, pal):
+        tone = self.button.property("tone")
+        if tone in glass.TONES:
+            return QColor(glass.tone_color(pal, tone))
+        return QColor(pal["accent"])
+
     def paintEvent(self, event):
         enabled = self.button.isEnabled()
         if not enabled and not self._is_busy():
@@ -126,9 +180,10 @@ class _Overlay(QWidget):
         width, height = self.width(), self.height()
         if width < 8 or height < 8:
             return
-        strong = self.button.property("fxTone") == "strong" or self.button.objectName() == "scadaPrimary"
         pal = palette_for()
-        accent = QColor(pal["accent"])
+        strong = self.button.property("fxTone") == "strong" or self.button.objectName() in ("scadaPrimary", "kbEnter")
+        accent = self._tone(pal)
+        white = QColor(255, 255, 255)
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -138,31 +193,62 @@ class _Overlay(QWidget):
 
         if enabled:   # fio de luz no topo: dá volume de vidro sem mudar a cor do botão
             edge_color, edge_alpha = glass.edge_highlight(pal)
-            edge = QColor(edge_color)
-            top = QColor(edge)
+            top = QColor(edge_color)
             top.setAlphaF(edge_alpha * (0.55 if strong else 1.0))
-            fade = QColor(edge)
+            fade = QColor(edge_color)
             fade.setAlpha(0)
-            sheen = QLinearGradient(0, 0, 0, min(height * 0.5, 18.0))
+            band = min(height * 0.5, 18.0)
+            sheen = QLinearGradient(0, 0, 0, band)
             sheen.setColorAt(0.0, top)
             sheen.setColorAt(1.0, fade)
-            painter.fillRect(QRectF(0, 0, width, min(height * 0.5, 18.0)), sheen)
+            painter.fillRect(QRectF(0, 0, width, band), sheen)
 
         if enabled and self.hover > 0.001:
-            tint = QColor(255, 255, 255) if strong else QColor(accent)
-            tint.setAlphaF((0.16 if strong else 0.12) * self.hover)
+            tint = QColor(white if strong else accent)
+            tint.setAlphaF((0.14 if strong else 0.16) * self.hover)
             painter.fillRect(self.rect(), tint)
+            # holofote: reflexo de luz que acompanha o ponteiro
+            if not motion.reduced() and 0 <= self.spot.x() <= width and 0 <= self.spot.y() <= height:
+                reach = max(70.0, height * 1.7)
+                light = QRadialGradient(self.spot, reach)
+                core = QColor(white)
+                core.setAlphaF((0.26 if not strong else 0.30) * self.hover)
+                none = QColor(white)
+                none.setAlpha(0)
+                light.setColorAt(0.0, core)
+                light.setColorAt(1.0, none)
+                painter.fillRect(self.rect(), light)
+
+        if enabled and self.depth > 0.001:   # afundando: as bordas escurecem em direção ao centro
+            shade = QColor(0, 0, 0)
+            inner = QColor(shade)
+            inner.setAlpha(0)
+            edge = QColor(shade)
+            edge.setAlphaF(min(0.40, 0.34 * self.depth))
+            vignette = QRadialGradient(QPointF(width / 2.0, height / 2.0), max(width, height) * 0.62)
+            vignette.setColorAt(0.55, inner)
+            vignette.setColorAt(1.0, edge)
+            painter.fillRect(self.rect(), vignette)
+        elif enabled and self.depth < -0.001:   # ultrapassagem da mola: um anel de luz percorre a borda
+            ring = QColor(white if strong else accent)
+            ring.setAlphaF(min(0.85, -self.depth * 3.2))
+            painter.setPen(QPen(ring, 2.0))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRoundedRect(QRectF(1.0, 1.0, width - 2.0, height - 2.0), RADIUS - 1, RADIUS - 1)
+            glow = QColor(ring)
+            glow.setAlphaF(ring.alphaF() * 0.30)
+            painter.fillPath(clip, glow)
 
         if self._is_busy():
             phase = ((time.monotonic() - self.busy_started) / BUSY_PERIOD_S) % 1.0
             band = max(40.0, width * 0.35)
             x = busy_sweep_x(phase, width, band)
             gradient = QLinearGradient(x - band, 0, x + band, 0)
-            glow = QColor(255, 255, 255) if strong else QColor(accent)
+            glow = QColor(white if strong else accent)
             clear = QColor(glow)
             clear.setAlpha(0)
             peak = QColor(glow)
-            peak.setAlphaF(0.34 if strong else 0.26)
+            peak.setAlphaF(0.36 if strong else 0.30)
             gradient.setColorAt(0.0, clear)
             gradient.setColorAt(0.5, peak)
             gradient.setColorAt(1.0, clear)
@@ -172,8 +258,8 @@ class _Overlay(QWidget):
             center = self.ripple_center
             radius = ripple_radius(center.x(), center.y(), width, height, self.ripple_progress)
             if radius > 1.0:
-                color = QColor(255, 255, 255) if strong else QColor(accent)
-                color.setAlphaF(ripple_alpha(self.ripple_progress))
+                color = QColor(white if strong else accent)
+                color.setAlphaF(ripple_alpha(self.ripple_progress, 0.42))
                 edge = QColor(color)
                 edge.setAlpha(0)
                 gradient = QRadialGradient(center, radius)
