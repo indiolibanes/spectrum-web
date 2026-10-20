@@ -1,8 +1,9 @@
 """Composição SCADA aprovada: controles à esquerda, bandas à direita, diagnóstico abaixo."""
-from PyQt5.QtCore import Qt,QTimer,QSize
-from PyQt5.QtGui import QColor,QPainter
+from PyQt5.QtCore import Qt,QTimer,QSize,QPointF
+from PyQt5.QtGui import QColor,QPainter,QRadialGradient
 from PyQt5.QtWidgets import (QWidget,QFrame,QLabel,QPushButton,QVBoxLayout,QHBoxLayout,QGridLayout,
                              QSplitter,QDialog,QSizePolicy)
+import glass
 import typography as ty
 from animation_math import mix_hex
 from analysis_indicator import AnalysisIndicator
@@ -12,13 +13,24 @@ from responsive_layout import ScaledCanvasView
 from version import __credits__
 
 class CanvasRoot(QWidget):
-    """Raiz do painel: cor de fundo do tema e, por baixo dos cartões, a textura de fibras de celulose."""
+    """Raiz do painel: fundo do tema, textura (madeira no escuro, celulose no claro) e brilho ambiente.
+
+    Os cartões são translúcidos (ver glass.py), então tudo isso aparece por trás deles."""
     def paintEvent(self,event):
         from appearance import palette_for,texture_pixmap
+        p=palette_for()
         painter=QPainter(self)
-        painter.fillRect(self.rect(),QColor(palette_for()['canvas']))
+        painter.fillRect(self.rect(),QColor(p['canvas']))
         tile=texture_pixmap()
         if not tile.isNull():painter.drawTiledPixmap(self.rect(),tile)
+        w,h=self.width(),self.height()
+        for fx,fy,radius,color,alpha in glass.glow_spec(p):
+            center=QPointF(fx*w,fy*h);reach=radius*max(w,h)
+            gradient=QRadialGradient(center,reach)
+            inner=QColor(color);inner.setAlphaF(alpha)
+            outer=QColor(color);outer.setAlpha(0)
+            gradient.setColorAt(0.0,inner);gradient.setColorAt(1.0,outer)
+            painter.fillRect(self.rect(),gradient)
         painter.end()
 
 def panel():
@@ -27,6 +39,7 @@ def panel():
 def label(text,role='body',muted=False,name=None):
     """Rótulo com um papel tipográfico (ver typography.ROLES). 'muted' usa a cor secundária do tema."""
     out=QLabel(text)
+    if role in ('display','title','section'):out.setProperty('role','heading')   # cor de título definida no tema
     out.setStyleSheet(('color: #9CA3AF; ' if muted else '')+ty.qss(role))
     if name:out.setObjectName(name)
     return out
@@ -42,43 +55,39 @@ def open_login(window):
         window.current_operator_name=dialog.usuario_logado.get('username','Operador')
         window.log_message('Sessão autenticada: '+window.current_operator_name)
 
-def rgba(color,alpha):
-    """'#RRGGBB' + opacidade de 0 a 1 -> 'rgba(r, g, b, N%)' para o QSS."""
-    r,g,b=(int(color[i:i+2],16) for i in (1,3,5))
-    return f"rgba({r}, {g}, {b}, {round(alpha*100)}%)"
-
 def dashboard_style(p):
-    """Folha de estilo do painel. Os gradientes e as cores de destaque saem da paleta do tema."""
-    g=lambda top,bottom:f"qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {top},stop:1 {bottom})"
+    """Folha de estilo do painel: vidro sobre a madeira, botões refinados, destaque contido."""
     accent=p['accent_strong']
-    rest=g(mix_hex(accent,'#FFFFFF',.10),mix_hex(accent,'#000000',.14))
-    hover=g(mix_hex(accent,'#FFFFFF',.20),mix_hex(accent,'#000000',.06))
-    hot=g(mix_hex(accent,'#FFFFFF',.38),accent)
-    busy=g(mix_hex(p['soft'],accent,.34),mix_hex(p['soft'],accent,.20))
-    danger_hot=g(mix_hex(p['danger_strong'],'#FFFFFF',.25),p['danger_strong'])
-    result_border=mix_hex(p['border'],p['accent'],.40)
+    rim=glass.rim(p);rim_soft=glass.rim(p,.6)
+    hover_border=glass.rgba(p['accent'],.75)
+    result_border=glass.rgba(p['accent'],.38)
+    danger_hot=glass.vgrad(mix_hex(p['danger_strong'],'#FFFFFF',.25),p['danger_strong'])
+    busy=glass.vgrad(glass.rgba(p['accent'],.30),glass.rgba(p['accent'],.16))
     return f'''QWidget#centralWidget {{color:{p['text']};}}
-QLabel#brandTitle,QLabel#kappaValue {{color:{p['accent']};}}
-QFrame#scadaPanel {{background:{rgba(p['surface'],.92)};border:1px solid {p['border']};border-radius:14px;}}
-QFrame[compact="true"] QPushButton {{padding:8px 10px;}}
-QFrame#scadaResult {{background:{rgba(p['soft'],.94)};border:1px solid {result_border};border-radius:14px;}}
-QPushButton {{background:{g(p['soft'],p['surface'])};color:{p['text']};border:1px solid {p['border']};border-radius:8px;padding:9px 14px;{ty.qss('card')}}}
-QPushButton:hover {{border:1px solid {p['accent']};}}
-QPushButton:pressed {{background:{hot};color:{p['on_strong']};border:1px solid {accent};}}
-QPushButton:disabled {{color:{p['disabled']};background:{p['canvas']};border:1px solid {p['border']};}}
-QPushButton#scadaPrimary {{background:{rest};color:{p['on_strong']};border:0;padding:12px 16px;{ty.qss('section')}}}
-QPushButton#scadaPrimary:hover {{background:{hover};}}
-QPushButton#scadaPrimary:pressed {{background:{hot};color:{p['on_strong']};}}
-QPushButton#scadaPrimary:disabled {{background:{p['soft']};color:{p['disabled']};}}
-QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['accent']};border:1px solid {p['accent']};}}
-QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {p['danger']};}}
+QLabel#brandTitle {{color:{p['heading']};}}
+QLabel#kappaValue {{color:{p['accent']};}}
+QLabel[role="heading"] {{color:{p['heading']};}}
+QFrame#scadaPanel {{background:{glass.panel_fill(p)};border:1px solid {rim};border-radius:16px;}}
+QFrame[compact="true"] QPushButton {{padding:8px 12px;}}
+QFrame#scadaResult {{background:{glass.result_fill(p)};border:1px solid {result_border};border-radius:16px;}}
+QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:10px 16px;{ty.qss('card')}}}
+QPushButton:hover {{background:{glass.button_fill(p,'hover')};border:1px solid {hover_border};}}
+QPushButton:focus {{border:1px solid {p['accent']};}}
+QPushButton:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};border:1px solid {accent};}}
+QPushButton:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
+QPushButton#scadaPrimary {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {mix_hex(accent,'#FFFFFF',.35)};padding:13px 18px;{ty.qss('button')}}}
+QPushButton#scadaPrimary:hover {{background:{glass.primary_fill(p,'hover')};}}
+QPushButton#scadaPrimary:pressed {{background:{glass.primary_fill(p,'hot')};color:{p['on_strong']};}}
+QPushButton#scadaPrimary:disabled {{background:{glass.button_fill(p,'disabled')};color:{p['disabled']};border:1px solid {rim_soft};}}
+QPushButton[fxBusy="true"]:disabled,QPushButton#scadaPrimary[fxBusy="true"]:disabled {{background:{busy};color:{p['accent']};border:1px solid {glass.rgba(p['accent'],.7)};}}
+QPushButton#scadaEmergency {{color:{p['danger']};border:1px solid {glass.rgba(p['danger'],.7)};}}
 QPushButton#scadaEmergency:pressed {{background:{danger_hot};color:{p['on_strong']};border:1px solid {p['danger_strong']};}}
-QComboBox,QLineEdit {{background:{p['canvas']};color:{p['text']};border:1px solid {p['border']};border-radius:8px;padding:8px 12px;{ty.qss('body')}}}
+QComboBox,QLineEdit {{background:{glass.field_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:9px 13px;{ty.qss('body')}}}
 QComboBox:focus,QLineEdit:focus {{border:1px solid {p['accent']};}}
-QComboBox QAbstractItemView {{background:{p['surface']};color:{p['text']};selection-background-color:{p['soft']};}}
-QProgressBar {{background:{p['soft']};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
-QProgressBar::chunk {{background:{g(mix_hex(accent,'#FFFFFF',.18),accent)};border-radius:4px;}}
-QTextEdit {{background:{p['canvas']};color:{p['muted']};border:0;{ty.qss('data')}}}'''
+QComboBox QAbstractItemView {{background:{p['surface']};color:{p['text']};border:1px solid {rim};selection-background-color:{p['soft']};selection-color:{p['heading']};}}
+QProgressBar {{background:{glass.rgba(p['text'],.10)};border:0;border-radius:4px;color:{p['muted']};{ty.qss('caption')}}}
+QProgressBar::chunk {{background:{glass.vgrad(mix_hex(accent,'#FFFFFF',.18),accent)};border-radius:4px;}}
+QTextEdit {{background:{glass.field_fill(p)};color:{p['muted']};border:1px solid {rim_soft};border-radius:10px;{ty.qss('data')}}}'''
 
 def connect_busy_state(w):
     """Enquanto o ciclo roda, o botão que o iniciou mostra "Analisando…" com um brilho em movimento."""

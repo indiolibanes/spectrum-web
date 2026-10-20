@@ -9,21 +9,21 @@ from PyQt5.QtWidgets import (QApplication,QWidget,QLabel,QPushButton,QComboBox,Q
 from popup_design import popup_owner, popup_stylesheet
 from typography import normalize_qss, install as install_typography
 PALETTES={
- # Escuro: preto quente, texto marfim e detalhes dourados.
- "gold":{"canvas":"#0B0A08","surface":"#131108","soft":"#1C1810","border":"#4A3D22",
-         "text":"#F4EAD2","muted":"#BFAE86","disabled":"#6F6548","accent":"#D4AF37",
-         "positive":"#B9D98A","warning":"#E8C25A","danger":"#E97462",
-         "accent_strong":"#D4AF37","positive_strong":"#8FB85A","danger_strong":"#E0604F","on_strong":"#0B0A08"},
+ # Escuro: preto quase AMOLED com os tons de papel, umber e ouro da identidade do autor.
+ "umber":{"canvas":"#050504","surface":"#14120D","soft":"#1F1C14","border":"#4C4638",
+          "text":"#F0EADB","heading":"#FFF1B4","muted":"#C7BFA9","disabled":"#6F6853","accent":"#E2C35C",
+          "positive":"#8FBF86","warning":"#E79A5C","danger":"#EC7F73",
+          "accent_strong":"#E2C35C","positive_strong":"#7DAF74","danger_strong":"#E5877C","on_strong":"#3B2F00"},
  # Claro: branco e verde. O matiz (~92 graus) vem das colinas do logo do Projeto Sucuriú.
  "light":{"canvas":"#F6F9F3","surface":"#FFFFFF","soft":"#EAF1E4","border":"#CBD6C2",
-          "text":"#1B2612","muted":"#56634B","disabled":"#7E8873","accent":"#436722",
+          "text":"#1B2612","heading":"#243818","muted":"#56634B","disabled":"#7E8873","accent":"#436722",
           "positive":"#266435","warning":"#8A5A00","danger":"#B3261E",
           "accent_strong":"#436722","positive_strong":"#266435","danger_strong":"#B3261E","on_strong":"#FFFFFF"},
 }
-DEFAULT_THEME="gold"
-LEGACY_THEMES={"dark":"gold"}   # preferência salva por versões anteriores
-THEME_LABELS={"gold":"Escuro · preto e dourado","light":"Claro · branco e verde"}
-TEXTURE_FILES={"gold":"celulose-madeira.png","light":"celulose-claro.png"}
+DEFAULT_THEME="umber"
+LEGACY_THEMES={"dark":"umber","gold":"umber"}   # preferências salvas por versões anteriores
+THEME_LABELS={"umber":"Escuro · umber e ouro","light":"Claro · branco e verde"}
+TEXTURE_FILES={"umber":"madeira-escura.png","light":"celulose-claro.png"}
 def texture_path(theme=None):
     """Textura de fibras de celulose, quase transparente, usada no fundo da janela principal."""
     import sys
@@ -77,7 +77,7 @@ def transform_stylesheet(source,theme):
             prop,value,end=match.groups()
             kind="surface" if prop.lower().startswith("background") else "border" if prop.lower().startswith("border") else "text"
             if prop.lower()=="color" and strong:
-                # Texto sobre fundo forte: preto no tema ouro, branco no tema claro.
+                # Texto sobre fundo forte: marrom escuro no tema umber, branco no tema claro.
                 on_strong=palette_for(theme)["on_strong"]
                 value=COLOR.sub(lambda m:on_strong if QColor(m[0]).lightnessF()>0.82 else mapped_color(m[0],kind,theme),value)
             else:value=COLOR.sub(lambda m:mapped_color(m[0],kind,theme),value)
@@ -94,7 +94,7 @@ def preferences_path():
     if not base:base=str(Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".spectrum_lab")))/"SpectrumLabPro")
     return Path(base)/"interface.json"
 def read_preferences(path):
-    """Lê interface.json. Aceita o formato antigo (só o tema) e migra o tema escuro azul para o ouro."""
+    """Lê interface.json. Aceita o formato antigo (só o tema) e migra os temas escuros anteriores para o umber."""
     try:
         data=json.loads(path.read_text(encoding="utf-8"))
     except (OSError,ValueError,TypeError,AttributeError):
@@ -131,6 +131,8 @@ class ThemeManager(QObject):
         from button_fx import ButtonFx
         from touch_keyboard import TouchKeyboardController
         self.button_fx=ButtonFx(app)
+        from cursors import CursorController
+        self.cursor_fx=CursorController(app)
         self.keyboard=TouchKeyboardController(app,self)
         self.keyboard.enabled=self.prefs["touch_keyboard"]
         self.set_theme(self.theme,False)
@@ -244,13 +246,13 @@ class AppearanceDialog(QDialog):
         self.setWindowTitle("Configurações · Aparência")
         self.resize(460,330)
         layout=QVBoxLayout(self);layout.setContentsMargins(24,22,24,22);layout.setSpacing(14)
-        title=QLabel("Aparência");title.setStyleSheet("color: #FFFFFF; font-size: 19px; font-weight: 600; font-family: 'IBM Plex Serif';")
+        title=QLabel("Aparência");title.setStyleSheet("color: #FFFFFF; font-size: 24px; font-weight: 700; font-family: 'EB Garamond';")
         layout.addWidget(title)
         label=QLabel("Escolha o tema da interface. A preferência será lembrada.")
         label.setWordWrap(True);label.setStyleSheet("color: #9CA3AF; font-size: 13px;")
         layout.addWidget(label)
         self.selector=QComboBox()
-        for key in ("gold","light"):self.selector.addItem(THEME_LABELS[key],key)
+        for key in ("umber","light"):self.selector.addItem(THEME_LABELS[key],key)
         self.selector.setCurrentIndex(max(0,self.selector.findData(manager.theme)))
         self.selector.setMinimumHeight(38)
         self.selector.currentIndexChanged.connect(self.change_theme)

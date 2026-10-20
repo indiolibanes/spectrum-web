@@ -1,8 +1,9 @@
 """Abertura animada; progresso acompanha as etapas reais de inicialização."""
 from PyQt5.QtWidgets import QWidget,QApplication,QGraphicsOpacityEffect
 from PyQt5.QtCore import Qt,QTimer,pyqtSignal,QPropertyAnimation,QEasingCurve,QRectF,QPointF,QElapsedTimer
-from PyQt5.QtGui import QPainter,QColor,QPen,QFont,QPainterPath
-from appearance import palette_for
+from PyQt5.QtGui import QPainter,QColor,QPen,QFont,QPainterPath,QRadialGradient
+from appearance import palette_for,texture_pixmap
+import glass
 from brand_assets import program_logo_pixmap, logo_pixmap
 from version import __version__,__authors__
 import typography as ty
@@ -47,23 +48,34 @@ class AnimatedSplashScreen(QWidget):
     def on_fade_finished(self):self.timer.stop();self.hide();self.finished.emit()
     def paintEvent(self,event):
         c=palette_for();p=QPainter(self);p.setRenderHint(QPainter.Antialiasing);p.scale(self.width()/900,self.height()/520)
-        p.setPen(Qt.NoPen);p.setBrush(QColor(c['surface']));p.drawRoundedRect(QRectF(0,0,900,520),14,14)
-        p.setBrush(QColor(c['soft']));p.drawRect(QRectF(450,0,450,520))
+        frame=QPainterPath();frame.addRoundedRect(QRectF(0,0,900,520),18,18)
+        p.save();p.setClipPath(frame)
+        p.fillRect(QRectF(0,0,900,520),QColor(c['canvas']))
+        tile=texture_pixmap()
+        if not tile.isNull():p.drawTiledPixmap(QRectF(0,0,900,520).toRect(),tile)
+        for fx,fy,radius,color,alpha in glass.glow_spec(c):
+            g=QRadialGradient(QPointF(fx*900,fy*520),radius*900);inner=QColor(color);inner.setAlphaF(min(1,alpha*1.6))
+            outer=QColor(color);outer.setAlpha(0);g.setColorAt(0,inner);g.setColorAt(1,outer);p.fillRect(QRectF(0,0,900,520),g)
+        veil=QColor(c['surface'] if glass.is_dark(c) else '#FFFFFF');veil.setAlphaF(.55 if glass.is_dark(c) else .70)
+        p.fillRect(QRectF(450,0,450,520),veil)
+        p.restore()
+        rim=QColor(c['heading'] if glass.is_dark(c) else c['accent']);rim.setAlphaF(.22)
+        p.setPen(QPen(rim,1));p.setBrush(Qt.NoBrush);p.drawRoundedRect(QRectF(.5,.5,899,519),18,18);p.drawLine(QPointF(450,24),QPointF(450,496));p.setPen(Qt.NoPen)
         def text(x,y,value,size,key='text',kind='ui',weight=400):
             p.setFont(ty.make_font(kind,size,weight));p.setPen(QColor(c[key]));p.drawText(QPointF(x,y),value)
         p.drawPixmap(45,26,self.mark)
-        text(114,58,'SpectrumLab Pro',28,'accent','display',600);text(114,81,'Supervisório SCADA · versão '+__version__,13,'muted')
-        text(45,174,'TECNOLOGIA APLICADA À CELULOSE',11,'accent','ui',600)
-        text(45,230,'Da luz',ty.SIZE_DISPLAY,'text','display',600);text(45,277,'à análise.',ty.SIZE_DISPLAY,'accent','display',600)
+        text(114,58,'SpectrumLab Pro',28,'heading','display',700);text(114,81,'Supervisório SCADA · versão '+__version__,13,'muted')
+        text(45,174,'TECNOLOGIA APLICADA À CELULOSE',11,'accent','ui',700)
+        text(45,230,'Da luz',ty.SIZE_DISPLAY,'heading','display',700);text(45,277,'à análise.',ty.SIZE_DISPLAY,'accent','display',700)
         text(45,323,'Controle da bancada, aquisição espectral',15,'muted');text(45,346,'e análise demonstrativa de celulose.',15,'muted')
-        p.setPen(Qt.NoPen);p.setBrush(QColor(c['border']));p.drawRoundedRect(QRectF(45,391,340,8),4,4)
+        p.setPen(Qt.NoPen);track_bg=QColor(c['text']);track_bg.setAlphaF(.14);p.setBrush(track_bg);p.drawRoundedRect(QRectF(45,391,340,8),4,4)
         fill_width=340*self.display_progress/100
         track=QPainterPath();track.addRoundedRect(QRectF(45,391,fill_width,8),4,4)
         p.fillPath(track,QColor(c['accent']))
         p.save();p.setClipPath(track)
         shine=QColor(c['surface']);shine.setAlpha(80)
         p.fillRect(QRectF(45+self.loading_phase*400-60,391,60,8),shine);p.restore()
-        text(45,423,self.status,13,'muted');text(351,423,f'{self.progress_val}%',13,'accent','data',500)
+        text(45,423,self.status,13,'muted');text(351,423,f'{self.progress_val}%',13,'accent','data',400)
         for i,logo in enumerate(self.logos):p.drawPixmap(45+i*192,461,logo)
         bottom=310;points=[]
         for i,v in enumerate([.32,.48,.59,.67,.75,.81]):
@@ -75,5 +87,5 @@ class AnimatedSplashScreen(QWidget):
         for point in points[1:]:path.lineTo(point)
         p.setPen(QPen(QColor(c['accent']),2.3));p.setBrush(Qt.NoBrush);p.drawPath(path);p.setBrush(QColor(c['surface']))
         for point in points:p.drawEllipse(point,3,3)
-        text(490,367,'Seis canais. Uma nova perspectiva.',19,'text','display',600);text(490,392,'Protótipo acadêmico · SENAI / ARAUCO · Projeto Sucuriú',11,'muted')
-        text(490,467,'Protótipo desenvolvido por',11,'muted');text(490,486,', '.join(__authors__[:-1])+' e '+__authors__[-1],13,'text','ui',500)
+        text(490,367,'Seis canais. Uma nova perspectiva.',19,'heading','display',700);text(490,392,'Protótipo acadêmico · SENAI / ARAUCO · Projeto Sucuriú',11,'muted')
+        text(490,467,'Protótipo desenvolvido por',11,'muted');text(490,486,', '.join(__authors__[:-1])+' e '+__authors__[-1],13,'text','ui',400)

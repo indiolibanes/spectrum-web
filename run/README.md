@@ -1,14 +1,14 @@
-# Executar o SPECTRUM-LAB PRO no Codespace (branch `run`)
+# Executar o SPECTRUM-LAB PRO no Codespace
 
 Roteiro para rodar o supervisório num navegador, com display virtual e uma bancada simulada (ESP32 falso).
-**Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
+**Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (EB Garamond e IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
 
 > Para testar a interface nova (temas, botões, indicador de análise e teclado na tela), use o roteiro completo em [docs/TUTORIAL_CODESPACE.md](../docs/TUTORIAL_CODESPACE.md). Este arquivo cobre só a parte de execução e responsividade.
 
 ## 1. Criar o Codespace
 
 1. No GitHub, abra o repositório `indiolibanes/spectrum-web`.
-2. Troque a branch para `feat/ui-ouro-arauco` (interface nova, já com os scripts de `run/`) ou `run` (interface anterior).
+2. Troque a branch para `feat/ui-vidro-umber` (interface nova, já com os scripts de `run/`).
 3. Clique em **Code → Codespaces → Create codespace on** a branch escolhida.
 4. Aguarde o VS Code (web) abrir.
 
@@ -22,6 +22,12 @@ bash run/setup.sh
 
 Ao final deve aparecer `PyQt5 OK`. Se houver erro de pacote, copie a mensagem e envie.
 
+Para conferir tudo de uma vez (branch, arquivos, ferramentas, display e portas), use a qualquer momento:
+
+```bash
+bash run/check.sh
+```
+
 ## 3. Subir o display virtual
 
 ```bash
@@ -34,7 +40,9 @@ O padrão é **1920x1080**. Para testar outra resolução:
 RESOLUTION=1366x768 bash run/start_display.sh
 ```
 
-Depois, na aba **PORTS** do VS Code, localize a porta **6080**, clique com o botão direito e escolha **Port Visibility → Public** (ou mantenha Private e acesse pelo próprio navegador logado no GitHub). Abra o link e acrescente `/vnc.html` ao endereço, depois clique em **Connect**. Você verá uma área de trabalho vazia.
+O script confere as ferramentas, espera as portas subirem e imprime o endereço pronto para abrir (no Codespaces, algo como `https://<codespace>-6080.app.github.dev/vnc.html?autoconnect=1&resize=scale`). Abra-o no navegador em que você está logado no GitHub. Você verá uma área de trabalho vazia.
+
+Mantenha a porta 6080 como **Private**: a área de trabalho virtual não tem senha, e o x11vnc só aceita conexões locais (`-localhost`), então só o noVNC alcança a tela.
 
 ## 4. Iniciar o programa
 
@@ -93,14 +101,15 @@ Tire um print da tela (botão **Print Screen** ou ferramenta de captura do naveg
 ## 8. Encerrar
 
 ```bash
-pkill -f fake_esp32.py; pkill -f Xvfb; pkill -f x11vnc; pkill -f websockify
+bash run/stop.sh
 ```
 
 ## Solução de problemas
 
 | Sintoma | Causa provável | O que fazer |
 |---|---|---|
-| `could not connect to display :99` | display não subiu | rode `bash run/start_display.sh` de novo |
+| `could not connect to display :99` | display não subiu | rode `bash run/start_display.sh` de novo (ele mostra o log do que falhou) |
+| Página do noVNC não abre | porta 6080 ainda subindo ou branch errada | `bash run/check.sh`; espere 10 s e atualize |
 | Tela preta no noVNC | `start_app.sh` ainda não foi executado | execute `bash run/start_app.sh` |
 | `qt.qpa.plugin: could not load xcb` | biblioteca faltando | rode `bash run/setup.sh` de novo |
 | "Falha ao conectar" no supervisório | simulador não está ativo ou porta errada | confira IP `127.0.0.1` e porta `8080` |

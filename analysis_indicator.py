@@ -11,10 +11,11 @@ fica sério. O texto vem de analysis_messages.py (testado sem Qt).
 import time
 
 from PyQt5.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import QColor, QFontMetrics, QLinearGradient, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 import analysis_messages as messages
+import glass
 from animation_math import blink_amount, bounce, mouth_params, pulse, spectrum_points
 from typography import make_font
 
@@ -121,11 +122,19 @@ class AnalysisIndicator(QWidget):
 
         # Cartão tonal com uma barra de cor à esquerda
         card = QRectF(0.5, 0.5, w - 1.0, h - 1.0)
-        fill = QColor(pal["soft"])
-        fill.setAlphaF(0.92)
-        painter.setPen(QPen(QColor(pal["border"]), 1))
-        painter.setBrush(fill)
-        painter.drawRoundedRect(card, 12, 12)
+        dark = glass.is_dark(pal)
+        top_fill = QColor(pal["soft"] if dark else "#FFFFFF")
+        top_fill.setAlphaF(0.78)
+        bottom_fill = QColor(pal["surface"] if dark else pal["soft"])
+        bottom_fill.setAlphaF(0.62)
+        sheen = QLinearGradient(0, 0, 0, h)
+        sheen.setColorAt(0.0, top_fill)
+        sheen.setColorAt(1.0, bottom_fill)
+        rim = QColor(pal["heading"] if dark else pal["accent"])
+        rim.setAlphaF(glass.DARK_RIM_ALPHA if dark else glass.LIGHT_RIM_ALPHA)
+        painter.setPen(QPen(rim, 1))
+        painter.setBrush(sheen)
+        painter.drawRoundedRect(card, 14, 14)
         bar = QPainterPath()
         bar.addRoundedRect(QRectF(0.5, 0.5, 6, h - 1.0), 3, 3)
         painter.setPen(Qt.NoPen)
@@ -145,8 +154,8 @@ class AnalysisIndicator(QWidget):
         # Textos
         text_left = 86
         text_width = max(60, w - text_left - right_width - 18)
-        painter.setPen(QColor(pal["text"]))
-        painter.setFont(make_font("ui", 15, 600))
+        painter.setPen(QColor(pal["heading"]))
+        painter.setFont(make_font("display", 19, 700))
         title_text = QFontMetrics(painter.font()).elidedText(title, Qt.ElideRight, int(text_width))
         painter.drawText(QRectF(text_left, 12, text_width, 22), Qt.AlignLeft | Qt.AlignVCenter, title_text)
         painter.setPen(QColor(pal["muted"]))
@@ -218,7 +227,7 @@ class AnalysisIndicator(QWidget):
         total = messages.TOTAL_STEPS
         if phase.step <= 0 and not celebrate:
             painter.setPen(QColor(pal["muted"]))
-            painter.setFont(make_font("ui", 11, 500))
+            painter.setFont(make_font("ui", 11, 400))
             label = "Em repouso" if phase.kind == "idle" else "Aguarde"
             painter.drawText(rect, Qt.AlignRight | Qt.AlignVCenter, label)
             return
@@ -233,6 +242,6 @@ class AnalysisIndicator(QWidget):
             painter.setBrush(color)
             painter.drawRoundedRect(QRectF(x, rect.top(), bar_w, bar_h), 3, 3)
         painter.setPen(QColor(pal["muted"]))
-        painter.setFont(make_font("ui", 11, 500))
+        painter.setFont(make_font("ui", 11, 400))
         caption = "Concluída" if celebrate else f"Etapa {phase.step} de {total}"
         painter.drawText(QRectF(rect.left(), rect.top() + bar_h + 3, rect.width(), 14), Qt.AlignRight | Qt.AlignVCenter, caption)

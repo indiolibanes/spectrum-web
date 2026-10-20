@@ -23,6 +23,7 @@ from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit,
                              QPushButton, QSizePolicy, QTextEdit, QVBoxLayout, QWidget)
 
+import glass
 import keyboard_layouts as kl
 import typography as ty
 from animation_math import mix_hex as _mix
@@ -102,17 +103,18 @@ class TouchKeyboard(QWidget):
     # -- aparência ------------------------------------------------------------------------
     def style_for(self, p):
         accent = p["accent_strong"]
-        hot_top, hot_bottom = _mix(accent, "#FFFFFF", 0.28), accent
-        key_top, key_bottom = p["soft"], p["surface"]
-        return f"""QWidget#touchKeyboard {{background:{p['canvas']};border:1px solid {p['border']};}}
+        hot = glass.primary_fill(p, "hot")
+        rim = glass.rim(p, 1.2)
+        base = glass.vgrad(_mix(p["canvas"], p["surface"], 0.65), p["canvas"]) if glass.is_dark(p) else glass.vgrad(p["soft"], _mix(p["soft"], p["border"], 0.5))
+        return f"""QWidget#touchKeyboard {{background:{base};border:1px solid {rim};}}
 QLabel#kbCaption {{color:{p['muted']};{ty.qss('label')}}}
-QPushButton {{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {key_top},stop:1 {key_bottom});color:{p['text']};border:1px solid {p['border']};border-radius:10px;padding:0;{ty.qss('section')}}}
-QPushButton:pressed {{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {hot_top},stop:1 {hot_bottom});color:{p['on_strong']};border:1px solid {accent};}}
-QPushButton#kbNum {{font-family:{ty.STACK_DATA};font-size:19px;font-weight:500;}}
+QPushButton {{background:{glass.button_fill(p)};color:{p['text']};border:1px solid {rim};border-radius:10px;padding:0;font-family:{ty.STACK_UI};font-size:19px;font-weight:400;}}
+QPushButton:pressed {{background:{hot};color:{p['on_strong']};border:1px solid {accent};}}
+QPushButton#kbNum {{font-family:{ty.STACK_DATA};font-size:19px;font-weight:400;}}
 QPushButton#kbAction,QPushButton#kbClose {{color:{p['muted']};{ty.qss('body')}}}
 QPushButton#kbShiftOn {{color:{p['accent']};border:1px solid {p['accent']};{ty.qss('body')}}}
-QPushButton#kbEnter {{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {hot_top},stop:1 {hot_bottom});color:{p['on_strong']};border:0;{ty.qss('body')}font-weight:600;}}
-QPushButton#kbEnter:pressed {{background:{_mix(accent, '#000000', 0.18)};}}"""
+QPushButton#kbEnter {{background:{glass.primary_fill(p)};color:{p['on_strong']};border:1px solid {_mix(accent, '#FFFFFF', 0.35)};{ty.qss('button')}}}
+QPushButton#kbEnter:pressed {{background:{hot};}}"""
 
     # -- montagem das teclas ----------------------------------------------------------------
     def _clear_rows(self):

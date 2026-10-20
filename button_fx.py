@@ -20,9 +20,10 @@ from PyQt5.QtCore import QEvent, QEasingCurve, QObject, QPointF, QRectF, Qt, QTi
 from PyQt5.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QRadialGradient
 from PyQt5.QtWidgets import QPushButton, QWidget
 
+import glass
 from animation_math import busy_sweep_x, ripple_alpha, ripple_radius
 
-RADIUS = 7.0
+RADIUS = 10.0   # igual ao border-radius dos botões em glass.py / scada_ui.py
 HOVER_MS = 140
 RIPPLE_MS = 520
 BUSY_PERIOD_S = 1.6
@@ -126,13 +127,26 @@ class _Overlay(QWidget):
         if width < 8 or height < 8:
             return
         strong = self.button.property("fxTone") == "strong" or self.button.objectName() == "scadaPrimary"
-        accent = QColor(palette_for()["accent"])
+        pal = palette_for()
+        accent = QColor(pal["accent"])
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         clip = QPainterPath()
         clip.addRoundedRect(QRectF(0.5, 0.5, width - 1.0, height - 1.0), RADIUS, RADIUS)
         painter.setClipPath(clip)
+
+        if enabled:   # fio de luz no topo: dá volume de vidro sem mudar a cor do botão
+            edge_color, edge_alpha = glass.edge_highlight(pal)
+            edge = QColor(edge_color)
+            top = QColor(edge)
+            top.setAlphaF(edge_alpha * (0.55 if strong else 1.0))
+            fade = QColor(edge)
+            fade.setAlpha(0)
+            sheen = QLinearGradient(0, 0, 0, min(height * 0.5, 18.0))
+            sheen.setColorAt(0.0, top)
+            sheen.setColorAt(1.0, fade)
+            painter.fillRect(QRectF(0, 0, width, min(height * 0.5, 18.0)), sheen)
 
         if enabled and self.hover > 0.001:
             tint = QColor(255, 255, 255) if strong else QColor(accent)
