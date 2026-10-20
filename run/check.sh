@@ -10,8 +10,8 @@ echo "== Repositório =="
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 echo "branch: $branch @ $(git rev-parse --short HEAD 2>/dev/null || echo '?')"
 [[ -f main.py && -f run/fake_esp32.py ]] && c_ok "arquivos do programa presentes" || { c_err "main.py ou run/fake_esp32.py ausentes: você está na pasta/branch certa?"; bad=1; }
-[[ -f assets/cursors/fibra-seta.png && -f assets/textures/madeira-escura.png ]] && c_ok "texturas e cursores presentes" || { c_err "assets novos ausentes: atualize o repositório (git pull) ou troque para a branch feat/ux-acessibilidade-animacoes"; bad=1; }
-[[ -f assets/fonts/EBGaramond-Bold.ttf ]] && c_ok "fontes EB Garamond e IBM Plex presentes" || { c_err "fontes novas ausentes (branch antiga?)"; bad=1; }
+[[ -f assets/cursors/fibra-seta.png && -f assets/textures/celulose-claro.png ]] && c_ok "textura e cursores presentes" || { c_err "assets novos ausentes: atualize o repositório (git pull) ou troque para a branch feat/ux-acessibilidade-animacoes"; bad=1; }
+[[ -f assets/fonts/Arena.ttf && -f assets/fonts/DroplineRegular.otf && -f assets/fonts/Inter-Regular.ttf && -f assets/fonts/IBMPlexMono-Regular.ttf ]] && c_ok "fontes Arena, Dropline, Inter e IBM Plex presentes" || { c_err "fontes novas ausentes (branch antiga?)"; bad=1; }
 if file run/*.sh 2>/dev/null | grep -q CRLF; then c_err "scripts com fim de linha do Windows (CRLF). Rode: sed -i 's/\\r$//' run/*.sh"; bad=1; fi
 
 echo; echo "== Ferramentas =="
