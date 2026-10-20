@@ -79,6 +79,7 @@ from runtime_data import prepare_data_files
 from auth_dialogs import DialogLogin, DialogGestaoUsuarios
 from version import __version__, __build__, __app_name__, __app_title__, __app_full_title__
 from brand_assets import program_logo_pixmap, program_icon
+import typography as ty
 
 
 # =====================================================================
@@ -731,7 +732,7 @@ class ModernStatusBadge(QFrame):
         self.dot.setStyleSheet(f"color: {self.inactive_color}; font-size: 11px;")
 
         self.lbl_text = QLabel(f"{title}: DESCONECTADO")
-        self.lbl_text.setStyleSheet("color: #D1D5DB; font-size: 10px; font-weight: bold; font-family: 'Segoe UI';")
+        self.lbl_text.setStyleSheet("color: #D1D5DB; " + ty.qss("label"))
 
         layout.addWidget(self.dot)
         layout.addWidget(self.lbl_text)
@@ -750,9 +751,9 @@ class ModernStatusBadge(QFrame):
             txt = "CONECTADO" if active else "DESCONECTADO"
             self.lbl_text.setText(f"{self.title}: {txt}")
         if custom_color:
-            self.lbl_text.setStyleSheet(f"color: {custom_color}; font-size: 10px; font-weight: bold; font-family: 'Segoe UI';")
+            self.lbl_text.setStyleSheet(f"color: {custom_color}; " + ty.qss("label"))
         else:
-            self.lbl_text.setStyleSheet("color: #D1D5DB; font-size: 10px; font-weight: bold; font-family: 'Segoe UI';")
+            self.lbl_text.setStyleSheet("color: #D1D5DB; " + ty.qss("label"))
 
 
 # =====================================================================
@@ -782,7 +783,7 @@ class PowerBiKpiCard(QFrame):
         lbl_icon.setStyleSheet("font-size: 13px;")
 
         self.lbl_title = QLabel(title_str)
-        self.lbl_title.setStyleSheet("color: #9CA3AF; font-size: 10px; font-weight: bold; font-family: 'Segoe UI'; letter-spacing: 0.5px;")
+        self.lbl_title.setStyleSheet("color: #9CA3AF; " + ty.qss("label"))
 
         header.addWidget(lbl_icon)
         header.addWidget(self.lbl_title)
@@ -790,20 +791,20 @@ class PowerBiKpiCard(QFrame):
         layout.addLayout(header)
 
         self.lbl_value = QLabel(default_value)
-        self.lbl_value.setStyleSheet("color: #FFFFFF; font-size: 25px; font-weight: 600; font-family: 'Segoe UI';")
+        self.lbl_value.setStyleSheet("color: #FFFFFF; " + ty.qss("kpi"))
         layout.addWidget(self.lbl_value)
 
         self.lbl_sub = QLabel(subtitle_str)
-        self.lbl_sub.setStyleSheet("color: #6B7280; font-size: 10px; font-family: 'Segoe UI';")
+        self.lbl_sub.setStyleSheet("color: #9CA3AF; " + ty.qss("caption"))
         self.lbl_sub.setWordWrap(True)
         layout.addWidget(self.lbl_sub)
 
     def set_value(self, value_text: str, subtitle_text: str = None, color_override: str = None):
         self.lbl_value.setText(value_text)
         if color_override:
-            self.lbl_value.setStyleSheet(f"color: {color_override}; font-size: 25px; font-weight: 600; font-family: 'Segoe UI';")
+            self.lbl_value.setStyleSheet(f"color: {color_override}; " + ty.qss("kpi"))
         else:
-            self.lbl_value.setStyleSheet("color: #FFFFFF; font-size: 25px; font-weight: 600; font-family: 'Segoe UI';")
+            self.lbl_value.setStyleSheet("color: #FFFFFF; " + ty.qss("kpi"))
         if subtitle_text is not None:
             self.lbl_sub.setText(subtitle_text)
 
@@ -2218,16 +2219,22 @@ class SpectrumLabMainWindow(QMainWindow):
         lbl_ip = QLabel("IP ESP32:")
         lbl_ip.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: bold;")
         self.txt_ip = QLineEdit("192.168.4.1")
-        self.txt_ip.setFixedWidth(95)
+        self.txt_ip.setMinimumWidth(128)
+        self.txt_ip.setMinimumHeight(36)
+        self.txt_ip.setProperty("touchKeyboard", "numeric")
+        self.txt_ip.setInputMethodHints(Qt.ImhFormattedNumbersOnly)
         self.txt_ip.setToolTip("Endereço IP do ESP32 (Padrão SoftAP: 192.168.4.1)")
-        self.txt_ip.setStyleSheet("background-color: #2b2b2b; color: #FFFFFF; padding: 4px 6px; border: 1px solid #4a4a4a; border-radius: 4px; font-size: 11px;")
+        self.txt_ip.setStyleSheet("background-color: #2b2b2b; color: #FFFFFF; padding: 6px 8px; border: 1px solid #4a4a4a; border-radius: 7px; font-size: 13px;")
 
         lbl_tcp_port = QLabel("Porta:")
         lbl_tcp_port.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: bold;")
         self.txt_tcp_port = QLineEdit("8080")
-        self.txt_tcp_port.setFixedWidth(50)
+        self.txt_tcp_port.setMinimumWidth(72)
+        self.txt_tcp_port.setMinimumHeight(36)
+        self.txt_tcp_port.setProperty("touchKeyboard", "digits")
+        self.txt_tcp_port.setInputMethodHints(Qt.ImhDigitsOnly)
         self.txt_tcp_port.setToolTip("Porta do Servidor TCP no ESP32")
-        self.txt_tcp_port.setStyleSheet("background-color: #2b2b2b; color: #FFFFFF; padding: 4px 6px; border: 1px solid #4a4a4a; border-radius: 4px; font-size: 11px;")
+        self.txt_tcp_port.setStyleSheet("background-color: #2b2b2b; color: #FFFFFF; padding: 6px 8px; border: 1px solid #4a4a4a; border-radius: 7px; font-size: 13px;")
 
         wifi_layout.addWidget(lbl_ip)
         wifi_layout.addWidget(self.txt_ip)

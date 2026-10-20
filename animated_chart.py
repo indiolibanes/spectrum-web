@@ -1,4 +1,5 @@
 from appearance import theme_color
+from typography import make_font
 """
 SPECTRUM-LAB PRO | Módulo de Visualização Espectral & Gráficos Analíticos
 Implementa:
@@ -122,17 +123,17 @@ class SingleBarWidget(QWidget):
         else:
             val_text = f"{int(self._current_value)}"
         painter.setPen(QPen(QColor(theme_color("#F3F4F6","text"))))
-        painter.setFont(QFont("Segoe UI", 8, QFont.Bold))
+        painter.setFont(make_font("data", 13, 500))
         painter.drawText(QRectF(0, y - 20, w, 18), Qt.AlignCenter, val_text)
 
         # 4. Wavelength Label below bar
         painter.setPen(QPen(QColor(theme_color(self.color_hex,"accent"))))
-        painter.setFont(QFont("Segoe UI", 8, QFont.Bold))
+        painter.setFont(make_font("ui", 11, 600))
         painter.drawText(QRectF(0, h - bottom_padding + 4, w, 18), Qt.AlignCenter, self.wavelength)
 
         # 5. Secondary Name
         painter.setPen(QPen(QColor(theme_color("#9CA3AF","text"))))
-        painter.setFont(QFont("Segoe UI", 7, QFont.Normal))
+        painter.setFont(make_font("ui", 11, 400))
         painter.drawText(QRectF(0, h - bottom_padding + 22, w, 14), Qt.AlignCenter, self.label_name)
 
 
@@ -516,7 +517,7 @@ class ScatterCanvas(QWidget):
             sy = pad_top + (1.0 - norm_y) * plot_h
             return sx, sy
 
-        painter.setFont(QFont("Segoe UI", 7, QFont.Normal))
+        painter.setFont(make_font("data", 11, 400))
         grid_pen = QPen(QColor(theme_color("#333333","border")), 1, Qt.DotLine)
         text_pen = QPen(QColor(theme_color("#888888","text")))
 
@@ -535,7 +536,7 @@ class ScatterCanvas(QWidget):
             painter.drawText(QRectF(2, sy - 7, pad_left - 6, 14), Qt.AlignRight, f"{y_tick:.1f}")
 
         # Rótulo Eixo X
-        painter.setFont(QFont("Segoe UI", 8, QFont.Bold))
+        painter.setFont(make_font("ui", 11, 600))
         painter.setPen(QPen(QColor(theme_color("#9CA3AF","text"))))
         painter.drawText(QRectF(pad_left, h - 15, plot_w, 14), Qt.AlignCenter, "Eixo X: Celulose (R680 / R730)")
 
@@ -575,7 +576,7 @@ class ScatterCanvas(QWidget):
             painter.setBrush(QBrush(QColor(theme_color("#38BDF8","text"))))
             painter.drawEllipse(QPointF(sx, sy), 5.0, 5.0)
 
-            painter.setFont(QFont("Segoe UI", 7, QFont.Bold))
+            painter.setFont(make_font("ui", 11, 600))
             painter.setPen(QPen(QColor(theme_color("#FFFFFF","text"))))
             painter.drawText(QRectF(sx + 8, sy - 14, 140, 16), Qt.AlignLeft, f"{clbl}")
 

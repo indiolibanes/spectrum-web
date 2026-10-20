@@ -1,13 +1,15 @@
 # Executar o SPECTRUM-LAB PRO no Codespace (branch `run`)
 
 Roteiro para rodar o supervisório num navegador, com display virtual e uma bancada simulada (ESP32 falso).
-**Limitações:** não há hardware real, não há fontes Windows (Bahnschrift) e a escala de DPI do Windows não é reproduzida fielmente. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
+**Limitações:** não há hardware real e a escala de DPI do Windows não é reproduzida fielmente. As fontes (IBM Plex) vão embutidas no programa, então a tipografia é a mesma do Windows. Serve para validar layout, fluxo e comunicação, não para medir a bancada.
+
+> Para testar a interface nova (temas, botões, indicador de análise e teclado na tela), use o roteiro completo em [docs/TUTORIAL_CODESPACE.md](../docs/TUTORIAL_CODESPACE.md). Este arquivo cobre só a parte de execução e responsividade.
 
 ## 1. Criar o Codespace
 
 1. No GitHub, abra o repositório `indiolibanes/spectrum-web`.
-2. Troque a branch para `run`.
-3. Clique em **Code → Codespaces → Create codespace on run**.
+2. Troque a branch para `feat/ui-ouro-arauco` (interface nova, já com os scripts de `run/`) ou `run` (interface anterior).
+3. Clique em **Code → Codespaces → Create codespace on** a branch escolhida.
 4. Aguarde o VS Code (web) abrir.
 
 ## 2. Instalar dependências (uma vez por Codespace)
@@ -84,6 +86,7 @@ Anote **OK** ou o problema em cada item:
 - [ ] Logo do cabeçalho visível e alinhado ao título.
 - [ ] Barras de rolagem aparecem onde devem, não em toda parte.
 - [ ] Fundo texturizado não atrapalha a leitura do texto.
+- [ ] Campos de IP e porta cabem no cabeçalho sem cortar os botões ao lado.
 
 Tire um print da tela (botão **Print Screen** ou ferramenta de captura do navegador) de cada resolução com problema e envie junto com o número do item.
 

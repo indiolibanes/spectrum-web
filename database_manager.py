@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor
+from typography import make_font
 
 class AddMaterialDialog(QDialog):
     """
@@ -260,7 +261,7 @@ class DatabaseManagerDialog(QDialog):
             self.table.insertRow(row)
 
             item_name = QTableWidgetItem(name)
-            item_name.setFont(QFont("Segoe UI", 9, QFont.Bold))
+            item_name.setFont(make_font("ui", 13, 600))
             self.table.setItem(row, 0, item_name)
 
             for i in range(6):

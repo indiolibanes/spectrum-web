@@ -2,11 +2,15 @@
 from PyQt5.QtCore import Qt, QTimer, QRectF, QPointF
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import QDialog, QWidget, QPushButton, QLineEdit, QComboBox, QProgressBar
+from typography import STACK_UI
+from animation_math import mix_hex
 
 
 def popup_owner(widget):
     current = widget
     while current is not None:
+        if current.property("touchKeyboardWindow"):
+            return None   # o teclado na tela tem estilo próprio, mesmo quando é filho de um diálogo
         if isinstance(current, QDialog) or current.objectName() == "scaledDialogContent":
             return current
         current = current.parentWidget()
@@ -16,27 +20,31 @@ def popup_owner(widget):
 def popup_stylesheet(widget, palette, existing):
     """Override old control geometry while retaining semantic label colors."""
     p = palette
-    foreground = "#FFFFFF" if QColor(p['canvas']).lightnessF() > .5 else "#102D31"
-    controls = f"""QPushButton {{background:{p['surface']};color:{p['text']};border:1px solid {p['border']};border-radius:7px;padding:8px 12px;font-family:Segoe UI;font-size:11px;font-weight:400;}}
-QPushButton:hover {{background:{p['soft']};}}
+    foreground = p['on_strong']
+    hot_top = mix_hex(p['accent_strong'], '#FFFFFF', .28)
+    gradient = lambda top, bottom: f"qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {top},stop:1 {bottom})"
+    controls = f"""QPushButton {{background:{gradient(p['soft'], p['surface'])};color:{p['text']};border:1px solid {p['border']};border-radius:7px;padding:8px 12px;font-family:{STACK_UI};font-size:13px;font-weight:500;}}
+QPushButton:hover {{border:1px solid {p['accent']};}}
+QPushButton:pressed {{background:{gradient(hot_top, p['accent_strong'])};color:{p['on_strong']};border:1px solid {p['accent_strong']};}}
 QPushButton:focus {{border:1px solid {p['accent']};}}
 QPushButton:disabled {{background:{p['canvas']};color:{p['disabled']};border-color:{p['border']};}}
-QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox {{background:{p['canvas']};color:{p['text']};border:1px solid {p['border']};border-radius:7px;padding:7px 10px;font-size:11px;}}
+QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox {{background:{p['canvas']};color:{p['text']};border:1px solid {p['border']};border-radius:7px;padding:7px 10px;font-size:13px;}}
 QLineEdit:focus,QComboBox:focus {{border-color:{p['accent']};}}
 QTableWidget {{background:{p['surface']};alternate-background-color:{p['canvas']};color:{p['text']};border:1px solid {p['border']};border-radius:7px;gridline-color:{p['border']};selection-background-color:{p['soft']};selection-color:{p['text']};}}
-QHeaderView::section {{background:{p['soft']};color:{p['muted']};border:0;padding:8px;font-size:11px;}}
+QHeaderView::section {{background:{p['soft']};color:{p['muted']};border:0;padding:8px;font-size:11px;font-weight:600;}}
 QProgressBar {{background:{p['soft']};color:{p['muted']};border:0;border-radius:4px;text-align:center;}}
 QProgressBar::chunk {{background:{p['accent']};border-radius:4px;}}
 """
     if isinstance(widget, QDialog) or widget.objectName() == "scaledDialogContent":
-        return f"QWidget {{font-family:Segoe UI;}}\nQDialog,QWidget#scaledDialogContent {{background:{p['surface']};color:{p['text']};}}\nQLabel {{color:{p['text']};}}\n" + controls
+        return f"QWidget {{font-family:{STACK_UI};}}\nQDialog,QWidget#scaledDialogContent {{background:{p['surface']};color:{p['text']};}}\nQLabel {{color:{p['text']};}}\n" + controls
     if isinstance(widget, QPushButton):
         name = widget.objectName().lower()
         text = widget.text().lower()
         danger = any(term in name + text for term in ('emergency', 'emergência', 'delete', 'excluir'))
         secondary = any(term in name + text for term in ('cancel', 'abortar', 'sair', 'fechar', 'concluir'))
         primary = (widget.isDefault() and not secondary) or any(term in name for term in ('login', 'cadastrar', 'actuator', 'confirm', 'proceed', 'finish'))
-        bg = p['accent'] if primary and not danger else p['surface']
+        widget.setProperty('fxTone', 'strong' if primary and not danger else 'soft')
+        bg = gradient(mix_hex(p['accent_strong'], '#FFFFFF', .10), mix_hex(p['accent_strong'], '#000000', .14)) if primary and not danger else gradient(p['soft'], p['surface'])
         color = p['danger'] if danger else foreground if primary else p['text']
         border = p['danger'] if danger else p['accent'] if primary else p['border']
         return controls + f"QPushButton {{background:{bg};color:{color};border-color:{border};}}\nQPushButton:focus {{border-color:{border if danger else p['accent']};}}"
