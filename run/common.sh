@@ -33,7 +33,7 @@ novnc_dir() {
 
 # novnc_url -> endereço para abrir no navegador (Codespaces ou local)
 novnc_url() {
-  local path="vnc.html?autoconnect=1&resize=scale&path=websockify"
+  local path="vnc.html?autoconnect=1&resize=remote&path=websockify"
   if [[ -n "${CODESPACE_NAME:-}" ]]; then
     echo "https://${CODESPACE_NAME}-6080.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/${path}"
   else
