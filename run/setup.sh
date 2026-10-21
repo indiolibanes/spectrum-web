@@ -26,6 +26,16 @@ fi
   libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libxcb-cursor0 \
   fontconfig fonts-dejavu-core fonts-liberation file procps
 
+# Servidor VNC com ExtendedDesktopSize: permite ao noVNC solicitar a resolução
+# da área útil do navegador. Opcional: em distribuições sem pacote, o
+# start_display.sh ainda funciona via Xvfb + x11vnc e resize=scale.
+echo "==> Suporte a redimensionamento remoto (TigerVNC)"
+if ! command -v Xtigervnc >/dev/null 2>&1 && ! command -v Xvnc >/dev/null 2>&1; then
+  if ! "${SUDO[@]}" apt-get install -y tigervnc-standalone-server; then
+    c_warn "TigerVNC indisponível; Xvfb + x11vnc funcionará com ajuste local."
+  fi
+fi
+
 echo "==> Dependências Python (sem PyInstaller, que só serve para gerar o .exe)"
 if [[ -z "${SPECTRUM_PYTHON:-}" ]]; then
   python3 -m venv "$REPO_DIR/.venv"
