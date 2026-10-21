@@ -15,6 +15,7 @@ command -v Xvfb >/dev/null 2>&1 || missing+=(xvfb)
 command -v x11vnc >/dev/null 2>&1 || missing+=(x11vnc)
 command -v websockify >/dev/null 2>&1 || missing+=(websockify)
 command -v fluxbox >/dev/null 2>&1 || missing+=(fluxbox)
+command -v xdpyinfo >/dev/null 2>&1 || missing+=(x11-utils)
 novnc_dir >/dev/null 2>&1 || missing+=(novnc)
 
 if (( ${#missing[@]} > 0 )); then
@@ -27,7 +28,7 @@ if (( ${#missing[@]} > 0 )); then
 fi
 
 # Confirma que a recuperação funcionou antes de criar o display.
-for pair in "Xvfb:xvfb" "x11vnc:x11vnc" "websockify:websockify" "fluxbox:fluxbox"; do
+for pair in "Xvfb:xvfb" "x11vnc:x11vnc" "websockify:websockify" "fluxbox:fluxbox" "xdpyinfo:x11-utils"; do
   need "${pair%%:*}" "${pair##*:}" || exit 1
 done
 NOVNC="$(novnc_dir)" || { c_err "noVNC continua ausente após a instalação."; exit 1; }
@@ -43,8 +44,8 @@ sleep 1
 
 echo "==> Iniciando o display ${RES}"
 setsid nohup Xvfb :99 -screen 0 "${RES}x24" -ac +extension GLX +render -noreset >"$LOG_DIR/xvfb.log" 2>&1 &
-for _ in $(seq 1 20); do [[ -S /tmp/.X11-unix/X99 ]] && break; sleep 0.5; done
-if [[ ! -S /tmp/.X11-unix/X99 ]]; then c_err "O display :99 não subiu."; tail_log "$LOG_DIR/xvfb.log"; exit 1; fi
+for _ in $(seq 1 30); do DISPLAY=:99 xdpyinfo >/dev/null 2>&1 && break; sleep 0.5; done
+if ! DISPLAY=:99 xdpyinfo >/dev/null 2>&1; then c_err "O display :99 não subiu."; tail_log "$LOG_DIR/xvfb.log"; exit 1; fi
 c_ok "Display :99 pronto"
 
 export DISPLAY=:99
@@ -54,7 +55,7 @@ setsid nohup x11vnc -display :99 -forever -shared -nopw -localhost -cursor most 
 if ! wait_port 5900 15; then c_err "O x11vnc não abriu a porta 5900."; tail_log "$LOG_DIR/x11vnc.log"; exit 1; fi
 c_ok "x11vnc na porta 5900 (somente local)"
 
-setsid nohup websockify --web "$NOVNC" 6080 localhost:5900 >"$LOG_DIR/websockify.log" 2>&1 &
+setsid nohup websockify --web "$NOVNC" 6080 127.0.0.1:5900 >"$LOG_DIR/websockify.log" 2>&1 &
 if ! wait_port 6080 15; then c_err "O noVNC não abriu a porta 6080."; tail_log "$LOG_DIR/websockify.log"; exit 1; fi
 c_ok "noVNC na porta 6080"
 
