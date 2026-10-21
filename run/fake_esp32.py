@@ -75,8 +75,11 @@ def responder(bancada, comando, enviar):
         time.sleep(ATRASO_MOVIMENTO)
         with bancada.lock:
             atualizar()
-        enviar("STATUS:" + status)
+        # O cliente verifica os fins de curso antes de aceitar o STATUS.
+        # No simulador, a telemetria do estado novo precisa vir primeiro;
+        # caso contrário a calibração é abortada antes de registrar os ADCs.
         enviar(bancada.estado_linha())
+        enviar("STATUS:" + status)
 
     if comando == "ABRIR_GAVETA":
         movimento(lambda: setattr(bancada, "gaveta_aberta", True), "GAVETA_ABERTA")
