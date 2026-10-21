@@ -21,14 +21,16 @@ export SPECTRUM_LAB_DATA_DIR="$REPO_DIR/run-data"
 mkdir -p run-data
 
 if ! python3 -c "import PyQt5.QtWidgets, matplotlib, reportlab, numpy, serial" 2>/dev/null; then
-  c_err "Dependência Python ausente (Qt, Matplotlib, ReportLab, NumPy ou PySerial). Rode: bash run/setup.sh"; exit 1
+  c_warn "Dependências Python ausentes; executando configuração do Codespace..."
+  bash "$REPO_DIR/run/setup.sh" || { c_err "Falha ao instalar as dependências Python."; exit 1; }
+  python3 -c "import PyQt5.QtWidgets, matplotlib, reportlab, numpy, serial" || exit 1
 fi
 
 pkill -f "run/fake_esp32.py" 2>/dev/null || true
 python3 run/fake_esp32.py --host 127.0.0.1 --port 8080 >run-data/esp32_simulado.log 2>&1 &
 SIM_PID=$!
 trap 'kill $SIM_PID 2>/dev/null || true' EXIT
-if wait_port 8080 8; then c_ok "ESP32 simulado em 0.0.0.0:8080"; else c_warn "O simulador não respondeu na porta 8080"; tail_log run-data/esp32_simulado.log; fi
+if wait_port 8080 8; then c_ok "ESP32 simulado em 127.0.0.1:8080"; else c_warn "O simulador não respondeu na porta 8080"; tail_log run-data/esp32_simulado.log; fi
 
 echo "Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null) @ $(git rev-parse --short HEAD 2>/dev/null)"
 echo "Abra no navegador: $(novnc_url)"
