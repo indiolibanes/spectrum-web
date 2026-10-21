@@ -1,6 +1,6 @@
+# Runtime comum a Windows e Linux; Python 3.11 ou 3.12 recomendado.
 PyQt5==5.15.11
-numpy==2.5.2
-matplotlib==3.11.1
+numpy>=1.26.4,<2.4
+matplotlib>=3.8.4,<3.11
 pyserial==3.5
-reportlab==5.0.1
-PyInstaller==6.21.0
+reportlab>=4.2,<5

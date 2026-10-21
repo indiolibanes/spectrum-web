@@ -42,8 +42,8 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QMenuBar, QMenu, QAction,
     QSizePolicy, QAbstractItemView
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, QEventLoop, QCoreApplication, pyqtSignal
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import Qt, QTimer, QThread, QEventLoop, QCoreApplication, pyqtSignal, QUrl
+from PyQt5.QtGui import QFont, QColor, QDesktopServices
 
 # Ativação antecipada de suporte nativo a High-DPI para telas de notebook com escala 125%/150%
 try:
@@ -82,6 +82,12 @@ from auth_dialogs import DialogLogin, DialogGestaoUsuarios
 from version import __version__, __build__, __app_name__, __app_title__, __app_full_title__
 from brand_assets import program_logo_pixmap, program_icon
 import typography as ty
+
+
+def open_pdf(path):
+    """Abre arquivos locais com o serviço nativo do Qt em Windows e Linux."""
+    if not QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(path))):
+        raise OSError("Nenhum visualizador de PDF disponível neste ambiente")
 
 
 # =====================================================================
@@ -593,12 +599,12 @@ class HistoryDialog(QDialog):
                 timestamp=item.get("timestamp")
             )
             try:
-                os.startfile(pdf_path)
+                open_pdf(pdf_path)
             except Exception as start_err:
                 QMessageBox.warning(
                     self, "Aviso de Visualização",
                     f"O Relatório Experimental PDF foi gerado com sucesso em:\n{pdf_path}\n\n"
-                    f"Porém não foi possível abrir o leitor padrão do Windows: {start_err}"
+                    f"Porém não foi possível abrir o leitor padrão do sistema: {start_err}"
                 )
         except Exception as e:
             traceback.print_exc()
@@ -4694,12 +4700,12 @@ class SpectrumLabMainWindow(QMainWindow):
                 )
                 if reply == QMessageBox.Yes:
                     try:
-                        os.startfile(out_pdf)
+                        open_pdf(out_pdf)
                     except Exception as start_err:
                         QMessageBox.warning(
                             self, "Aviso de Visualização",
                             f"O relatório foi salvo com sucesso em:\n{out_pdf}\n\n"
-                            f"Porém não foi possível acionar o leitor padrão do Windows: {start_err}"
+                            f"Porém não foi possível acionar o leitor padrão do sistema: {start_err}"
                         )
             except PermissionError:
                 QMessageBox.warning(

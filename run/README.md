@@ -120,3 +120,36 @@ bash run/stop.sh
 ## O que o simulador responde
 
 `run/fake_esp32.py` atende os comandos do firmware real: `CMD:PING` (com os protocolos de porta, carrinho, manual e admin, sem os quais a leitura fica bloqueada), `CMD:ESTADO_PORTA`, `CMD:DIAG_SENSOR` (ESPDIAG), `CMD:ADMIN_CARCACA`, movimentos de gaveta, porta e sensor, `CMD:LER_ESPECTRO` (6 canais, 610 a 860 nm), `CMD:LER_ESCURO`, `CMD:EMERGENCIA` e `CMD:MANUAL:<cmd>`. Quando o IP é `127.0.0.1`, o supervisório mostra o selo **SIMULAÇÃO**: os dados são de teste. Ele não simula ruído, falhas nem tempos reais de motor.
+
+## Windows e Linux: instalação comum
+
+Use Python 3.11 ou 3.12. As dependências de execução estão em `requirements.txt`;
+para gerar executáveis, instale `requirements-build.txt` na plataforma de destino.
+No Windows:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+No Codespaces, atualize a branch e execute:
+
+```bash
+bash run/setup.sh
+bash run/start_app.sh
+```
+
+Abra o endereço impresso (porta 6080, Private). O script usa `.venv/bin/python`,
+testa o plugin Qt/xcb e inicia o ESP32 simulado. Na interface selecione Wi-Fi,
+IP `127.0.0.1`, porta `8080`. `bash run/check.sh` testa também a abertura do Qt;
+em caso de falha consulte `run-data/qt.log` e `run-data/app.log`.
+O noVNC exibe o desktop remoto; ele não emula o ESP32 nem encaminha automaticamente
+o USB ou a rede Wi-Fi do seu computador para o Codespace. A bancada física pode ser
+usada executando o programa localmente em Windows ou Linux, com USB acessível ou
+uma rota TCP até o ESP32. No Linux, confirme a permissão de acesso a `/dev/ttyUSB*`
+ou `/dev/ttyACM*` (grupo `dialout` nas distribuições Debian/Ubuntu).
+
+O workflow `Windows and Linux runtime` valida Python 3.11/3.12 nas duas plataformas,
+a janela real, o handshake e um scan por TCP. Um job adicional testa Xvfb + xcb e
+HTTP do noVNC em Linux. Não substitui a validação física dos motores e do sensor.
