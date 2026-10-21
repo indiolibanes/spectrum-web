@@ -6,14 +6,31 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 RES="${RESOLUTION:-1920x1080}"
 
+# Codespaces existentes não executam postCreateCommand quando a branch muda.
+# Se os pacotes não estiverem presentes, recupera o ambiente automaticamente.
+cd "$REPO_DIR"
 echo "==> Conferindo ferramentas"
-missing=0
-need Xvfb xvfb || missing=1
-need x11vnc x11vnc || missing=1
-need websockify websockify || missing=1
-need fluxbox fluxbox || missing=1
-NOVNC="$(novnc_dir)" || { c_err "noVNC não encontrado (pacote novnc). Rode: bash run/setup.sh"; missing=1; }
-[[ "$missing" == 1 ]] && exit 1
+missing=()
+command -v Xvfb >/dev/null 2>&1 || missing+=(xvfb)
+command -v x11vnc >/dev/null 2>&1 || missing+=(x11vnc)
+command -v websockify >/dev/null 2>&1 || missing+=(websockify)
+command -v fluxbox >/dev/null 2>&1 || missing+=(fluxbox)
+novnc_dir >/dev/null 2>&1 || missing+=(novnc)
+
+if (( ${#missing[@]} > 0 )); then
+  c_warn "Faltam pacotes: ${missing[*]}. Instalando dependências do projeto..."
+  if ! bash "$REPO_DIR/run/setup.sh"; then
+    c_err "A instalação falhou; consulte a mensagem do apt/pip acima."
+    c_err "Se estiver no Codespaces, confira também os logs de criação do contêiner."
+    exit 1
+  fi
+fi
+
+# Confirma que a recuperação funcionou antes de criar o display.
+for pair in "Xvfb:xvfb" "x11vnc:x11vnc" "websockify:websockify" "fluxbox:fluxbox"; do
+  need "${pair%%:*}" "${pair##*:}" || exit 1
+done
+NOVNC="$(novnc_dir)" || { c_err "noVNC continua ausente após a instalação."; exit 1; }
 c_ok "Xvfb, x11vnc, websockify, fluxbox e noVNC (${NOVNC})"
 
 echo "==> Encerrando uma execução anterior"
