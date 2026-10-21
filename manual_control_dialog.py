@@ -150,7 +150,7 @@ class ManualControlDialog(QDialog):
         header_layout = QHBoxLayout(header_card)
         header_layout.setContentsMargins(14, 10, 14, 10)
 
-        title_lbl = QLabel("⚙️ CONTROLE MANUAL DE ATUADORES (BANCADA)")
+        title_lbl = QLabel("CONTROLE MANUAL DE ATUADORES (BANCADA)")
         title_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #F8FAFC; letter-spacing: 0.5px;")
 
         header_layout.addWidget(title_lbl)
@@ -210,13 +210,13 @@ class ManualControlDialog(QDialog):
 
         # Linha 1: Gaveta (Abrir / Fechar)
         row_drawer = QHBoxLayout()
-        self.btn_open_drawer = QPushButton("📦 Abrir Gaveta (CMD:ABRIR_GAVETA)")
+        self.btn_open_drawer = QPushButton("Abrir Gaveta (CMD:ABRIR_GAVETA)")
         self.btn_open_drawer.setObjectName("btnActuator")
         self.btn_open_drawer.clicked.connect(lambda: self._execute_atomic_command(
             self.btn_open_drawer, "CMD:ABRIR_GAVETA", "GAVETA_ABERTA", "Abrindo gaveta..."
         ))
 
-        self.btn_close_drawer = QPushButton("📦 Fechar Gaveta (CMD:FECHAR_GAVETA)")
+        self.btn_close_drawer = QPushButton("Fechar Gaveta (CMD:FECHAR_GAVETA)")
         self.btn_close_drawer.setObjectName("btnActuator")
         self.btn_close_drawer.clicked.connect(lambda: self._execute_atomic_command(
             self.btn_close_drawer, "CMD:FECHAR_GAVETA", "GAVETA_FECHADA", "Fechando gaveta..."
@@ -227,13 +227,13 @@ class ManualControlDialog(QDialog):
 
         # Linha 2: Sensor (Avançar / Recuar)
         row_sensor = QHBoxLayout()
-        self.btn_fwd_sensor = QPushButton("🤖 Avançar Sensor (CMD:AVANCAR_SENSOR)")
+        self.btn_fwd_sensor = QPushButton("Avançar Sensor (CMD:AVANCAR_SENSOR)")
         self.btn_fwd_sensor.setObjectName("btnActuator")
         self.btn_fwd_sensor.clicked.connect(lambda: self._execute_atomic_command(
             self.btn_fwd_sensor, "CMD:AVANCAR_SENSOR", "SENSOR_AVANCADO", "Avançando sensor sobre a lâmina..."
         ))
 
-        self.btn_retract_sensor = QPushButton("🤖 Recuar Sensor (CMD:RECUAR_SENSOR)")
+        self.btn_retract_sensor = QPushButton("Recuar Sensor (CMD:RECUAR_SENSOR)")
         self.btn_retract_sensor.setObjectName("btnActuator")
         self.btn_retract_sensor.clicked.connect(lambda: self._execute_atomic_command(
             self.btn_retract_sensor, "CMD:RECUAR_SENSOR", "SENSOR_RECUADO", "Recuando sensor para repouso..."
@@ -244,14 +244,14 @@ class ManualControlDialog(QDialog):
 
         # Linha 3: Disparo Único e Parada de Emergência
         row_ops = QHBoxLayout()
-        self.btn_single_read = QPushButton("💡 Disparo Único (CMD:LER_ESPECTRO)")
+        self.btn_single_read = QPushButton("Disparo Único (CMD:LER_ESPECTRO)")
         self.btn_single_read.setObjectName("btnActuator")
         self.btn_single_read.setStyleSheet("background-color: #0284C7; font-weight: bold;")
         self.btn_single_read.clicked.connect(lambda: self._execute_atomic_command(
             self.btn_single_read, "CMD:LER_ESPECTRO", "LEITURA_CONCLUIDA", "Varredura óptica dos 6 canais..."
         ))
 
-        self.btn_emergency = QPushButton("🛑 Parada de Emergência (CMD:EMERGENCIA)")
+        self.btn_emergency = QPushButton("Parada de Emergência (CMD:EMERGENCIA)")
         self.btn_emergency.setObjectName("btnEmergency")
         self.btn_emergency.clicked.connect(self._trigger_emergency)
 
@@ -267,7 +267,7 @@ class ManualControlDialog(QDialog):
         log_layout = QVBoxLayout(log_card)
         log_layout.setContentsMargins(12, 10, 12, 10)
 
-        lbl_log = QLabel("📋 CONSOLE DE TELEMETRIA E CONFIRMAÇÕES SERIAL")
+        lbl_log = QLabel("CONSOLE DE TELEMETRIA E CONFIRMAÇÕES SERIAL")
         lbl_log.setStyleSheet("color: #94A3B8; font-size: 10px; font-weight: bold;")
 
         self.txt_log = QTextEdit()

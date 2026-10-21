@@ -20,7 +20,7 @@ try:
     from PyQt5.QtCore import QAbstractAnimation, QPoint, Qt
     from PyQt5.QtGui import QFontDatabase, QFontInfo
     from PyQt5.QtTest import QTest
-    from PyQt5.QtWidgets import QApplication, QLineEdit, QPushButton, QVBoxLayout, QWidget
+    from PyQt5.QtWidgets import QApplication, QLineEdit, QPushButton, QTextEdit, QVBoxLayout, QWidget
     HAVE_QT = True
 except ImportError:   # pragma: no cover
     HAVE_QT = False
@@ -385,6 +385,94 @@ class GuiSmokeTests(unittest.TestCase):
             self.assertGreaterEqual(content.width(), 900)
             self.assertGreaterEqual(content.height(), 520)
             view.close()
+
+    # ---- janelas de detalhe e painel compacto (ISA-101) -----------------------------------
+    def _fake_window(self, raw=None, snv=None):
+        import collections
+        import detail_windows
+        window = QWidget()
+        window.current_scan_data = raw
+        window.current_r_snv = snv
+        window._kpi_history = collections.deque(maxlen=detail_windows.HISTORY_LENGTH)
+        window.txt_console = QTextEdit()
+        return window
+
+    def test_temperature_label_colors_follow_the_level(self):
+        import kpi_status as ks
+        from diagnostics import TemperatureLabel
+        label = TemperatureLabel("esp32")
+        label.setText("42,0 °C")
+        label.resize(160, 24)
+        seen = set()
+        for celsius, level in ((None, ks.NONE), (5, ks.COLD), (42, ks.OK), (70, ks.ATTENTION), (90, ks.ERROR)):
+            label.set_celsius(celsius)
+            self.assertEqual(label.level, level)
+            label.show()
+            self.pump()
+            image = label.grab().toImage()
+            seen.add(image.pixel(6, label.height() // 2))   # centro do marcador
+        self.assertEqual(len(seen), 5, "cada nível deve ter uma cor própria")
+
+    def test_detail_dialog_renders_every_indicator_in_both_themes(self):
+        import detail_windows
+        import kpi_status as ks
+        raw = [12000, 65500, 21000, 19000, 15000, 11000]   # um canal saturado: estado de erro
+        snv = [0.12, 0.18, 0.21, 0.19, 0.15, 0.11]
+        for theme in ("noturno", "light"):
+            self.manager.set_theme(theme, persist=False)
+            for data in ((raw, snv), (None, None)):
+                window = self._fake_window(*data)
+                if data[0]:
+                    for _ in range(4):
+                        window._kpi_history.append(detail_windows.make_entry(*data))
+                for kind in ks.KINDS:
+                    dialog = detail_windows.KpiDetailDialog(window, kind)
+                    dialog.show()
+                    self.pump()
+                    self.assertFalse(dialog.grab().isNull(), (theme, kind))
+                    if data[0] and kind in ("energy", "peak"):
+                        self.assertIn("680 nm", dialog.lbl_headline.text())
+                    dialog.close()
+        self.manager.set_theme("noturno", persist=False)
+
+    def test_terminal_dialog_takes_over_the_console(self):
+        import detail_windows
+        window = self._fake_window()
+        window.txt_console.append("[12:00:00] PING")
+        dialog = detail_windows.TerminalDialog(window)
+        dialog.show()
+        self.pump()
+        self.assertIs(window.txt_console.parentWidget(), dialog)
+        self.assertTrue(window.txt_console.isVisible())
+        self.assertIn("PING", window.txt_console.toPlainText())
+        dialog.close()
+
+    def test_plot_widget_draws_bars_history_and_empty_state(self):
+        import detail_windows
+        plot = detail_windows.PlotWidget()
+        plot.resize(520, 240)
+        plot.show()
+        self.pump()
+        empty = distinct_pixels(plot.grab(), 7, 5)
+        plot.set_bars([100, 60000, 30000], ["a", "b", "c"], ["#2A78D6", "#EB6834", "#1BAF7A"], 70000,
+                      ref_lines=((65500, "Saturação", "error"),), unit="ADC")
+        bars = distinct_pixels(plot.grab(), 7, 5)
+        plot.set_history([1.0, None, 1.4, 5.0], 0, 3.5, band=(0.2, 3.0), unit="razão")
+        history = distinct_pixels(plot.grab(), 7, 5)
+        self.assertGreater(len(bars), len(empty))
+        self.assertGreater(len(history), 4)
+
+    def test_chart_bar_turns_red_when_saturated(self):
+        from animated_chart import SingleBarWidget
+        bar = SingleBarWidget("680nm", "#087D7B", "Vermelho")
+        bar.series_index = 1
+        bar.resize(90, 240)
+        bar._current_value = 90.0
+        bar.max_value = 100.0
+        normal = bar.grab().toImage().pixel(45, 140)
+        bar.saturated = True
+        saturated = bar.grab().toImage().pixel(45, 140)
+        self.assertNotEqual(normal, saturated)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from appearance import theme_color
+from appearance import theme_color, palette_for, series_colors
 from typography import make_font
 import typography as ty
 """
@@ -37,6 +37,7 @@ class SingleBarWidget(QWidget):
         self.max_value = 100.0
         self.unit_str = "%"
         self.series_index = None   # posição da banda: define a cor da barra (appearance.SERIES)
+        self.saturated = False     # canal no fundo de escala: a barra passa a vermelho (ISA-101: cor = anormal)
 
         self.anim = QPropertyAnimation(self, b"animatedValue")
         self.anim.setDuration(850)
@@ -90,6 +91,7 @@ class SingleBarWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.TextAntialiasing)
 
         w = self.width()
         h = self.height()
@@ -109,37 +111,46 @@ class SingleBarWidget(QWidget):
         track_rect = QRectF(x, top_padding, bar_width, max_bar_height)
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(QColor(theme_color("#1e1e1e","surface"))))
-        painter.drawRoundedRect(track_rect, 6, 6)
+        painter.drawRoundedRect(track_rect, 4, 4)
 
-        # 2. Barra lisa na cor da banda (ISA-101: sem degradê nem brilho)
+        # Linhas de referência a 25, 50 e 75 % da escala (finas, só para leitura)
+        from appearance import palette_for
+        pal = palette_for()
+        grid = QColor(pal["border"])
+        grid.setAlpha(150)
+        painter.setPen(QPen(grid, 1))
+        for fraction in (0.25, 0.5, 0.75):
+            gy = round(top_padding + max_bar_height * (1.0 - fraction)) + 0.5
+            painter.drawLine(QPointF(x, gy), QPointF(x + bar_width, gy))
+
+        # 2. Barra lisa na cor da banda (ISA-101: sem degradê nem brilho); vermelha se saturar
         if bar_h > 1.0:
             bar_rect = QRectF(x, y, bar_width, bar_h)
-            fill_col = QColor(self.band_color())
-            fill_col.setAlpha(235)
+            fill_col = QColor(pal["danger"] if self.saturated else self.band_color())
             painter.setPen(Qt.NoPen)
             painter.setBrush(QBrush(fill_col))
-            painter.drawRoundedRect(bar_rect, 6, 6)
+            painter.drawRoundedRect(bar_rect, 4, 4)
 
         # 3. Numeric Value text on top
         if self.unit_str == "%":
             val_text = f"{self._current_value:.1f}%"
         else:
             val_text = f"{int(self._current_value)}"
-        painter.setPen(QPen(QColor(theme_color("#F3F4F6","text"))))
-        painter.setFont(make_font("data", 14, 400))
-        painter.drawText(QRectF(0, y - 22, w, 20), Qt.AlignCenter, val_text)
+        painter.setPen(QPen(QColor(pal["danger"] if self.saturated else theme_color("#F3F4F6","text"))))
+        painter.setFont(make_font("data", 15, 700))
+        painter.drawText(QRectF(0, y - 24, w, 22), Qt.AlignCenter, val_text + (" · SAT" if self.saturated else ""))
 
         # 4. Wavelength label below the bar: text in the text color, with a swatch of the band color
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(QColor(self.band_color())))
-        painter.drawRoundedRect(QRectF(w / 2.0 - 12, h - bottom_padding + 5, 24, 4), 2, 2)
+        painter.drawRoundedRect(QRectF(w / 2.0 - 14, h - bottom_padding + 5, 28, 4), 2, 2)
         painter.setPen(QPen(QColor(theme_color("#F3F4F6","text"))))
         painter.setFont(make_font("ui", 12, 700))
         painter.drawText(QRectF(0, h - bottom_padding + 10, w, 18), Qt.AlignCenter, self.wavelength)
 
         # 5. Secondary Name
         painter.setPen(QPen(QColor(theme_color("#9CA3AF","text"))))
-        painter.setFont(make_font("ui", 12, 400))
+        painter.setFont(make_font("ui", 12, 500))
         painter.drawText(QRectF(0, h - bottom_padding + 28, w, 16), Qt.AlignCenter, self.label_name)
 
 
@@ -193,16 +204,19 @@ class SplineOverlay(QWidget):
             painter.drawPath(fill_path)
 
             # Main Spline Curve line
-            painter.setPen(QPen(line_color, 2.6))
+            curve_pen = QPen(line_color, 3.0)
+            curve_pen.setCapStyle(Qt.RoundCap)
+            curve_pen.setJoinStyle(Qt.RoundJoin)
+            painter.setPen(curve_pen)
             painter.drawPath(path)
 
             # Vertices: one dot per band, in the band color, ringed with the surface color
             from appearance import series_colors
             colors = series_colors()
             for index, pt in enumerate(points):
-                painter.setPen(QPen(QColor(pal["surface"]), 2))
+                painter.setPen(QPen(QColor(pal["surface"]), 2.5))
                 painter.setBrush(QBrush(QColor(colors[index % len(colors)])))
-                painter.drawEllipse(pt, 5.0, 5.0)
+                painter.drawEllipse(pt, 6.0, 6.0)
         except Exception:
             pass
 
@@ -242,14 +256,10 @@ class SpectralSplineChartWidget(QFrame):
 
         # Header Bar
         header_layout = QHBoxLayout()
-        title_icon = QLabel("📊")
-        title_icon.setStyleSheet("font-size: 14px;")
-
         chart_title = QLabel("Bandas espectrais · 610–860 nm")
         chart_title.setStyleSheet("color: #FFFFFF; " + ty.qss("section"))
         chart_title.setProperty("role", "heading")
 
-        header_layout.addWidget(title_icon)
         header_layout.addWidget(chart_title)
         header_layout.addStretch()
 
@@ -394,7 +404,8 @@ class SpectralSplineChartWidget(QFrame):
             scale_max = max(1000.0, max_v * 1.15)
             unit_lbl = "ADC"
 
-        for bar, val in zip(self.bars, vals):
+        for bar, val, raw in zip(self.bars, vals, self._raw_adc_values):
+            bar.saturated = raw >= 65500   # mesmo limite de chemometrics.validate_raw
             bar.animate_to(val, scale_max, unit_lbl)
 
 
@@ -427,16 +438,13 @@ class ScatterPlotWidget(QFrame):
 
         # Header
         header = QHBoxLayout()
-        title_icon = QLabel("🎯")
-        title_icon.setStyleSheet("font-size: 14px;")
-
-        lbl_title = QLabel("DISPERSÃO 2D (CELULOSE R680/R730 vs ÁGUA R860/R760)")
-        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: bold; font-family: 'Segoe UI'; letter-spacing: 0.5px;")
+        lbl_title = QLabel("Dispersão 2D · R680/R730 × R860/R760")
+        lbl_title.setStyleSheet("color: #FFFFFF; " + ty.qss("section"))
+        lbl_title.setProperty("role", "heading")
 
         self.lbl_stats = QLabel("Pontos: 0/20")
         self.lbl_stats.setStyleSheet("color: #9CA3AF; font-size: 10px; font-family: 'Segoe UI';")
 
-        header.addWidget(title_icon)
         header.addWidget(lbl_title)
         header.addStretch()
         header.addWidget(self.lbl_stats)
@@ -496,6 +504,7 @@ class ScatterCanvas(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.TextAntialiasing)
 
         w = self.width()
         h = self.height()
@@ -562,17 +571,19 @@ class ScatterCanvas(QWidget):
             alpha = int(40 + age * 160)
             size = 5.0 + age * 2.0
 
-            painter.setPen(QPen(QColor(56, 189, 248, alpha), 1))
-            painter.setBrush(QBrush(QColor(14, 165, 233, alpha)))
-            painter.drawEllipse(QPointF(sx, sy), size / 2, size / 2)
+            history_color = QColor(series_colors()[0])
+            history_color.setAlpha(alpha)
+            painter.setPen(QPen(history_color, 1))
+            painter.setBrush(QBrush(history_color))
+            painter.drawEllipse(QPointF(sx, sy), size / 2 + 1, size / 2 + 1)
 
         if self.parent_scatter.current_point:
             cx, cy, clbl = self.parent_scatter.current_point
             sx, sy = to_screen(cx, cy)
 
-            painter.setPen(QPen(QColor(theme_color("#FFFFFF","text")), 2))
-            painter.setBrush(QBrush(QColor(theme_color("#38BDF8","text"))))
-            painter.drawEllipse(QPointF(sx, sy), 5.0, 5.0)
+            painter.setPen(QPen(QColor(palette_for()["surface"]), 2.5))
+            painter.setBrush(QBrush(QColor(series_colors()[1])))
+            painter.drawEllipse(QPointF(sx, sy), 6.5, 6.5)
 
             painter.setFont(make_font("ui", 11, 600))
             painter.setPen(QPen(QColor(theme_color("#FFFFFF","text"))))

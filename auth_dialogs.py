@@ -25,7 +25,7 @@ class DialogLogin(QDialog):
         # Sem nenhum usuário cadastrado, o diálogo cria o administrador inicial.
         self._setup_mode = self.auth_manager.contar_usuarios() == 0
 
-        self.setWindowTitle("🔐 Autenticação de Usuário")
+        self.setWindowTitle("Autenticação de Usuário")
         self.setFixedSize(400, 340 if self._setup_mode else 280)
         self.setModal(True)
 
@@ -79,7 +79,7 @@ class DialogLogin(QDialog):
         layout.setSpacing(12)
 
         # Cabeçalho
-        lbl_header = QLabel("🔐 <b>CRIAR ADMINISTRADOR INICIAL</b>" if self._setup_mode else "🔐 <b>CONTROLE DE ACESSO</b>")
+        lbl_header = QLabel("<b>CRIAR ADMINISTRADOR INICIAL</b>" if self._setup_mode else "<b>CONTROLE DE ACESSO</b>")
         lbl_header.setStyleSheet("color: #38BDF8; font-size: 14px;")
         layout.addWidget(lbl_header)
 
@@ -203,7 +203,7 @@ class DialogGestaoUsuarios(QDialog):
         self.auth_manager = auth_manager or DatabaseManager()
         self.current_user = current_user or {}
 
-        self.setWindowTitle("👥 Gerenciamento de Usuários | SPECTRUM-LAB PRO")
+        self.setWindowTitle("Gerenciamento de Usuários | SPECTRUM-LAB PRO")
         self.resize(650, 480)
         self.setModal(True)
 
@@ -273,7 +273,7 @@ class DialogGestaoUsuarios(QDialog):
         layout.setSpacing(12)
 
         # Cabeçalho
-        lbl_title = QLabel("👥 <b>PAINEL DE GESTÃO DE USUÁRIOS E PERMISSÕES</b>")
+        lbl_title = QLabel("<b>PAINEL DE GESTÃO DE USUÁRIOS E PERMISSÕES</b>")
         lbl_title.setStyleSheet("color: #38BDF8; font-size: 13px; letter-spacing: 0.5px;")
         layout.addWidget(lbl_title)
 
@@ -291,7 +291,7 @@ class DialogGestaoUsuarios(QDialog):
 
         # Ações na tabela
         btn_table_layout = QHBoxLayout()
-        self.btn_delete = QPushButton("🗑️ Excluir Usuário Selecionado")
+        self.btn_delete = QPushButton("Excluir Usuário Selecionado")
         self.btn_delete.setObjectName("btnExcluir")
         self.btn_delete.clicked.connect(self._delete_selected_user)
         btn_table_layout.addWidget(self.btn_delete)
@@ -323,7 +323,7 @@ class DialogGestaoUsuarios(QDialog):
         self.cmb_role.addItem("Operador", "operador")
         self.cmb_role.addItem("Administrador", "admin")
 
-        self.btn_cadastrar = QPushButton("➕ Cadastrar")
+        self.btn_cadastrar = QPushButton("Cadastrar")
         self.btn_cadastrar.setObjectName("btnCadastrar")
         self.btn_cadastrar.clicked.connect(self._create_user)
 
