@@ -4,7 +4,14 @@
 set -euo pipefail
 
 echo "==> Pacotes do sistema (display virtual, acesso pelo navegador e bibliotecas do Qt)"
-sudo apt-get update -y
+# Uma fonte extra (por exemplo Yarn) pode falhar por assinatura ausente.
+# Isso não deve impedir a instalação das dependências do projeto presentes
+# nos repositórios Debian autenticados. Não ignorar verificação GPG nem usar
+# --allow-unauthenticated; apt-get install permanece estrito.
+if ! sudo apt-get update -y; then
+  echo "AVISO: apt-get update não terminou (possível repositório externo, como Yarn)."
+  echo "Tentando instalar dependências apenas a partir das fontes autenticadas já disponíveis."
+fi
 sudo apt-get install -y \
   xvfb x11vnc novnc websockify fluxbox \
   libgl1 libegl1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 \
