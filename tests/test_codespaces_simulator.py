@@ -1,11 +1,7 @@
 """Testes de contrato do simulador TCP, sem interface gráfica ou hardware."""
 import re
-import sys
 import unittest
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from run.fake_esp32 import Bancada, responder  # noqa: E402
+from run.fake_esp32 import Bancada, responder
 
 class CodespacesSimulatorTests(unittest.TestCase):
     def setUp(self):

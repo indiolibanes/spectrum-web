@@ -33,7 +33,7 @@ novnc_dir() {
 
 # novnc_url -> endereço para abrir no navegador (Codespaces ou local)
 novnc_url() {
-  local path="vnc.html?autoconnect=1&resize=scale"
+  local path="vnc.html?autoconnect=1&resize=remote&path=websockify"
   if [[ -n "${CODESPACE_NAME:-}" ]]; then
     echo "https://${CODESPACE_NAME}-6080.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/${path}"
   else
@@ -48,3 +48,12 @@ tail_log() { [[ -s "$1" ]] && { echo "--- $1 (últimas linhas) ---"; tail -n 12 
 need() {
   command -v "$1" >/dev/null 2>&1 || { c_err "Falta o comando '$1' (pacote $2). Rode: bash run/setup.sh"; return 1; }
 }
+
+# Use o mesmo interpretador na instalação, no diagnóstico e na aplicação.
+if [[ -n "${SPECTRUM_PYTHON:-}" ]]; then
+  PYTHON="$SPECTRUM_PYTHON"
+elif [[ -x "$REPO_DIR/.venv/bin/python" ]]; then
+  PYTHON="$REPO_DIR/.venv/bin/python"
+else
+  PYTHON=python3
+fi

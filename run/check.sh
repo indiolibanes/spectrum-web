@@ -20,7 +20,7 @@ for pair in "Xvfb:xvfb" "x11vnc:x11vnc" "websockify:websockify" "fluxbox:fluxbox
   command -v "$cmd" >/dev/null 2>&1 && c_ok "$cmd" || { c_err "$cmd ausente (pacote $pkg)"; bad=1; }
 done
 if d="$(novnc_dir)"; then c_ok "noVNC em $d"; else c_err "noVNC ausente (pacote novnc)"; bad=1; fi
-python3 - <<'PY' || bad=1
+"$PYTHON" - <<'PY' || bad=1
 import importlib, sys
 for name in ("PyQt5.QtCore", "numpy", "matplotlib", "serial", "reportlab"):
     try:
@@ -29,6 +29,9 @@ for name in ("PyQt5.QtCore", "numpy", "matplotlib", "serial", "reportlab"):
     except Exception as exc:
         print("\033[31m✘\033[0m", name, "->", exc); sys.exit(1)
 PY
+
+echo; echo "== Plugin gráfico Qt =="
+DISPLAY=:99 QT_QPA_PLATFORM=xcb "$PYTHON" run/probe_qt.py || bad=1
 
 echo; echo "== Serviços =="
 [[ -S /tmp/.X11-unix/X99 ]] && c_ok "display :99 ativo" || { c_warn "display :99 parado (bash run/start_display.sh)"; bad=1; }
