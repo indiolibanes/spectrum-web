@@ -1,30 +1,27 @@
 """
-Indicador de análise: mostra, abaixo do gráfico espectral, o que o equipamento está fazendo.
+Indicador de análise (ISA-101): uma faixa discreta abaixo do gráfico com o que o equipamento está fazendo.
 
-  [rosto]  Título da fase                                  espectro em movimento
-           Frase amigável que se alterna                    etapa 3 de 5  ▮▮▮▯▯
+  Título da fase · frase que se alterna                          Etapa 3 de 5  ▮▮▮▯▯
 
-O rosto é desenhado (sem emoji, que o gerenciador de temas remove): sorri quando tudo vai bem,
-pisca de tempos em tempos e dá um pulinho quando uma análise termina. Em emergência ou falha
-fica sério. O texto vem de analysis_messages.py (testado sem Qt).
+Sem rosto e sem animação decorativa. A cor só aparece quando importa: vermelha em alerta,
+verde quando a análise termina e a cor de destaque do tema enquanto uma etapa está em curso.
+O texto vem de analysis_messages.py (testado sem Qt).
 """
 import time
 
-from PyQt5.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
+from PyQt5.QtCore import QRectF, Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QColor, QFontMetrics, QPainter, QPen
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 import analysis_messages as messages
 import glass
-from animation_math import bounce, pulse, spectrum_points
-from emoji_icons import draw_face
 from typography import make_font
 
-HEIGHT = 100
+HEIGHT = 56
 MESSAGE_SECONDS = 4.5      # tempo de cada frase
 CELEBRATE_SECONDS = 7.0    # quanto tempo o "análise concluída" fica na tela
-FAST_MS = 40               # animação enquanto algo se move
-SLOW_MS = 120              # em repouso (só o piscar)
+FAST_MS = 120              # atualização enquanto algo se move
+SLOW_MS = 500              # em repouso
 POLL_MS = 250              # com que frequência lê o estado da máquina
 
 
@@ -108,105 +105,59 @@ class AnalysisIndicator(QWidget):
     def paintEvent(self, event):
         from appearance import palette_for
         pal = palette_for()
-        now = time.monotonic()
-        t = now - self._born
         celebrate = self.celebrating
         phase = self._phase
-        mood = "smile" if celebrate else phase.mood
-        tone_key = "danger" if mood == "alert" else "positive" if celebrate else "accent"
-        tone = QColor(pal[tone_key])
+        alert = phase.mood == "alert"
+        tone = QColor(pal["danger"] if alert else pal["positive"] if celebrate else pal["accent"])
         title, message = self.current_text()
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         w, h = self.width(), self.height()
 
-        # Cartão tonal com uma barra de cor à esquerda
+        # Superfície plana; filete de cor apenas em alerta ou conclusão
         card = QRectF(0.5, 0.5, w - 1.0, h - 1.0)
-        painter.setPen(QPen(QColor(glass.rim(pal)), 1))
+        painter.setPen(QPen(QColor(tone if alert else glass.rim(pal)), 1))
         painter.setBrush(QColor(pal["soft"]))
-        painter.drawRoundedRect(card, 10, 10)
-        bar = QPainterPath()
-        bar.addRoundedRect(QRectF(0.5, 0.5, 6, h - 1.0), 3, 3)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(tone)
-        painter.drawPath(bar)
+        painter.drawRoundedRect(card, 8, 8)
+        if alert or celebrate:
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(tone)
+            painter.drawRoundedRect(QRectF(0.5, 6, 4, h - 12), 2, 2)
 
-        # Rosto
-        self._draw_face(painter, QPointF(50, h / 2.0), 24.0, mood, t, celebrate, tone)
-
-        # Bloco da direita: espectro e etapas (só quando há espaço)
+        # Etapas à direita (só quando há espaço)
         right_width = 0
-        if w >= 560:
-            right_width = 230
-            self._draw_spectrum(painter, QRectF(w - right_width - 6, 14, right_width - 10, 34), t, phase, tone, pal)
-            self._draw_steps(painter, QRectF(w - right_width - 6, 58, right_width - 10, 22), t, phase, celebrate, tone, pal)
+        if w >= 520:
+            right_width = 190
+            self._draw_steps(painter, QRectF(w - right_width - 12, 10, right_width, h - 20), phase, celebrate, tone, pal)
 
-        # Textos
-        text_left = 96
-        text_width = max(60, w - text_left - right_width - 18)
+        left, text_width = 16, max(60, w - 16 - right_width - 28)
         painter.setPen(QColor(pal["heading"]))
-        painter.setFont(make_font("display", 19, 700))
+        painter.setFont(make_font("ui", 13, 700))
         title_text = QFontMetrics(painter.font()).elidedText(title, Qt.ElideRight, int(text_width))
-        painter.drawText(QRectF(text_left, 10, text_width, 28), Qt.AlignLeft | Qt.AlignVCenter, title_text)
-        painter.setPen(QColor(pal["muted"]))
-        painter.setFont(make_font("ui", 14, 400))
-        painter.drawText(QRectF(text_left, 42, text_width, 52), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, message)
-        painter.end()
-
-    def _draw_face(self, painter, center, radius, mood, t, celebrate, tone):
-        """Rosto de emoji colorido (ver emoji_icons.draw_face): amarelo e vivo nos dois temas."""
-        painter.save()
-        if celebrate:
-            painter.translate(0, -bounce(t, 0.8, 4.0))
-        draw_face(painter, center, radius, mood, t, celebrate)
-        painter.restore()
-
-    def _draw_spectrum(self, painter, rect, t, phase, tone, pal):
-        amplitude = 1.0 if phase.kind == "reading" else 0.35 if phase.busy else 0.0
-        baseline = QColor(pal["border"])
-        painter.setPen(QPen(baseline, 1))
-        painter.drawLine(QPointF(rect.left(), rect.bottom()), QPointF(rect.right(), rect.bottom()))
-        points = spectrum_points(48, t, amplitude)
-        path = QPainterPath()
-        for i, value in enumerate(points):
-            x = rect.left() + rect.width() * i / (len(points) - 1)
-            y = rect.bottom() - 2 - value * (rect.height() - 6)
-            if i == 0:
-                path.moveTo(x, y)
-            else:
-                path.lineTo(x, y)
-        line = QColor(tone)
-        line.setAlphaF(0.95 if amplitude else 0.35)
-        pen = QPen(line, 2)
-        pen.setCapStyle(Qt.RoundCap)
-        pen.setJoinStyle(Qt.RoundJoin)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        painter.drawPath(path)
-
-    def _draw_steps(self, painter, rect, t, phase, celebrate, tone, pal):
-        total = messages.TOTAL_STEPS
-        if phase.step <= 0 and not celebrate:
-            painter.setPen(QColor(pal["muted"]))
-            painter.setFont(make_font("ui", 11, 400))
-            label = "Em repouso" if phase.kind == "idle" else "Aguarde"
-            painter.drawText(rect, Qt.AlignRight | Qt.AlignVCenter, label)
-            return
-        gap, bar_h = 6.0, 7.0
-        bar_w = (rect.width() - gap * (total - 1)) / total
-        from appearance import series_colors
-        series = series_colors()
-        painter.setPen(Qt.NoPen)
-        for i in range(1, total + 1):
-            x = rect.left() + (i - 1) * (bar_w + gap)
-            step_tone = QColor(series[(i - 1) % len(series)])   # cada etapa tem a sua cor
-            color = QColor(step_tone if (celebrate or i <= phase.step) else pal["border"])
-            if not celebrate and i == phase.step:
-                color.setAlphaF(pulse(t))
-            painter.setBrush(color)
-            painter.drawRoundedRect(QRectF(x, rect.top(), bar_w, bar_h), 3, 3)
+        painter.drawText(QRectF(left, 6, text_width, 22), Qt.AlignLeft | Qt.AlignVCenter, title_text)
         painter.setPen(QColor(pal["muted"]))
         painter.setFont(make_font("ui", 11, 400))
+        message_text = QFontMetrics(painter.font()).elidedText(message, Qt.ElideRight, int(text_width))
+        painter.drawText(QRectF(left, 28, text_width, 20), Qt.AlignLeft | Qt.AlignVCenter, message_text)
+        painter.end()
+
+    def _draw_steps(self, painter, rect, phase, celebrate, tone, pal):
+        total = messages.TOTAL_STEPS
+        painter.setFont(make_font("ui", 11, 400))
+        if phase.step <= 0 and not celebrate:
+            painter.setPen(QColor(pal["muted"]))
+            painter.drawText(rect, Qt.AlignRight | Qt.AlignVCenter, "Em repouso" if phase.kind == "idle" else "Aguarde")
+            return
+        gap, bar_h = 5.0, 6.0
+        bar_w = (rect.width() - gap * (total - 1)) / total
+        painter.setPen(Qt.NoPen)
+        top = rect.top() + 4
+        for i in range(1, total + 1):
+            x = rect.left() + (i - 1) * (bar_w + gap)
+            done = celebrate or i <= phase.step
+            painter.setBrush(QColor(tone if done else pal["border"]))
+            painter.drawRoundedRect(QRectF(x, top, bar_w, bar_h), 3, 3)
+        painter.setPen(QColor(pal["muted"]))
         caption = "Concluída" if celebrate else f"Etapa {phase.step} de {total}"
-        painter.drawText(QRectF(rect.left(), rect.top() + bar_h + 3, rect.width(), 14), Qt.AlignRight | Qt.AlignVCenter, caption)
+        painter.drawText(QRectF(rect.left(), top + bar_h + 2, rect.width(), 16), Qt.AlignRight | Qt.AlignVCenter, caption)

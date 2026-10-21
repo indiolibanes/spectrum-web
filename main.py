@@ -42,7 +42,7 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QTabWidget, QMenuBar, QMenu, QAction,
     QSizePolicy, QAbstractItemView
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, QEventLoop, QCoreApplication
+from PyQt5.QtCore import Qt, QTimer, QThread, QEventLoop, QCoreApplication, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
 
 # Ativação antecipada de suporte nativo a High-DPI para telas de notebook com escala 125%/150%
@@ -94,7 +94,7 @@ class CalibrationExpiredDialog(QDialog):
     """
     def __init__(self, parent=None, active_mode="umido"):
         super().__init__(parent)
-        self.setWindowTitle("⚠️ Alerta Metrológico — Calibração Expirada")
+        self.setWindowTitle("Alerta Metrológico — Calibração Expirada")
         self.setFixedSize(540, 260)
         self.setStyleSheet("""
             QDialog {
@@ -113,7 +113,7 @@ class CalibrationExpiredDialog(QDialog):
         layout.setSpacing(14)
 
         header_layout = QHBoxLayout()
-        icon = QLabel("🛑")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 32px;")
         header_layout.addWidget(icon)
 
@@ -161,7 +161,7 @@ class CalibrationExpiredDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(self.btn_cancel)
 
-        self.btn_calib = QPushButton("🎯 Calibrar Agora")
+        self.btn_calib = QPushButton("Calibrar Agora")
         self.btn_calib.setStyleSheet("""
             QPushButton {
                 background-color: #0284C7;
@@ -197,7 +197,7 @@ class HistoryDialog(QDialog):
         self.leituras = []
         self.current_selected = None
 
-        self.setWindowTitle("📋 Histórico Completo de Ensaios Espectrais — SPECTRUM-LAB PRO")
+        self.setWindowTitle("Histórico Completo de Ensaios Espectrais — SPECTRUM-LAB PRO")
         self.resize(1080, 720)
         self.setMinimumSize(960, 640)
         self.setStyleSheet("""
@@ -268,7 +268,7 @@ class HistoryDialog(QDialog):
 
         # Cabeçalho do diálogo
         head_layout = QHBoxLayout()
-        icon = QLabel("📋")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 24px;")
         head_layout.addWidget(icon)
 
@@ -282,7 +282,7 @@ class HistoryDialog(QDialog):
         head_layout.addLayout(title_box)
         head_layout.addStretch()
 
-        self.btn_fechar = QPushButton("✕ Fechar")
+        self.btn_fechar = QPushButton("Fechar")
         self.btn_fechar.clicked.connect(self.accept)
         head_layout.addWidget(self.btn_fechar)
         main_layout.addLayout(head_layout)
@@ -299,7 +299,7 @@ class HistoryDialog(QDialog):
         left_layout.setSpacing(8)
 
         self.txt_busca = QLineEdit()
-        self.txt_busca.setPlaceholderText("🔍 Buscar por código de amostra, operador, data...")
+        self.txt_busca.setPlaceholderText("Buscar por código de amostra, operador, data...")
         self.txt_busca.textChanged.connect(self._on_search_changed)
         left_layout.addWidget(self.txt_busca)
 
@@ -421,21 +421,21 @@ class HistoryDialog(QDialog):
         actions_box = QHBoxLayout()
         actions_box.setSpacing(8)
 
-        self.btn_view_pdf = QPushButton("📄 Visualizar Relatório PDF")
+        self.btn_view_pdf = QPushButton("Visualizar Relatório PDF")
         self.btn_view_pdf.setStyleSheet("background-color: #0284C7; color: #FFFFFF; border: none;")
         self.btn_view_pdf.clicked.connect(self._on_visualizar_pdf)
         self.btn_view_pdf.setEnabled(False)
 
-        self.btn_save_pdf = QPushButton("💾 Salvar Relatório Como...")
+        self.btn_save_pdf = QPushButton("Salvar Relatório Como...")
         self.btn_save_pdf.clicked.connect(self._on_salvar_pdf)
         self.btn_save_pdf.setEnabled(False)
 
-        self.btn_delete = QPushButton("🗑 Excluir Registro")
+        self.btn_delete = QPushButton("Excluir Registro")
         self.btn_delete.setStyleSheet("background-color: #7F1D1D; color: #F87171; border: 1px solid #991B1B;")
         self.btn_delete.clicked.connect(self._on_excluir_registro)
         self.btn_delete.setEnabled(False)
 
-        self.btn_export_csv = QPushButton("📥 Exportar CSV")
+        self.btn_export_csv = QPushButton("Exportar CSV")
         self.btn_export_csv.clicked.connect(self._on_exportar_csv)
 
         actions_box.addWidget(self.btn_view_pdf)
@@ -753,34 +753,43 @@ class ModernStatusBadge(QFrame):
 # 2. KPI CARD ESTILO POWER BI (WINDOWS 11 FLUENT)
 # =====================================================================
 class PowerBiKpiCard(QFrame):
+    """
+    Indicador compacto (ISA-101): título, estado e valor. Sem ícone nem filete de cor; só o estado
+    anormal ganha cor (propriedade kpiStatus, estilizada em scada_ui.dashboard_style).
+    Clicar (ou Enter/Espaço) emite `clicked`; a janela de detalhes é aberta por detail_windows.
+    """
+    clicked = pyqtSignal()
+
     def __init__(self, icon_str, title_str, default_value="--", subtitle_str="", accent_color="#38BDF8", parent=None):
         super().__init__(parent)
         self.accent_color = accent_color
         self.setObjectName("kpiCard")
-        self.setStyleSheet(f"""
-            QFrame#kpiCard {{
+        self.setProperty("kpiStatus", "none")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setStyleSheet("""
+            QFrame#kpiCard {
                 background-color: #2b2b2b;
                 border: 1px solid #3d3d3d;
-                border-top: 1px solid #3d3d3d;
                 border-radius: 8px;
-            }}
+            }
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 10, 14, 10)
-        layout.setSpacing(2)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(0)
 
         header = QHBoxLayout()
         header.setSpacing(6)
-        lbl_icon = QLabel(icon_str)
-        lbl_icon.setStyleSheet("font-size: 13px;")
-
         self.lbl_title = QLabel(title_str)
         self.lbl_title.setStyleSheet("color: #9CA3AF; " + ty.qss("label"))
-
-        header.addWidget(lbl_icon)
+        self.lbl_status = QLabel("")
+        self.lbl_status.setObjectName("kpiStatusLabel")
+        self.lbl_status.setProperty("kpiStatus", "none")
+        self.lbl_status.setStyleSheet(ty.qss("caption"))
         header.addWidget(self.lbl_title)
         header.addStretch()
+        header.addWidget(self.lbl_status)
         layout.addLayout(header)
 
         self.lbl_value = QLabel(default_value)
@@ -789,17 +798,36 @@ class PowerBiKpiCard(QFrame):
 
         self.lbl_sub = QLabel(subtitle_str)
         self.lbl_sub.setStyleSheet("color: #9CA3AF; " + ty.qss("caption"))
-        self.lbl_sub.setWordWrap(True)
         layout.addWidget(self.lbl_sub)
 
     def set_value(self, value_text: str, subtitle_text: str = None, color_override: str = None):
         self.lbl_value.setText(value_text)
         if color_override:
-            self.lbl_value.setStyleSheet(f"color: {color_override}; " + ty.qss("kpi"))
+            self.lbl_value.setStyleSheet(f"color: {color_override}; " + ty.qss("kpi", "font-size: 22px;"))
         else:
-            self.lbl_value.setStyleSheet("color: #FFFFFF; " + ty.qss("kpi"))
+            self.lbl_value.setStyleSheet("color: #FFFFFF; " + ty.qss("kpi", "font-size: 22px;"))
         if subtitle_text is not None:
             self.lbl_sub.setText(subtitle_text)
+
+    def set_status(self, level: str, text: str = ""):
+        """level: none, ok, attention ou error (ver kpi_status). Normal fica discreto; só o anormal ganha cor."""
+        for widget in (self, self.lbl_status):
+            widget.setProperty("kpiStatus", level)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        self.lbl_status.setText(text)
+        self.setToolTip("Clique para ver os detalhes" + (f" · {text}" if text else ""))
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self.rect().contains(event.pos()):
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            self.clicked.emit()
+            return
+        super().keyPressEvent(event)
 
 
 # =====================================================================
@@ -838,7 +866,7 @@ class CardKpiCalibracao(QFrame):
 
         # Cabeçalho: Título + Badge de Validação
         header = QHBoxLayout()
-        icon = QLabel("📊")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 14px;")
         lbl_title = QLabel("Status da Calibração")
         lbl_title.setStyleSheet("color: #38BDF8; " + ty.qss("section"))
@@ -893,7 +921,7 @@ class CardKpiCalibracao(QFrame):
         layout.addLayout(metrics_layout)
 
         # Rodapé com metadados de calibração (Data/Hora e Operador)
-        self.lbl_calib_footer = QLabel("🕒 Calibração: --")
+        self.lbl_calib_footer = QLabel("Calibração: --")
         self.lbl_calib_footer.setStyleSheet("color: #9CA3AF; " + ty.qss("caption"))
         self.lbl_calib_footer.setWordWrap(True)
         layout.addWidget(self.lbl_calib_footer)
@@ -970,7 +998,7 @@ class CalibrationModalDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        title = QLabel("🎯 CALIBRAÇÃO INSTRUMENTAL DE REFERÊNCIA")
+        title = QLabel("CALIBRAÇÃO INSTRUMENTAL DE REFERÊNCIA")
         title.setStyleSheet("color: #38BDF8; font-size: 13px; font-weight: bold; letter-spacing: 0.5px;")
         layout.addWidget(title)
 
@@ -1008,7 +1036,7 @@ class CalibrationModalDialog(QDialog):
         timeout_layout.setContentsMargins(10, 6, 10, 6)
         timeout_layout.setSpacing(8)
 
-        lbl_to = QLabel("⏱️ Prazo operacional da Calibração:")
+        lbl_to = QLabel("Prazo operacional da Calibração:")
         lbl_to.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: bold;")
         self.combo_calib_timeout = QComboBox()
         for text, secs in CALIB_TIMEOUT_OPTIONS:
@@ -1068,13 +1096,13 @@ class CalibrationModalDialog(QDialog):
         layout.addWidget(self.lbl_calib_info)
 
         # Botão 1: Calibração Sequencial Guiada
-        self.btn_read_white = QPushButton("🎯 Iniciar Calibração Sequencial Completa (Branco -> Escuro)")
+        self.btn_read_white = QPushButton("Iniciar Calibração Sequencial Completa (Branco -> Escuro)")
         self.btn_read_white.setObjectName("btnPrimary")
         self.btn_read_white.clicked.connect(self.trigger_white_calibration)
         layout.addWidget(self.btn_read_white)
 
         # Botão 2: Medir Escuro
-        self.btn_read_dark = QPushButton("🌑 2. Definir Corrente de Escuro Manual (Zero Físico)")
+        self.btn_read_dark = QPushButton("2. Definir Corrente de Escuro Manual (Zero Físico)")
         self.btn_read_dark.clicked.connect(self.set_dark_current_zeros)
         self.btn_read_dark.setEnabled(False)
         self.btn_read_dark.setText("Escuro medido automaticamente com LED desligado")
@@ -1164,7 +1192,7 @@ class SamplePlacementInterlockDialog(QDialog):
 
         # Header com ícone
         header = QHBoxLayout()
-        icon = QLabel("📦")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 24px;")
         lbl_title = QLabel(f"<b>{title.upper()}</b>")
         lbl_title.setStyleSheet("color: #38BDF8; font-size: 13px; letter-spacing: 0.5px;")
@@ -1190,12 +1218,12 @@ class SamplePlacementInterlockDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
 
-        self.btn_cancel = QPushButton("❌ Cancelar / Abortar")
+        self.btn_cancel = QPushButton("Cancelar / Abortar")
         self.btn_cancel.setObjectName("btnCancel")
         self.btn_cancel.setCursor(Qt.PointingHandCursor)
         self.btn_cancel.clicked.connect(self.reject)
 
-        self.btn_confirm = QPushButton("✔ OK / Iniciar")
+        self.btn_confirm = QPushButton("OK / Iniciar")
         self.btn_confirm.setObjectName("btnConfirm")
         self.btn_confirm.setCursor(Qt.PointingHandCursor)
         self.btn_confirm.clicked.connect(self.accept)
@@ -1265,7 +1293,7 @@ class CalibrationTransitionDialog(QDialog):
         layout.setSpacing(14)
 
         header = QHBoxLayout()
-        icon = QLabel("💧")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 24px;")
         lbl_title = QLabel("<b>BRANCO MEDIDO — FALTA MEDIR O ESCURO</b>")
         lbl_title.setStyleSheet("color: #38BDF8; font-size: 13px; letter-spacing: 0.5px;")
@@ -1291,12 +1319,12 @@ class CalibrationTransitionDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
 
-        self.btn_exit = QPushButton("🚪 Cancelar / Sair")
+        self.btn_exit = QPushButton("Cancelar / Sair")
         self.btn_exit.setObjectName("btnClose")
         self.btn_exit.setCursor(Qt.PointingHandCursor)
         self.btn_exit.clicked.connect(self.reject)
 
-        self.btn_proceed = QPushButton("🚀 Prosseguir para Escuro")
+        self.btn_proceed = QPushButton("Prosseguir para Escuro")
         self.btn_proceed.setObjectName("btnProceed")
         self.btn_proceed.setCursor(Qt.PointingHandCursor)
         self.btn_proceed.clicked.connect(self.accept)
@@ -1361,7 +1389,7 @@ class DarkSafetyInterlockDialog(QDialog):
         layout.setSpacing(14)
 
         header = QHBoxLayout()
-        icon = QLabel("⚠️")
+        icon = QLabel("")
         icon.setStyleSheet("font-size: 24px;")
         lbl_title = QLabel("<b>AVISO DE SEGURANÇA — FUNDO ESCURO</b>")
         lbl_title.setStyleSheet("color: #F59E0B; font-size: 13px; letter-spacing: 0.5px;")
@@ -1384,12 +1412,12 @@ class DarkSafetyInterlockDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
 
-        self.btn_cancel = QPushButton("❌ Cancelar / Sair")
+        self.btn_cancel = QPushButton("Cancelar / Sair")
         self.btn_cancel.setObjectName("btnCancel")
         self.btn_cancel.setCursor(Qt.PointingHandCursor)
         self.btn_cancel.clicked.connect(self.reject)
 
-        self.btn_confirm = QPushButton("✔ Sim, lâmina removida e gaveta vazia")
+        self.btn_confirm = QPushButton("Sim, lâmina removida e gaveta vazia")
         self.btn_confirm.setObjectName("btnConfirmEmpty")
         self.btn_confirm.setCursor(Qt.PointingHandCursor)
         self.btn_confirm.clicked.connect(self.accept)
@@ -1474,7 +1502,7 @@ class DialogDecisaoConclusao(QDialog):
 
         # Header
         header = QHBoxLayout()
-        icon = QLabel("✔" if not is_repeatability else "📊")
+        icon = QLabel("" if not is_repeatability else "")
         icon.setStyleSheet("font-size: 24px; color: #10B981;")
         lbl_h = QLabel("<b>LEITURA CONCLUÍDA COM SUCESSO</b>" if not is_repeatability else "<b>ENSAIO DE REPETIBILIDADE CONCLUÍDO</b>")
         lbl_h.setStyleSheet("color: #10B981; font-size: 12px; font-weight: bold; letter-spacing: 0.5px;")
@@ -1497,7 +1525,7 @@ class DialogDecisaoConclusao(QDialog):
         btn_box.setSpacing(8)
 
         # Botão 1: Padrão / Foco
-        self.btn_finish = QPushButton("📥 Finalizar e Fechar Gaveta (Padrão)")
+        self.btn_finish = QPushButton("Finalizar e Fechar Gaveta (Padrão)")
         self.btn_finish.setObjectName("btnFinish")
         self.btn_finish.setCursor(Qt.PointingHandCursor)
         # Sem botão padrão: Enter não aciona movimento motorizado. A escolha é explícita por clique.
@@ -1506,13 +1534,13 @@ class DialogDecisaoConclusao(QDialog):
         self.btn_finish.clicked.connect(self._choose_finish)
 
         # Botão 2: Nova Análise
-        self.btn_new = QPushButton("🔬 Nova Análise (Manter Gaveta Aberta)")
+        self.btn_new = QPushButton("Nova Análise (Manter Gaveta Aberta)")
         self.btn_new.setObjectName("btnNewScan")
         self.btn_new.setCursor(Qt.PointingHandCursor)
         self.btn_new.clicked.connect(self._choose_new)
 
         # Botão 3: Iniciar Repetibilidade
-        self.btn_repeat = QPushButton("🔁 Iniciar Repetibilidade (5 Leituras Consecutivas)")
+        self.btn_repeat = QPushButton("Iniciar Repetibilidade (5 Leituras Consecutivas)")
         self.btn_repeat.setObjectName("btnRepeat")
         self.btn_repeat.setCursor(Qt.PointingHandCursor)
         self.btn_repeat.clicked.connect(self._choose_repeat)
@@ -1546,7 +1574,7 @@ class DialogAlertaRadiacao(OperatingAlertDialog):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("⚠️ AVISO DE SEGURANÇA: EMISSÃO ÓPTICA ATIVA")
+        self.setWindowTitle("AVISO DE SEGURANÇA: EMISSÃO ÓPTICA ATIVA")
         self.setFixedSize(530, 315)
         self.setWindowModality(Qt.ApplicationModal)
         # Desabilita botão 'X' de fechar a janela e botão de Ajuda
@@ -1617,13 +1645,13 @@ class DialogAlertaRadiacao(OperatingAlertDialog):
         self.pbar.setRange(0, 0)
         layout.addWidget(self.pbar)
 
-        self.lbl_status = QLabel("⏳ Varredura óptica em andamento. Câmara intertravada...")
+        self.lbl_status = QLabel("Varredura óptica em andamento. Câmara intertravada...")
         self.lbl_status.setStyleSheet("color: #D97706; font-size: 11px; font-weight: bold;")
         self.lbl_status.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.lbl_status)
 
         # Botão de Parada de Emergência no corpo do diálogo
-        self.btn_emergency = QPushButton("🛑 PARADA DE EMERGÊNCIA")
+        self.btn_emergency = QPushButton("PARADA DE EMERGÊNCIA")
         self.btn_emergency.setCursor(Qt.PointingHandCursor)
         self.btn_emergency.setStyleSheet("""
             QPushButton {
@@ -1671,7 +1699,7 @@ class DialogAlertaGaveta(OperatingAlertDialog):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("⚠️ AVISO: ATUADOR MECÂNICO EM OPERAÇÃO")
+        self.setWindowTitle("AVISO: ATUADOR MECÂNICO EM OPERAÇÃO")
         self.setFixedSize(530, 315)
         self.setWindowModality(Qt.ApplicationModal)
         # Desabilita botão 'X' de fechar a janela e botão de Ajuda
@@ -1742,13 +1770,13 @@ class DialogAlertaGaveta(OperatingAlertDialog):
         self.pbar.setRange(0, 0)
         layout.addWidget(self.pbar)
 
-        self.lbl_status = QLabel("⏳ Gaveta motorizada em deslocamento...")
+        self.lbl_status = QLabel("Gaveta motorizada em deslocamento...")
         self.lbl_status.setStyleSheet("color: #D97706; font-size: 11px; font-weight: bold;")
         self.lbl_status.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.lbl_status)
 
         # Botão de Parada de Emergência no corpo do diálogo
-        self.btn_emergency = QPushButton("🛑 PARADA DE EMERGÊNCIA")
+        self.btn_emergency = QPushButton("PARADA DE EMERGÊNCIA")
         self.btn_emergency.setCursor(Qt.PointingHandCursor)
         self.btn_emergency.setStyleSheet("""
             QPushButton {
@@ -2045,7 +2073,7 @@ class SpectrumLabMainWindow(QMainWindow):
         menu_settings.addAction(self.act_appearance)
 
         # 1. Gerenciar Usuários
-        act_gestao = QAction("👥 Gerenciar Usuários", self)
+        act_gestao = QAction("Gerenciar Usuários", self)
         act_gestao.setStatusTip("Abrir tela de gerenciamento de usuários e controle de acesso")
         act_gestao.triggered.connect(self.open_user_management_dialog)
         menu_sistema.addAction(act_gestao)
@@ -2053,7 +2081,7 @@ class SpectrumLabMainWindow(QMainWindow):
         menu_sistema.addSeparator()
 
         # 2. Logout / Bloquear Painel
-        act_logout = QAction("🔒 Logout / Bloquear Painel", self)
+        act_logout = QAction("Logout / Bloquear Painel", self)
         act_logout.setStatusTip("Bloqueia as abas restritas e retorna ao modo seguro padrão")
         act_logout.triggered.connect(self.logout_action)
         menu_sistema.addAction(act_logout)
@@ -2061,7 +2089,7 @@ class SpectrumLabMainWindow(QMainWindow):
         menu_sistema.addSeparator()
 
         # 3. Sair
-        act_sair = QAction("🚪 Sair", self)
+        act_sair = QAction("Sair", self)
         act_sair.setStatusTip("Fecha o supervisório com segurança")
         act_sair.triggered.connect(self.close)
         menu_sistema.addAction(act_sair)
@@ -2151,9 +2179,9 @@ class SpectrumLabMainWindow(QMainWindow):
         lbl_mode.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: bold;")
         self.combo_conn_mode = QComboBox()
         self.combo_conn_mode.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.combo_conn_mode.addItem("🔌 USB", "USB")
-        self.combo_conn_mode.addItem("📶 Bluetooth", "BLUETOOTH")
-        self.combo_conn_mode.addItem("🌐 Wi-Fi", "WIFI")
+        self.combo_conn_mode.addItem("USB", "USB")
+        self.combo_conn_mode.addItem("Bluetooth", "BLUETOOTH")
+        self.combo_conn_mode.addItem("Wi-Fi", "WIFI")
         self.combo_conn_mode.currentIndexChanged.connect(self._on_conn_mode_changed)
 
         # 1. Container Serial / Bluetooth:
@@ -2169,7 +2197,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.combo_com.setMinimumWidth(85)
         self.populate_com_ports()
 
-        self.btn_refresh_ports = QPushButton("🔄")
+        self.btn_refresh_ports = QPushButton("")
         self.btn_refresh_ports.setToolTip("Atualizar lista de portas COM / Bluetooth")
         self.btn_refresh_ports.setFixedWidth(28)
         self.btn_refresh_ports.clicked.connect(self.populate_com_ports)
@@ -2256,7 +2284,7 @@ class SpectrumLabMainWindow(QMainWindow):
         layout.addStretch(1)
 
         # Botão Modal de Operação Manual e Parada de Emergência Topbar
-        btn_modal_manual = QPushButton("⚙️ Painel Atuadores")
+        btn_modal_manual = QPushButton("Painel Atuadores")
         btn_modal_manual.setToolTip("Abrir painel de controle manual e manutenção")
         btn_modal_manual.setMinimumHeight(34)
         btn_modal_manual.setMinimumWidth(135)
@@ -2268,7 +2296,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.btn_settings.clicked.connect(self.open_appearance_settings)
         layout.addWidget(self.btn_settings)
 
-        self.btn_top_emergency = QPushButton("🛑 PARADA DE EMERGÊNCIA")
+        self.btn_top_emergency = QPushButton("PARADA DE EMERGÊNCIA")
         self.btn_top_emergency.setMinimumHeight(34)
         self.btn_top_emergency.setMinimumWidth(185)
         self.btn_top_emergency.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -2298,10 +2326,10 @@ class SpectrumLabMainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        self.kpi_energy = PowerBiKpiCard("⚡", "Intensidade Global", "0 ADC", "Soma das 6 bandas NIR", "#38BDF8")
-        self.kpi_peak = PowerBiKpiCard("📈", "Pico Espectral (λmax)", "-- nm", "Comprimento dominante", "#818CF8")
-        self.kpi_ratio_cel = PowerBiKpiCard("🌿", "Razão Celulose (S/T)", "0.00", "R680 / R730 (Bandas Celulósicas)", "#34D399")
-        self.kpi_ratio_water = PowerBiKpiCard("💧", "Razão Matriz Água (W/U)", "0.00", "R860 / R760 (Espessura da Gota)", "#FBBF24")
+        self.kpi_energy = PowerBiKpiCard("", "Intensidade", "0 ADC", "Soma das 6 bandas NIR", "#38BDF8")
+        self.kpi_peak = PowerBiKpiCard("", "Pico espectral", "-- nm", "Comprimento dominante", "#818CF8")
+        self.kpi_ratio_cel = PowerBiKpiCard("", "Razão de banda", "0.00", "R680 / R730", "#34D399")
+        self.kpi_ratio_water = PowerBiKpiCard("", "Razão de espessura", "0.00", "R860 / R760", "#FBBF24")
 
         layout.addWidget(self.kpi_energy,0,0)
         layout.addWidget(self.kpi_peak,0,1)
@@ -2336,13 +2364,13 @@ class SpectrumLabMainWindow(QMainWindow):
         mode_box_layout.setContentsMargins(10, 8, 10, 8)
         mode_box_layout.setSpacing(4)
 
-        lbl_op_mode = QLabel("🔬 MÉTODO ANALÍTICO OPERACIONAL:")
+        lbl_op_mode = QLabel("MÉTODO ANALÍTICO OPERACIONAL:")
         lbl_op_mode.setStyleSheet("color: #38BDF8; font-size: 10px; font-weight: 800; letter-spacing: 0.5px;")
         mode_box_layout.addWidget(lbl_op_mode)
 
         self.combo_op_mode = QComboBox()
-        self.combo_op_mode.addItem("💧 Suspensão Aquosa (Lâmina / Água)", "umido")
-        self.combo_op_mode.addItem("📄 Amostra Seca (Reflectância Difusa)", "seco")
+        self.combo_op_mode.addItem("Suspensão Aquosa (Lâmina / Água)", "umido")
+        self.combo_op_mode.addItem("Amostra Seca (Reflectância Difusa)", "seco")
         self.combo_op_mode.setToolTip("Alterna calibração e equações de predição entre Suspensão Aquosa e Amostra Seca")
         self.combo_op_mode.setStyleSheet("""
             QComboBox {
@@ -2370,7 +2398,7 @@ class SpectrumLabMainWindow(QMainWindow):
 
         auto_layout.addWidget(mode_box)
 
-        self.btn_start_scan = QPushButton("▶ Iniciar Ciclo Automático")
+        self.btn_start_scan = QPushButton("Iniciar Ciclo Automático")
         self.btn_start_scan.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0078D4, stop:1 #0284C7);
@@ -2391,7 +2419,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.lbl_scan_hint.setWordWrap(True)
         self.lbl_scan_hint.setStyleSheet("color: #9CA3AF; font-size: 11px;")
 
-        self.btn_repeatability = QPushButton("🔁 Ensaio Repetibilidade (5x Estático)")
+        self.btn_repeatability = QPushButton("Ensaio Repetibilidade (5x Estático)")
         self.btn_repeatability.setStyleSheet("""
             QPushButton {
                 background-color: #383838;
@@ -2409,11 +2437,11 @@ class SpectrumLabMainWindow(QMainWindow):
         self.btn_repeatability.setMinimumHeight(34)
         self.btn_repeatability.clicked.connect(self.start_repeatability_test)
 
-        self.btn_calibrate = QPushButton("🎯 Calibrar Branco e Escuro")
+        self.btn_calibrate = QPushButton("Calibrar Branco e Escuro")
         self.btn_calibrate.setMinimumHeight(34)
         self.btn_calibrate.clicked.connect(self.open_calibration_dialog)
 
-        self.btn_emergency_auto = QPushButton("🛑 Parada de Emergência")
+        self.btn_emergency_auto = QPushButton("Parada de Emergência")
         self.btn_emergency_auto.setStyleSheet("""
             QPushButton {
                 background-color: #3A1D1D;
@@ -2450,7 +2478,7 @@ class SpectrumLabMainWindow(QMainWindow):
         cd_layout = QVBoxLayout(card_d)
         cd_layout.setContentsMargins(8, 6, 8, 6)
         cd_layout.setSpacing(6)
-        cd_layout.addWidget(QLabel("📦 GAVETA DE AMOSTRAS"))
+        cd_layout.addWidget(QLabel("GAVETA DE AMOSTRAS"))
 
         self.btn_man_open_drawer = QPushButton("Abrir Gaveta")
         self.btn_man_open_drawer.setMinimumHeight(34)
@@ -2488,7 +2516,7 @@ class SpectrumLabMainWindow(QMainWindow):
         cs_layout = QVBoxLayout(card_s)
         cs_layout.setContentsMargins(8, 6, 8, 6)
         cs_layout.setSpacing(6)
-        cs_layout.addWidget(QLabel("🔬 CARRINHO DO SENSOR NIR"))
+        cs_layout.addWidget(QLabel("CARRINHO DO SENSOR NIR"))
 
         self.btn_man_fwd_sensor = QPushButton("Avançar Sensor")
         self.btn_man_fwd_sensor.setMinimumHeight(34)
@@ -2506,7 +2534,7 @@ class SpectrumLabMainWindow(QMainWindow):
         manual_layout.addWidget(card_s)
 
         # Disparo Único
-        self.btn_man_read = QPushButton("💡 Disparo Único")
+        self.btn_man_read = QPushButton("Disparo Único")
         self.btn_man_read.setStyleSheet("background-color: #0284C7; font-weight: bold; padding: 8px;")
         self.btn_man_read.setMinimumHeight(34)
         self.btn_man_read.clicked.connect(lambda: self._execute_atomic_manual_button(
@@ -2517,8 +2545,8 @@ class SpectrumLabMainWindow(QMainWindow):
 
         # QTabWidget com Abas [ Ensaios Automáticos ] e [ Modo Manual ] (Protegido por Autenticação)
         self.control_tabs = QTabWidget()
-        self.control_tabs.addTab(page_auto, "📋 Ensaios Automáticos")
-        self.control_tabs.addTab(page_manual, "⚙️ Modo Manual")
+        self.control_tabs.addTab(page_auto, "Ensaios Automáticos")
+        self.control_tabs.addTab(page_manual, "Modo Manual")
         self.control_tabs.currentChanged.connect(self._on_control_tab_changed)
         layout.addWidget(self.control_tabs)
 
@@ -2570,17 +2598,17 @@ class SpectrumLabMainWindow(QMainWindow):
 
         # Ações do Sistema (Histórico de Ensaios / PDF / CSV)
         actions_layout = QHBoxLayout()
-        self.btn_history = QPushButton("📋 Histórico de Ensaios")
+        self.btn_history = QPushButton("Histórico de Ensaios")
         self.btn_history.setToolTip("Gerenciador completo de histórico de ensaios espectrais")
         self.btn_history.setMinimumHeight(34)
         self.btn_history.clicked.connect(self.open_history_dialog)
         self.btn_db = self.btn_history  # alias para retrocompatibilidade
 
-        self.btn_pdf = QPushButton("📄 Relatório PDF")
+        self.btn_pdf = QPushButton("Relatório PDF")
         self.btn_pdf.setMinimumHeight(34)
         self.btn_pdf.clicked.connect(self.export_pdf_report)
 
-        self.btn_csv = QPushButton("📊 Exportar CSV")
+        self.btn_csv = QPushButton("Exportar CSV")
         self.btn_csv.setMinimumHeight(34)
         self.btn_csv.clicked.connect(self.export_csv_log)
 
@@ -2962,7 +2990,7 @@ class SpectrumLabMainWindow(QMainWindow):
         if cmd_str=="CMD:LER_ESPECTRO" and not self._ready_for_scan():
             return
         button.setEnabled(False)
-        self.lbl_cycle_status.setText(f"Status: ⏳ {desc} (Aguardando STATUS:{expected_status})")
+        self.lbl_cycle_status.setText(f"Status: {desc} (Aguardando STATUS:{expected_status})")
 
         # Watchdog por segurança
         watchdog = QTimer(self)
@@ -3069,7 +3097,7 @@ class SpectrumLabMainWindow(QMainWindow):
             except Exception:
                 pass
             self._refresh_controls()
-            self.lbl_cycle_status.setText(f"Status: ✔ Ação confirmada ({status_tag}). Pronto.")
+            self.lbl_cycle_status.setText(f"Status: Ação confirmada ({status_tag}). Pronto.")
 
         if status_tag in ("SENSOR_OK", "PRONTO"):
             self.log_message("Handshake ESP32 validado com sucesso!")
@@ -3090,7 +3118,7 @@ class SpectrumLabMainWindow(QMainWindow):
         if status_tag in ("ABRINDO_GAVETA", "FECHANDO_GAVETA"):
             if self.is_in_automated_routine():
                 desc = "ABERTURA DE GAVETA EM ANDAMENTO" if status_tag == "ABRINDO_GAVETA" else "FECHAMENTO DE GAVETA EM ANDAMENTO"
-                msg = "⏳ Abrindo gaveta motorizada..." if status_tag == "ABRINDO_GAVETA" else "⏳ Fechando gaveta motorizada..."
+                msg = "Abrindo gaveta motorizada..." if status_tag == "ABRINDO_GAVETA" else "Fechando gaveta motorizada..."
                 self._show_drawer_alert(msg, desc)
             return
 
@@ -3152,7 +3180,7 @@ class SpectrumLabMainWindow(QMainWindow):
         self.fsm_state = "AGUARDANDO_POPUP"
         pending_routine = self._pending_routine
         popup_epoch = self._operation_epoch
-        self.lbl_cycle_status.setText("Status: 📦 Gaveta aberta. Aguardando posicionamento e confirmação do operador...")
+        self.lbl_cycle_status.setText("Status: Gaveta aberta. Aguardando posicionamento e confirmação do operador...")
         self.log_message("[INTERTRAVAMENTO] Gaveta aberta. Exibindo popup de confirmação de amostra...")
 
         is_dry = (self.chem_engine.active_mode == "seco")
@@ -3222,8 +3250,8 @@ class SpectrumLabMainWindow(QMainWindow):
         if self._pending_routine == "AUTO":
             self.auto_cycle_active = True
             self.fsm_state = "AUTO_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Amostra confirmada. Fechando gaveta para medição...")
-            self._show_drawer_alert("⏳ Amostra confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Amostra confirmada. Fechando gaveta para medição...")
+            self._show_drawer_alert("Amostra confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
         elif self._pending_routine == "REPETIBILIDADE":
@@ -3232,15 +3260,15 @@ class SpectrumLabMainWindow(QMainWindow):
             self._rep_raw_scans=[]
             self._result_valid=False
             self.fsm_state = "REP_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Amostra confirmada. Fechando gaveta para repetibilidade...")
-            self._show_drawer_alert("⏳ Amostra confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Amostra confirmada. Fechando gaveta para repetibilidade...")
+            self._show_drawer_alert("Amostra confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
         elif self._pending_routine in ("CALIB_BRANCO", "CALIBRAÇÃO"):
             self.is_calibrating_white = True
             self.fsm_state = "CALIB_ETAPA1_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Referência confirmada. Fechando gaveta para medição do branco...")
-            self._show_drawer_alert("⏳ Referência confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Referência confirmada. Fechando gaveta para medição do branco...")
+            self._show_drawer_alert("Referência confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
     # -----------------------------------------------------------------
@@ -3274,9 +3302,9 @@ class SpectrumLabMainWindow(QMainWindow):
         self._last_raw_payload = []
 
         self.cycle_progress.setValue(5)
-        self.lbl_cycle_status.setText("Status: ⏳ Fase 1: Abrindo gaveta para posicionamento da amostra...")
+        self.lbl_cycle_status.setText("Status: Fase 1: Abrindo gaveta para posicionamento da amostra...")
         self.log_message("[CICLO AUTO] Fase 1: Enviando CMD:ABRIR_GAVETA")
-        self._show_drawer_alert("⏳ Fase 1: Abrindo gaveta para posicionamento da amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
+        self._show_drawer_alert("Fase 1: Abrindo gaveta para posicionamento da amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
         self.send_serial_command("CMD:ABRIR_GAVETA")
 
     def _handle_auto_cycle_fsm(self, status_tag: str):
@@ -3284,16 +3312,16 @@ class SpectrumLabMainWindow(QMainWindow):
         if status_tag == "GAVETA_FECHADA" and self.fsm_state == "AUTO_FECHANDO_GAVETA":
             self.fsm_state = "AUTO_AVANCANDO_SENSOR"
             self.cycle_progress.setValue(35)
-            self.lbl_cycle_status.setText("Status: ⏳ Gaveta fechada. Avançando sensor sobre a lâmina...")
+            self.lbl_cycle_status.setText("Status: Gaveta fechada. Avançando sensor sobre a lâmina...")
             self.log_message("[CICLO AUTO] Avançando sensor (CMD:AVANCAR_SENSOR)")
-            self._show_radiation_alert("⏳ Varredura óptica NIR em andamento. Câmara intertravada...")
+            self._show_radiation_alert("Varredura óptica NIR em andamento. Câmara intertravada...")
             self.send_serial_command("CMD:AVANCAR_SENSOR")
 
         # Passo 2: Sensor Avançado -> Dispara 1 varredura óptica
         elif status_tag == "SENSOR_AVANCADO" and self.fsm_state == "AUTO_AVANCANDO_SENSOR":
             self.fsm_state = "AUTO_LENDO_ESPECTRO"
             self.cycle_progress.setValue(60)
-            self.lbl_cycle_status.setText("Status: 💡 Sensor posicionado. Disparando leitura dos 6 canais NIR...")
+            self.lbl_cycle_status.setText("Status: Sensor posicionado. Disparando leitura dos 6 canais NIR...")
             self.log_message("[CICLO AUTO] Disparando leitura (CMD:LER_ESPECTRO)")
             self.send_serial_command("CMD:LER_ESPECTRO")
 
@@ -3301,7 +3329,7 @@ class SpectrumLabMainWindow(QMainWindow):
         elif status_tag == "LEITURA_CONCLUIDA" and self.fsm_state == "AUTO_LENDO_ESPECTRO":
             self.fsm_state = "AUTO_RECUANDO_SENSOR"
             self.cycle_progress.setValue(80)
-            self.lbl_cycle_status.setText("Status: ⏳ Leitura óptica concluída. Recuando sensor para repouso...")
+            self.lbl_cycle_status.setText("Status: Leitura óptica concluída. Recuando sensor para repouso...")
             self.log_message("[CICLO AUTO] Recuando sensor (CMD:RECUAR_SENSOR)")
             self.send_serial_command("CMD:RECUAR_SENSOR")
 
@@ -3310,15 +3338,15 @@ class SpectrumLabMainWindow(QMainWindow):
             self._hide_radiation_alert()
             self.fsm_state = "AUTO_ABRINDO_GAVETA"
             self.cycle_progress.setValue(92)
-            self.lbl_cycle_status.setText("Status: ⏳ Sensor em repouso. Abrindo gaveta para retirada da lâmina...")
+            self.lbl_cycle_status.setText("Status: Sensor em repouso. Abrindo gaveta para retirada da lâmina...")
             self.log_message("[CICLO AUTO] Abrindo gaveta para ejeção (CMD:ABRIR_GAVETA)")
-            self._show_drawer_alert("⏳ Abrindo gaveta para retirada da lâmina...", "ABERTURA DE GAVETA EM ANDAMENTO")
+            self._show_drawer_alert("Abrindo gaveta para retirada da lâmina...", "ABERTURA DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:ABRIR_GAVETA")
 
         # Passo 5: Gaveta Aberta -> Processa resultados e exibe diálogo de decisão
         elif status_tag == "GAVETA_ABERTA" and self.fsm_state == "AUTO_ABRINDO_GAVETA":
             self.cycle_progress.setValue(100)
-            self.lbl_cycle_status.setText("Status: ✔ Análise concluída. Gaveta aberta no berço.")
+            self.lbl_cycle_status.setText("Status: Análise concluída. Gaveta aberta no berço.")
             self.log_message("[CICLO AUTO] Análise concluída com sucesso. Gaveta aberta no berço.")
 
             if self._last_raw_payload:
@@ -3365,9 +3393,9 @@ class SpectrumLabMainWindow(QMainWindow):
         self.fsm_state = "PREP_ABRINDO_GAVETA"
 
         self.cycle_progress.setValue(5)
-        self.lbl_cycle_status.setText("Status: ⏳ Fase 1: Abrindo gaveta para posicionamento da amostra...")
+        self.lbl_cycle_status.setText("Status: Fase 1: Abrindo gaveta para posicionamento da amostra...")
         self.log_message("[REPETIBILIDADE] Fase 1: Enviando CMD:ABRIR_GAVETA")
-        self._show_drawer_alert("⏳ Fase 1: Abrindo gaveta para posicionamento da amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
+        self._show_drawer_alert("Fase 1: Abrindo gaveta para posicionamento da amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
         self.send_serial_command("CMD:ABRIR_GAVETA")
 
     def _trigger_next_repeatability_read(self):
@@ -3376,7 +3404,7 @@ class SpectrumLabMainWindow(QMainWindow):
             return
         self.fsm_state = "REP_LENDO_ESPECTRO"
         rep_num = len(self.leituras_rep) + 1
-        self.lbl_cycle_status.setText(f"Status: 💡 Sensor estático posicionado. Disparando aquisição {rep_num} de 5...")
+        self.lbl_cycle_status.setText(f"Status: Sensor estático posicionado. Disparando aquisição {rep_num} de 5...")
         self.log_message(f"[REPETIBILIDADE ESTÁTICA] Disparando aquisição {rep_num}/5 (CMD:LER_ESPECTRO)...")
         self.send_serial_command("CMD:LER_ESPECTRO")
 
@@ -3385,16 +3413,16 @@ class SpectrumLabMainWindow(QMainWindow):
         if status_tag == "GAVETA_FECHADA" and self.fsm_state == "REP_FECHANDO_GAVETA":
             self.fsm_state = "REP_AVANCANDO_SENSOR"
             self.cycle_progress.setValue(15)
-            self.lbl_cycle_status.setText("Status: ⏳ Gaveta fechada. Posicionando sensor sobre a amostra...")
+            self.lbl_cycle_status.setText("Status: Gaveta fechada. Posicionando sensor sobre a amostra...")
             self.log_message("[REPETIBILIDADE ESTÁTICA] Posicionando sensor sobre a amostra (CMD:AVANCAR_SENSOR)")
-            self._show_radiation_alert("⏳ Ensaio de Repetibilidade Estática (aquisições consecutivas sem movimento)...")
+            self._show_radiation_alert("Ensaio de Repetibilidade Estática (aquisições consecutivas sem movimento)...")
             self.send_serial_command("CMD:AVANCAR_SENSOR")
 
         # 2. Sensor Avançado -> Dispara 1ª varredura óptica sem movimentações intermediárias
         elif status_tag == "SENSOR_AVANCADO" and self.fsm_state == "REP_AVANCANDO_SENSOR":
             self.fsm_state = "REP_LENDO_ESPECTRO"
             rep_num = len(self.leituras_rep) + 1
-            self.lbl_cycle_status.setText(f"Status: 💡 Sensor estático posicionado. Disparando aquisição {rep_num} de 5...")
+            self.lbl_cycle_status.setText(f"Status: Sensor estático posicionado. Disparando aquisição {rep_num} de 5...")
             self.log_message(f"[REPETIBILIDADE ESTÁTICA] Sensor posicionado. Disparando aquisição {rep_num}/5 (CMD:LER_ESPECTRO)...")
             self.send_serial_command("CMD:LER_ESPECTRO")
 
@@ -3412,7 +3440,7 @@ class SpectrumLabMainWindow(QMainWindow):
 
                 progress_val = 15 + int((count / 5.0) * 70)
                 self.cycle_progress.setValue(progress_val)
-                self.lbl_cycle_status.setText(f"Status: 💡 Aquisição {count} de 5 concluída...")
+                self.lbl_cycle_status.setText(f"Status: Aquisição {count} de 5 concluída...")
                 self.log_message(f"[REPETIBILIDADE ESTÁTICA] Aquisição {count}/5 gravada: {[round(v, 4) for v in calib_r]}")
 
                 snv = self.chem_engine.normalize_snv(calib_r)
@@ -3423,7 +3451,7 @@ class SpectrumLabMainWindow(QMainWindow):
             if count < 5:
                 # Mantém sensor estático na mesma posição e agenda próxima leitura após 300ms de resfriamento térmico do LED
                 self.fsm_state = "REP_AGUARDANDO_PROXIMA"
-                self.lbl_cycle_status.setText(f"Status: ⏳ Intervalo térmico (aquisição {count} de 5 concluída)...")
+                self.lbl_cycle_status.setText(f"Status: Intervalo térmico (aquisição {count} de 5 concluída)...")
                 t = QTimer(self)
                 t.setSingleShot(True)
                 t.timeout.connect(self._trigger_next_repeatability_read)
@@ -3433,7 +3461,7 @@ class SpectrumLabMainWindow(QMainWindow):
                 # Todas as 5 aquisições estáticas concluídas: Somente agora recua o sensor!
                 self.fsm_state = "REP_RECUANDO_SENSOR"
                 self.cycle_progress.setValue(90)
-                self.lbl_cycle_status.setText("Status: ⏳ 5 aquisições estáticas concluídas. Recuando sensor...")
+                self.lbl_cycle_status.setText("Status: 5 aquisições estáticas concluídas. Recuando sensor...")
                 self.log_message("[REPETIBILIDADE ESTÁTICA] 5 leituras concluídas sem movimento mecânico. Recuando sensor (CMD:RECUAR_SENSOR)...")
                 self.send_serial_command("CMD:RECUAR_SENSOR")
 
@@ -3442,15 +3470,15 @@ class SpectrumLabMainWindow(QMainWindow):
             self._hide_radiation_alert()
             self.fsm_state = "REP_ABRINDO_GAVETA"
             self.cycle_progress.setValue(95)
-            self.lbl_cycle_status.setText("Status: ⏳ Sensor em repouso. Abrindo gaveta para decisão operacional...")
+            self.lbl_cycle_status.setText("Status: Sensor em repouso. Abrindo gaveta para decisão operacional...")
             self.log_message("[REPETIBILIDADE ESTÁTICA] Sensor recuado. Abrindo gaveta para ejeção (CMD:ABRIR_GAVETA)...")
-            self._show_drawer_alert("⏳ Abrindo gaveta para retirada da lâmina...", "ABERTURA DE GAVETA EM ANDAMENTO")
+            self._show_drawer_alert("Abrindo gaveta para retirada da lâmina...", "ABERTURA DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:ABRIR_GAVETA")
 
         # 5. Gaveta Aberta -> Exibe relatório estatístico e abre diálogo de decisão
         elif status_tag == "GAVETA_ABERTA" and self.fsm_state == "REP_ABRINDO_GAVETA":
             self.cycle_progress.setValue(100)
-            self.lbl_cycle_status.setText("Status: ✔ Ensaio de Repetibilidade Estática concluído. Gaveta aberta no berço.")
+            self.lbl_cycle_status.setText("Status: Ensaio de Repetibilidade Estática concluído. Gaveta aberta no berço.")
             self.log_message("[REPETIBILIDADE ESTÁTICA] Ensaio de Repetibilidade Estática concluído. Gaveta aberta.")
             self._display_repeatability_report()
             self._handle_completion_decision_dialog(is_repeatability=True)
@@ -3473,8 +3501,8 @@ class SpectrumLabMainWindow(QMainWindow):
         if action == DialogDecisaoConclusao.ACTION_FINISH:
             self.log_message("[CONCLUSÃO] Decisão: Finalizar e Fechar Gaveta.")
             self.fsm_state = "CONCLUSAO_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Finalizando ensaio. Fechando gaveta...")
-            self._show_drawer_alert("⏳ Fechando gaveta e finalizando...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Finalizando ensaio. Fechando gaveta...")
+            self._show_drawer_alert("Fechando gaveta e finalizando...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
         elif action == DialogDecisaoConclusao.ACTION_NEW_SCAN:
@@ -3516,8 +3544,8 @@ class SpectrumLabMainWindow(QMainWindow):
             self.is_calibrating_white = False
             self.fsm_state = "AUTO_FECHANDO_GAVETA"
             self.cycle_progress.setValue(15)
-            self.lbl_cycle_status.setText(f"Status: ⏳ Nova amostra ({novo_id}) confirmada. Fechando gaveta...")
-            self._show_drawer_alert("⏳ Fechando gaveta para nova medição...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText(f"Status: Nova amostra ({novo_id}) confirmada. Fechando gaveta...")
+            self._show_drawer_alert("Fechando gaveta para nova medição...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             # Envia diretamente CMD:FECHAR_GAVETA (sem tentar abrir novamente a gaveta que já está aberta!)
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
@@ -3551,8 +3579,8 @@ class SpectrumLabMainWindow(QMainWindow):
             self._result_valid=False
             self.fsm_state = "REP_FECHANDO_GAVETA"
             self.cycle_progress.setValue(10)
-            self.lbl_cycle_status.setText("Status: ⏳ Repetibilidade confirmada. Fechando gaveta...")
-            self._show_drawer_alert("⏳ Repetibilidade confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Repetibilidade confirmada. Fechando gaveta...")
+            self._show_drawer_alert("Repetibilidade confirmada. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             # Envia diretamente CMD:FECHAR_GAVETA (sem tentar abrir novamente a gaveta que já está aberta!)
             self.send_serial_command("CMD:FECHAR_GAVETA")
 
@@ -3631,7 +3659,7 @@ class SpectrumLabMainWindow(QMainWindow):
 
         # 1. CABEÇALHO & CARDS KPI
         header_row = QHBoxLayout()
-        header_title = QLabel("📊 RELATÓRIO ESTATÍSTICO DE REPETIBILIDADE INSTRUMENTAL (5x Estático)")
+        header_title = QLabel("RELATÓRIO ESTATÍSTICO DE REPETIBILIDADE INSTRUMENTAL (5x Estático)")
         header_title.setStyleSheet("color: #38BDF8; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;")
         header_row.addWidget(header_title)
         header_row.addStretch()
@@ -3794,7 +3822,7 @@ class SpectrumLabMainWindow(QMainWindow):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(10)
 
-        btn_csv = QPushButton("📥 Exportar Matriz 5x6 e Estatísticas (CSV)")
+        btn_csv = QPushButton("Exportar Matriz 5x6 e Estatísticas (CSV)")
         btn_csv.setStyleSheet("""
             QPushButton {
                 background-color: #047857;
@@ -3914,9 +3942,9 @@ class SpectrumLabMainWindow(QMainWindow):
         self.cycle_progress.setValue(5)
         is_dry = (self.chem_engine.active_mode == "seco")
         target_name = "padrão branco seco (cartão branco fosco)" if is_dry else "lâmina com água destilada"
-        self.lbl_cycle_status.setText(f"Status: ⏳ Calibração Etapa 1: Abrindo gaveta para {target_name}...")
+        self.lbl_cycle_status.setText(f"Status: Calibração Etapa 1: Abrindo gaveta para {target_name}...")
         self.log_message(f"[CALIBRAÇÃO - {self.chem_engine.active_mode.upper()}] Etapa 1: Enviando CMD:ABRIR_GAVETA")
-        self._show_drawer_alert(f"⏳ Calibração Etapa 1: Abrindo gaveta para {target_name}...", "ABERTURA DE GAVETA EM ANDAMENTO")
+        self._show_drawer_alert(f"Calibração Etapa 1: Abrindo gaveta para {target_name}...", "ABERTURA DE GAVETA EM ANDAMENTO")
         self.send_serial_command("CMD:ABRIR_GAVETA")
 
     def start_calibration_wizard(self):
@@ -3928,7 +3956,7 @@ class SpectrumLabMainWindow(QMainWindow):
         ETAPA 2: Transição com a gaveta aberta pós-branco.
         Exibe Popup 2 (Pergunta de Sequência) e, se o operador aceitar, Popup 3 (Segurança).
         """
-        self.lbl_cycle_status.setText("Status: 📦 Branco registrado. Gaveta aberta. Aguardando operador...")
+        self.lbl_cycle_status.setText("Status: Branco registrado. Gaveta aberta. Aguardando operador...")
         transition_state = self.fsm_state
         transition_epoch = self._operation_epoch
         self.log_message("[CALIBRAÇÃO TRANSIÇÃO] Gaveta aberta. Exibindo Popup 2 (Pergunta de Sequência)...")
@@ -3943,8 +3971,8 @@ class SpectrumLabMainWindow(QMainWindow):
             # Usuário escolheu [ Cancelar / Sair ]: Fecha gaveta e salva Branco
             self.log_message("[CALIBRAÇÃO] Operador optou por Concluir após o Branco. Fechando gaveta...")
             self.fsm_state = "CALIB_CONCLUSAO_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Fechando gaveta; calibração incompleta será descartada...")
-            self._show_drawer_alert("⏳ Fechando gaveta e descartando calibração incompleta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Fechando gaveta; calibração incompleta será descartada...")
+            self._show_drawer_alert("Fechando gaveta e descartando calibração incompleta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
             return
 
@@ -3959,8 +3987,8 @@ class SpectrumLabMainWindow(QMainWindow):
             # Usuário cancelou no Popup 3: Fecha gaveta e salva Branco
             self.log_message("[CALIBRAÇÃO] Operador cancelou no Popup 3. Fechando gaveta e descartando calibração incompleta...")
             self.fsm_state = "CALIB_CONCLUSAO_FECHANDO_GAVETA"
-            self.lbl_cycle_status.setText("Status: ⏳ Fechando gaveta; calibração incompleta será descartada...")
-            self._show_drawer_alert("⏳ Cancelamento: Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+            self.lbl_cycle_status.setText("Status: Fechando gaveta; calibração incompleta será descartada...")
+            self._show_drawer_alert("Cancelamento: Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:FECHAR_GAVETA")
             return
 
@@ -3969,8 +3997,8 @@ class SpectrumLabMainWindow(QMainWindow):
         self.log_message("[CALIBRAÇÃO] Berço vazio confirmado. Fechando gaveta para medição de escuro...")
         self.fsm_state = "CALIB_ETAPA2_FECHANDO_GAVETA"
         self.cycle_progress.setValue(65)
-        self.lbl_cycle_status.setText("Status: ⏳ Gaveta fechando com berço vazio para calibração de escuro...")
-        self._show_drawer_alert("⏳ Berço vazio confirmado. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
+        self.lbl_cycle_status.setText("Status: Gaveta fechando com berço vazio para calibração de escuro...")
+        self._show_drawer_alert("Berço vazio confirmado. Fechando gaveta...", "FECHAMENTO DE GAVETA EM ANDAMENTO")
         self.send_serial_command("CMD:FECHAR_GAVETA")
 
     def _handle_white_calibration_fsm(self, status_tag: str):
@@ -3980,9 +4008,9 @@ class SpectrumLabMainWindow(QMainWindow):
             self.cycle_progress.setValue(25)
             is_dry = (self.chem_engine.active_mode == "seco")
             lbl_pos = "Posicionando sensor sobre padrão branco seco..." if is_dry else "Posicionando sensor sobre a lâmina de água..."
-            self.lbl_cycle_status.setText(f"Status: ⏳ Gaveta fechada. {lbl_pos}")
+            self.lbl_cycle_status.setText(f"Status: Gaveta fechada. {lbl_pos}")
             self.log_message("[CALIBRAÇÃO ETAPA 1] Avançando sensor (CMD:AVANCAR_SENSOR)")
-            alert_msg = "⏳ Medindo Cartão branco fosco com radiação NIR ativa..." if is_dry else "⏳ Medindo Branco óptico (Água Destilada) com radiação NIR ativa..."
+            alert_msg = "Medindo Cartão branco fosco com radiação NIR ativa..." if is_dry else "Medindo Branco óptico (Água Destilada) com radiação NIR ativa..."
             self._show_radiation_alert(alert_msg)
             self.send_serial_command("CMD:AVANCAR_SENSOR")
 
@@ -3992,7 +4020,7 @@ class SpectrumLabMainWindow(QMainWindow):
             self.cycle_progress.setValue(35)
             is_dry = (self.chem_engine.active_mode == "seco")
             lbl_read = "Medindo Padrão Branco Seco (cartão branco fosco)..." if is_dry else "Medindo Branco óptico (Água Destilada)..."
-            self.lbl_cycle_status.setText(f"Status: 💡 {lbl_read}")
+            self.lbl_cycle_status.setText(f"Status: {lbl_read}")
             self.log_message("[CALIBRAÇÃO ETAPA 1] Disparando leitura de branco (CMD:LER_ESPECTRO)")
             self.send_serial_command("CMD:LER_ESPECTRO")
 
@@ -4001,7 +4029,7 @@ class SpectrumLabMainWindow(QMainWindow):
             self._temp_vetor_branco = list(self._last_raw_payload)
             self.fsm_state = "CALIB_ETAPA1_RECUANDO_SENSOR"
             self.cycle_progress.setValue(50)
-            self.lbl_cycle_status.setText("Status: ⏳ Leitura de branco registrada. Recuando sensor para repouso...")
+            self.lbl_cycle_status.setText("Status: Leitura de branco registrada. Recuando sensor para repouso...")
             self.log_message(f"[CALIBRAÇÃO BRANCO] Vetor gravado: {self._temp_vetor_branco}")
             self.log_message("[CALIBRAÇÃO ETAPA 1] Recuando sensor (CMD:RECUAR_SENSOR)")
             self.send_serial_command("CMD:RECUAR_SENSOR")
@@ -4011,9 +4039,9 @@ class SpectrumLabMainWindow(QMainWindow):
             self._hide_radiation_alert()
             self.fsm_state = "CALIB_ETAPA1_ABRINDO_GAVETA"
             self.cycle_progress.setValue(58)
-            self.lbl_cycle_status.setText("Status: ⏳ Sensor em repouso. Abrindo gaveta para retirada da lâmina...")
+            self.lbl_cycle_status.setText("Status: Sensor em repouso. Abrindo gaveta para retirada da lâmina...")
             self.log_message("[CALIBRAÇÃO ETAPA 1] Abrindo gaveta para ejeção (CMD:ABRIR_GAVETA)")
-            self._show_drawer_alert("⏳ Abrindo gaveta para transição de amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
+            self._show_drawer_alert("Abrindo gaveta para transição de amostra...", "ABERTURA DE GAVETA EM ANDAMENTO")
             self.send_serial_command("CMD:ABRIR_GAVETA")
 
         # 5. Cancelamento no Popup 1 -> Gaveta fechada e sistema liberado
@@ -4040,7 +4068,7 @@ class SpectrumLabMainWindow(QMainWindow):
         elif status_tag == "GAVETA_FECHADA" and self.fsm_state == "CALIB_ETAPA2_FECHANDO_GAVETA":
             self.fsm_state = "CALIB_ETAPA2_AVANCANDO_SENSOR"
             self.cycle_progress.setValue(70)
-            self.lbl_cycle_status.setText("Status: ⏳ Gaveta fechada com berço vazio. Avançando sensor para escuro...")
+            self.lbl_cycle_status.setText("Status: Gaveta fechada com berço vazio. Avançando sensor para escuro...")
             self.log_message("[CALIBRAÇÃO ETAPA 2] Avançando sensor para escuro (CMD:AVANCAR_SENSOR)")
             self._hide_radiation_alert()
             self.send_serial_command("CMD:AVANCAR_SENSOR")
@@ -4049,7 +4077,7 @@ class SpectrumLabMainWindow(QMainWindow):
         elif status_tag == "SENSOR_AVANCADO" and self.fsm_state == "CALIB_ETAPA2_AVANCANDO_SENSOR":
             self.fsm_state = "CALIB_ETAPA2_LENDO_ESPECTRO"
             self.cycle_progress.setValue(80)
-            self.lbl_cycle_status.setText("Status: 💡 Medindo Fundo Escuro no compartimento óptico vazio...")
+            self.lbl_cycle_status.setText("Status: Medindo Fundo Escuro no compartimento óptico vazio...")
             self.log_message("[CALIBRAÇÃO ETAPA 2] Escuro real: CMD:LER_ESCURO")
             self.send_serial_command("CMD:LER_ESCURO")
 
@@ -4058,7 +4086,7 @@ class SpectrumLabMainWindow(QMainWindow):
             self._temp_vetor_escuro = list(self._last_raw_payload)
             self.fsm_state = "CALIB_ETAPA2_RECUANDO_SENSOR"
             self.cycle_progress.setValue(92)
-            self.lbl_cycle_status.setText("Status: ⏳ Fundo escuro gravado. Recuando sensor para repouso seguro...")
+            self.lbl_cycle_status.setText("Status: Fundo escuro gravado. Recuando sensor para repouso seguro...")
             self.log_message(f"[CALIBRAÇÃO ESCURO] Vetor gravado: {self._temp_vetor_escuro}")
             self.log_message("[CALIBRAÇÃO ETAPA 2] Recuando sensor (CMD:RECUAR_SENSOR)")
             self.send_serial_command("CMD:RECUAR_SENSOR")
@@ -4075,7 +4103,7 @@ class SpectrumLabMainWindow(QMainWindow):
             if not self._save_measured_calibration():
                 return
 
-            self.lbl_cycle_status.setText("Status: ✔ Calibração completa (Branco e Escuro) realizada. Gaveta fechada em repouso.")
+            self.lbl_cycle_status.setText("Status: Calibração completa (Branco e Escuro) realizada. Gaveta fechada em repouso.")
             self.log_message(f"[CALIBRAÇÃO COMPLETA] Branco e Escuro ({self.chem_engine.active_mode}) gravados em calibracao.json. Gaveta fechada e sistema pronto.")
 
             QMessageBox.information(
@@ -4146,7 +4174,7 @@ class SpectrumLabMainWindow(QMainWindow):
            - Atualiza a barra de status ou badge para: "EMERGÊNCIA ACIONADA - BANCADA EM REPOUSO".
         """
         self._operation_epoch += 1
-        self.log_message("🛑 PARADA DE EMERGÊNCIA ACIONADA PELO OPERADOR!")
+        self.log_message("PARADA DE EMERGÊNCIA ACIONADA PELO OPERADOR!")
         self._clear_cycle_timers()
         self._hide_drawer_alert()
         self._hide_radiation_alert()
@@ -4183,7 +4211,7 @@ class SpectrumLabMainWindow(QMainWindow):
             self.lbl_cycle_status.setText("EMERGÊNCIA ENVIADA — aguardando confirmação da bancada")
             self.lbl_cycle_status.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: 900;")
         else:
-            self.log_message("⚠ PARADA NÃO ENVIADA: sem conexão com a bancada. Use o botão de emergência físico.")
+            self.log_message("PARADA NÃO ENVIADA: sem conexão com a bancada. Use o botão de emergência físico.")
             self.lbl_cycle_status.setText("PARADA NÃO ENVIADA — sem conexão. Use o botão de emergência físico.")
             self.lbl_cycle_status.setStyleSheet("color: #FFFFFF; background-color: #B91C1C; font-size: 12px; font-weight: 900; padding: 4px;")
 
@@ -4265,8 +4293,13 @@ class SpectrumLabMainWindow(QMainWindow):
         dom_wl = WAVELENGTHS[max_idx]
         self.kpi_peak.set_value(f"{dom_wl} nm", f"Canal {CHANNEL_NAMES[max_idx]} ({int(self.current_scan_data[max_idx])} ADC)")
 
-        self.kpi_ratio_cel.set_value(f"{ratio_cel:.2f}", "R680 / R730 (Bandas Celulósicas)")
-        self.kpi_ratio_water.set_value(f"{ratio_water:.2f}", "R860 / R760 (Espessura da Gota)")
+        self.kpi_ratio_cel.set_value(f"{ratio_cel:.2f}", "R680 / R730")
+        self.kpi_ratio_water.set_value(f"{ratio_water:.2f}", "R860 / R760")
+        try:
+            import detail_windows
+            detail_windows.record_reading(self, self.current_scan_data, r_snv)   # estado nos cartões e janelas abertas
+        except Exception as err:
+            self.log_message(f"Detalhes dos indicadores indisponíveis: {err}")
 
         # 6. Estimativa de Número Kappa e Classificação Industrial
         kappa_predito, kappa_status, kappa_color = calculate_kappa_number(
@@ -4483,9 +4516,9 @@ class SpectrumLabMainWindow(QMainWindow):
                     self.is_manual_mode_unlocked = True
                     u_name = self.authenticated_user.get("username", "operador")
                     role = self.authenticated_user.get("role", "operador").upper()
-                    self.log_message(f"🔓 Modo Manual liberado para {u_name} ({role}).")
+                    self.log_message(f"Modo Manual liberado para {u_name} ({role}).")
                 else:
-                    self.log_message("🔒 Acesso ao Modo Manual cancelado ou não autorizado.")
+                    self.log_message("Acesso ao Modo Manual cancelado ou não autorizado.")
                     self.control_tabs.blockSignals(True)
                     self.control_tabs.setCurrentIndex(0)
                     self.control_tabs.blockSignals(False)
@@ -4495,7 +4528,7 @@ class SpectrumLabMainWindow(QMainWindow):
             # Ao sair do Modo Manual, exige autenticação novamente ao reentrar
             if self.is_manual_mode_unlocked:
                 self.is_manual_mode_unlocked = False
-                self.log_message("🔒 Modo Manual bloqueado ao alternar para Ensaios Automáticos.")
+                self.log_message("Modo Manual bloqueado ao alternar para Ensaios Automáticos.")
                 self._refresh_controls()
 
     def switch_mode(self, mode: str):
@@ -4554,7 +4587,7 @@ class SpectrumLabMainWindow(QMainWindow):
             self.control_tabs.setCurrentIndex(0)
             self.control_tabs.blockSignals(False)
 
-        self.log_message(f"🔒 Logout realizado com sucesso ({user_name}). Painel manual bloqueado.")
+        self.log_message(f"Logout realizado com sucesso ({user_name}). Painel manual bloqueado.")
         QMessageBox.information(
             self, "Painel Bloqueado",
             "Sessão encerrada com sucesso.\nO painel manual foi bloqueado."
@@ -4583,7 +4616,7 @@ class SpectrumLabMainWindow(QMainWindow):
                 self.authenticated_user = dlg.usuario_logado
 
             if not accepted or not self.authenticated_user:
-                self.log_message("🔒 Acesso ao Painel de Atuadores cancelado ou não autorizado.")
+                self.log_message("Acesso ao Painel de Atuadores cancelado ou não autorizado.")
                 return
 
             self.is_manual_mode_unlocked = True
