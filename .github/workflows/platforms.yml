@@ -28,5 +28,5 @@ jobs:
       - run: bash run/setup.sh
       - run: bash run/start_display.sh
       - run: DISPLAY=:99 QT_QPA_PLATFORM=xcb .venv/bin/python run/probe_qt.py
-      - run: curl --fail http://127.0.0.1:6080/vnc.html
+      - run: .venv/bin/python run/probe_novnc.py
       - run: DISPLAY=:99 QT_QPA_PLATFORM=xcb .venv/bin/python -m unittest discover -s tests -p test_platform_integration.py -v
