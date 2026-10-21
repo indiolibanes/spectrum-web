@@ -13,16 +13,19 @@ if [[ ! -S /tmp/.X11-unix/X99 ]] || ! port_open 6080; then
 fi
 
 export DISPLAY=:99
+# NoVNC usa X11; não herdar um backend Wayland/offscreen do ambiente.
+export QT_QPA_PLATFORM=xcb
+export QT_X11_NO_MITSHM=1
 # Dados de teste isolados: não tocam nos arquivos reais de usuários e calibração.
 export SPECTRUM_LAB_DATA_DIR="$REPO_DIR/run-data"
 mkdir -p run-data
 
-if ! python3 -c "import PyQt5.QtCore" 2>/dev/null; then
-  c_err "PyQt5 não está instalado. Rode: bash run/setup.sh"; exit 1
+if ! python3 -c "import PyQt5.QtWidgets, matplotlib, reportlab, numpy, serial" 2>/dev/null; then
+  c_err "Dependência Python ausente (Qt, Matplotlib, ReportLab, NumPy ou PySerial). Rode: bash run/setup.sh"; exit 1
 fi
 
 pkill -f "run/fake_esp32.py" 2>/dev/null || true
-python3 run/fake_esp32.py --port 8080 >run-data/esp32_simulado.log 2>&1 &
+python3 run/fake_esp32.py --host 127.0.0.1 --port 8080 >run-data/esp32_simulado.log 2>&1 &
 SIM_PID=$!
 trap 'kill $SIM_PID 2>/dev/null || true' EXIT
 if wait_port 8080 8; then c_ok "ESP32 simulado em 0.0.0.0:8080"; else c_warn "O simulador não respondeu na porta 8080"; tail_log run-data/esp32_simulado.log; fi
