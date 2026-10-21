@@ -4,12 +4,13 @@ Simulador de bancada ESP32 (somente para teste de interface).
 
 Fala o mesmo protocolo TCP do firmware, na porta 8080 (modo Wi-Fi do supervisório):
   - Recebe linhas CMD:... terminadas em \\n.
-  - Responde com STATUS:..., PORTA:... e DATA:v1,...,v6.
+  - Responde com STATUS:..., PORTA:... e SCAN:id|DATA:v1,...,v6.
 
 Não movimenta nada e não mede luz real. Serve para testar telas, mensagens,
 intertravamentos e fluxos de ensaio sem a bancada.
 """
 import argparse
+import re
 import random
 import socket
 import threading
@@ -95,11 +96,19 @@ def responder(bancada, comando, enviar):
     elif comando == "REVOGAR_CARCACA":
         bancada.autorizada = False
         enviar("STATUS:CARCACA_AUTORIZACAO_REVOGADA")
-    elif comando in ("LER_ESPECTRO", "LER_ESCURO"):
+    elif comando.startswith(("LER_ESPECTRO:", "LER_ESCURO:")):
+        # Protocolo 2: a aplicação só aceita leituras com identificador único.
+        tipo, _, identificador = comando.partition(":")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", identificador):
+            enviar("STATUS:COMANDO_ERRO:ID_INVALIDO")
+            return True
         time.sleep(ATRASO_LEITURA)
-        valores = bancada.amostra(escuro=(comando == "LER_ESCURO"))
-        enviar("DATA:" + ",".join(str(v) for v in valores))
-        enviar("STATUS:LEITURA_CONCLUIDA")
+        valores = bancada.amostra(escuro=(tipo == "LER_ESCURO"))
+        enviar("SCAN:" + identificador + "|DATA:" + ",".join(str(v) for v in valores))
+        enviar("STATUS:LEITURA_CONCLUIDA:" + identificador)
+    elif comando in ("LER_ESPECTRO", "LER_ESCURO"):
+        # Não emitir pacotes DATA: sem identificador, que o supervisório descarta.
+        enviar("STATUS:COMANDO_ERRO:ID_INVALIDO")
     elif comando == "EMERGENCIA":
         with bancada.lock:
             bancada.autorizada = False
@@ -144,7 +153,7 @@ def atender(conexao, endereco, bancada):
 
 def main():
     parser = argparse.ArgumentParser(description="Simulador ESP32 para o SPECTRUM-LAB PRO")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=PORTA_PADRAO)
     args = parser.parse_args()
 
